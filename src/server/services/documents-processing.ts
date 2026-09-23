@@ -10,7 +10,7 @@ import { storage } from "../storage";
  *  • Scanned images → OCR provider adapter; without a configured provider the
  *    version is marked UNAVAILABLE (never silently "done").
  */
-async function extract(mime: string, buf: Buffer): Promise<{ status: "DONE" | "UNAVAILABLE" | "NOT_REQUIRED"; text?: string; pages?: { page: number; text: string }[] }> {
+export async function extract(mime: string, buf: Buffer): Promise<{ status: "DONE" | "UNAVAILABLE" | "NOT_REQUIRED"; text?: string; pages?: { page: number; text: string }[] }> {
   if (mime === "application/pdf") {
     // Import the library entry directly: the package index runs a debug self-test when bundled.
     const pdfParse = (await import("pdf-parse/lib/pdf-parse.js")).default;

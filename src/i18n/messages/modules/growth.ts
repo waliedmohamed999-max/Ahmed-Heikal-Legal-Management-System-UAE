@@ -157,6 +157,7 @@ const en = {
     generated: "Generated draft",
     empty: "No templates yet.",
     active: "Active",
+    saveAsNote: "Save to case as internal note",
   },
   reports: {
     title: "Reports",
@@ -344,6 +345,7 @@ const ar: typeof en = {
     generated: "المسودة المُنشأة",
     empty: "لا توجد نماذج بعد.",
     active: "نشط",
+    saveAsNote: "حفظ في القضية كملاحظة داخلية",
   },
   reports: {
     title: "التقارير",

@@ -276,6 +276,43 @@ async function seedFoundation(orgId: string) {
     });
   }
 
+  // Starter templates — generic wording for the office to review and adapt; placeholders fill from a case.
+  if ((await db.template.count({ where: { organizationId: orgId } })) === 0) {
+    await db.template.createMany({
+      data: [
+        {
+          organizationId: orgId, kind: "CLIENT_UPDATE", locale: "ar", name: "تحديث العميل بعد الجلسة",
+          body: "السيد/ة {{client.name}} المحترم/ة،\n\nتحية طيبة وبعد،\n\nنحيطكم علماً بمستجدات القضية رقم {{matter.number}} ({{matter.title}}) المنظورة أمام {{matter.court}} تحت الرقم {{matter.officialNumber}}.\n\n[ملخص ما تم في الجلسة]\n\nالجلسة القادمة: {{hearing.next}}.\n\nوتفضلوا بقبول فائق الاحترام،\n{{lawyer.name}}\n{{office.nameAr}}\n{{today}}",
+        },
+        {
+          organizationId: orgId, kind: "CLIENT_UPDATE", locale: "en", name: "Client update after hearing",
+          body: "Dear {{client.name}},\n\nWe write to update you on matter {{matter.number}} ({{matter.title}}) before {{matter.court}}, case no. {{matter.officialNumber}}.\n\n[Summary of what happened at the hearing]\n\nNext hearing: {{hearing.next}}.\n\nKind regards,\n{{lawyer.name}}\n{{office.name}}\n{{today}}",
+        },
+        {
+          organizationId: orgId, kind: "DOCUMENT_REQUEST", locale: "ar", name: "طلب مستندات من العميل",
+          body: "السيد/ة {{client.name}}،\n\nبخصوص القضية {{matter.number}}، نرجو تزويدنا بالمستندات التالية في أقرب وقت ممكن عبر بوابة العملاء:\n\n1. [المستند]\n2. [المستند]\n\nمع الشكر،\n{{lawyer.name}}",
+        },
+        {
+          organizationId: orgId, kind: "ENGAGEMENT_LETTER", locale: "en", name: "Engagement letter (outline)",
+          body: "{{today}}\n\n{{client.name}} ({{client.number}})\n\nRe: Engagement — {{matter.title}}\n\n1. Scope of work: [describe]\n2. Fees: [describe]\n3. Responsibilities of the client: [describe]\n4. Confidentiality and data protection: [describe]\n\nThis outline must be reviewed and completed by a lawyer before it is sent.\n\n{{lawyer.name}}\n{{office.name}}",
+        },
+        {
+          organizationId: orgId, kind: "INTERNAL_MEMO", locale: "en", name: "Internal case memo",
+          body: "INTERNAL — {{matter.number}}\nMatter: {{matter.title}}\nCourt: {{matter.court}} / {{matter.officialNumber}}\nNext hearing: {{hearing.next}}\n\nIssue:\n\nAnalysis:\n\nRecommended next steps:\n\n— {{lawyer.name}}, {{today}}",
+        },
+      ],
+    });
+  }
+  if ((await db.knowledgeDocument.count({ where: { organizationId: orgId } })) === 0) {
+    await db.knowledgeDocument.createMany({
+      data: [
+        { organizationId: orgId, kind: "POLICY", locale: "en", title: "Office policy — verifying legal deadlines", tags: ["deadlines", "policy"], body: "Every deadline extracted by AI or imported from a court document is stored as “Needs verification”. A lawyer with the deadlines.verify permission must check the source document and confirm the date before it is relied on. Never calculate a statutory deadline from memory — check the current procedural law and the court’s notice." },
+        { organizationId: orgId, kind: "CHECKLIST", locale: "ar", title: "قائمة تحضير الجلسة", tags: ["جلسات", "تحضير"], body: "١. مراجعة آخر قرار في القضية.\n٢. التأكد من إيداع المذكرات في موعدها.\n٣. تجهيز المستندات الأصلية والنسخ.\n٤. تأكيد حضور الموكل أو الوكالة.\n٥. مراجعة ملاحظات الجلسة السابقة." },
+        { organizationId: orgId, kind: "LEGAL_NOTE", locale: "en", title: "Sample note — expert reports in commercial disputes", tags: ["expert", "commercial", "sample"], body: "Sample entry (synthetic). Record here the office’s internal practice notes on responding to court-appointed expert reports: timelines set by the court, format of objections, and how to request a supplementary report. Verify against current law before use." },
+      ],
+    });
+  }
+
   return { roles };
 }
 

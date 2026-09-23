@@ -1,6 +1,6 @@
 import {
   Home, Briefcase, Users, CalendarDays, FileText, CheckSquare, Wallet, UsersRound, Sparkles, ShieldCheck,
-  BarChart3, BookOpen, FileStack, Plug, Settings, ScrollText, Globe, Target, CalendarClock, Landmark, Contact, ListTodo, Sun,
+  BarChart3, BookOpen, FileStack, Plug, Settings, ScrollText, Globe, Target, CalendarClock, Landmark, Contact, ListTodo, Sun, FileInput,
 } from "lucide-react";
 import type { PermissionKey } from "@/lib/permissions";
 
@@ -38,6 +38,7 @@ export const MORE_NAV: NavItem[] = [
   { key: "knowledge", href: "/app/knowledge", labelKey: "nav.knowledge", icon: BookOpen, perm: "knowledge.view" },
   { key: "templates", href: "/app/templates", labelKey: "nav.templates", icon: FileStack, perm: "knowledge.view" },
   { key: "resources", href: "/app/resources", labelKey: "nav.resources", icon: Landmark },
+  { key: "court-import", href: "/app/integrations/import", labelKey: "courtImport.title", icon: FileInput, perm: "deadlines.manage" },
   { key: "integrations", href: "/app/integrations", labelKey: "nav.integrations", icon: Plug, perm: "integrations.manage" },
   { key: "website", href: "/app/website", labelKey: "nav.website", icon: Globe, perm: "cms.manage" },
   { key: "audit", href: "/app/audit", labelKey: "nav.audit", icon: ScrollText, perm: "audit.view" },
