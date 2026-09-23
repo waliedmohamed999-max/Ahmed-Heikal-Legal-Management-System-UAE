@@ -20,3 +20,6 @@ backups/
 src/generated/
 .DS_Store
 Thumbs.db
+
+# Integration-test file storage
+storage-test/

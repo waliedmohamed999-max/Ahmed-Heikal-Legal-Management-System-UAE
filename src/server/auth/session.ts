@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import type { UserKind } from "@prisma/client";
+import type { Prisma, UserKind } from "@prisma/client";
 import { db } from "../db";
 import { randomToken, sha256 } from "../crypto";
 import { requestMeta } from "../request";
@@ -85,7 +85,17 @@ async function loadContext(realm: UserKind) {
   if (now - session.lastSeenAt.getTime() > TOUCH_EVERY_MS) {
     await db.session.update({ where: { id: session.id }, data: { lastSeenAt: new Date() } });
   }
+  return contextFromSession(session);
+}
 
+type LoadedSession = {
+  id: string;
+  mfaVerified: boolean;
+  user: Prisma.UserGetPayload<{ include: { role: { include: { permissions: { select: { permissionKey: true } } } }; organization: true } }>;
+};
+
+/** Map a validated session row to the request context. Exported for DB-backed integration tests. */
+export function contextFromSession(session: LoadedSession) {
   const { user } = session;
   const permissions = new Set<string>(user.role.permissions.map((p) => p.permissionKey));
   const principal: Principal = {
