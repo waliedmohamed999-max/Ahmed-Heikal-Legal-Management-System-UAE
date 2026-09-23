@@ -1,0 +1,233 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─────────────────────────────────────────────────────────────
+   AH Legal OS — design tokens
+   Deep navy identity, off-white canvas, slate neutrals, a single
+   restrained cobalt accent. Status and event colours are semantic
+   (never decorative) and reused consistently across the product.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --canvas: #f6f6f3;
+  --surface: #ffffff;
+  --surface-muted: #f2f2ee;
+  --surface-sunken: #ebebe6;
+  --line: #e4e4de;
+  --line-strong: #d3d3cb;
+  --ink: #121826;
+  --ink-muted: #4a5163;
+  --ink-subtle: #7b8191;
+  --brand: #0e1b33;
+  --brand-hover: #182a4b;
+  --brand-fg: #ffffff;
+  --accent: #3553c9;
+  --accent-hover: #2b46ad;
+  --accent-soft: #eef1fb;
+  --accent-fg: #ffffff;
+  --ring: #3553c9;
+
+  --nav-bg: #0c1424;
+  --nav-surface: #131d31;
+  --nav-line: #1d2840;
+  --nav-fg: #d5dae4;
+  --nav-muted: #8c95a8;
+  --nav-active: #1c2945;
+
+  --danger: #b42318;
+  --danger-soft: #fdf1f0;
+  --critical: #c01d3f;
+  --critical-soft: #fdeff2;
+  --high: #c4480a;
+  --high-soft: #fff3eb;
+  --warning: #a15c07;
+  --warning-soft: #fdf7e8;
+  --success: #067647;
+  --success-soft: #ecf8f1;
+  --info: #3553c9;
+  --info-soft: #eef1fb;
+  --neutral-soft: #f0f0ec;
+
+  /* Event types (calendar, agenda, countdowns) */
+  --ev-hearing: #3f37c9;
+  --ev-court-deadline: #b42318;
+  --ev-client-meeting: #0e7490;
+  --ev-internal-meeting: #52607a;
+  --ev-submission: #7a3eb1;
+  --ev-expert: #a15c07;
+  --ev-payment: #067647;
+  --ev-task: #2f5bd3;
+  --ev-follow-up: #5b6b7f;
+
+  --shadow-xs: 0 1px 1px rgb(16 24 40 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.06), 0 1px 1px rgb(16 24 40 / 0.03);
+  --shadow-md: 0 6px 16px -4px rgb(16 24 40 / 0.10), 0 2px 4px -2px rgb(16 24 40 / 0.05);
+  --shadow-lg: 0 20px 40px -12px rgb(16 24 40 / 0.22), 0 4px 10px -4px rgb(16 24 40 / 0.08);
+}
+
+.dark {
+  --canvas: #0a0e16;
+  --surface: #10151f;
+  --surface-muted: #151b27;
+  --surface-sunken: #0d121b;
+  --line: #222a38;
+  --line-strong: #2f3949;
+  --ink: #e8ebf1;
+  --ink-muted: #a7aebc;
+  --ink-subtle: #737c8d;
+  --brand: #e8ebf1;
+  --brand-hover: #ffffff;
+  --brand-fg: #0c1424;
+  --accent: #7189ef;
+  --accent-hover: #8a9ff3;
+  --accent-soft: #1a2240;
+  --accent-fg: #0c1424;
+  --ring: #7189ef;
+  --nav-bg: #070b12;
+  --nav-surface: #0e1420;
+  --nav-line: #182030;
+  --nav-active: #172238;
+  --danger-soft: #2a1414;
+  --critical-soft: #2b1219;
+  --high-soft: #2a1a10;
+  --warning-soft: #271f0e;
+  --success-soft: #0f2419;
+  --info-soft: #1a2240;
+  --neutral-soft: #1a2030;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: var(--font-arabic);
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-fg: var(--brand-fg);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-fg);
+  --color-ring: var(--ring);
+  --color-nav: var(--nav-bg);
+  --color-nav-surface: var(--nav-surface);
+  --color-nav-line: var(--nav-line);
+  --color-nav-fg: var(--nav-fg);
+  --color-nav-muted: var(--nav-muted);
+  --color-nav-active: var(--nav-active);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-critical: var(--critical);
+  --color-critical-soft: var(--critical-soft);
+  --color-high: var(--high);
+  --color-high-soft: var(--high-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-ev-hearing: var(--ev-hearing);
+  --color-ev-court-deadline: var(--ev-court-deadline);
+  --color-ev-client-meeting: var(--ev-client-meeting);
+  --color-ev-internal-meeting: var(--ev-internal-meeting);
+  --color-ev-submission: var(--ev-submission);
+  --color-ev-expert: var(--ev-expert);
+  --color-ev-payment: var(--ev-payment);
+  --color-ev-task: var(--ev-task);
+  --color-ev-follow-up: var(--ev-follow-up);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-slide-up: slide-up 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+  html[dir="rtl"] body {
+    /* Arabic reads better with the Arabic face first and slightly more leading */
+    font-family: var(--font-arabic), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.65;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Numbers/case IDs always LTR even inside Arabic text */
+  .ltr-nums {
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-variant-numeric: tabular-nums;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .nav-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--nav-line) transparent;
+  }
+}

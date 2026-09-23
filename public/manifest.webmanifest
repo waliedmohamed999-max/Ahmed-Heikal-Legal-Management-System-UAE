@@ -1,0 +1,11 @@
+{
+  "name": "AH Legal OS",
+  "short_name": "AH Legal",
+  "description": "Legal practice management — Ahmed Heikal Legal Consultancy",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f6f3",
+  "theme_color": "#0c1424",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

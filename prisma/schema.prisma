@@ -1,0 +1,1842 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// AH Legal OS — data model
+//
+// Conventions
+// • Every tenant-owned row carries organizationId (single tenant in v1, SaaS-ready).
+// • UUID primary keys, createdAt/updatedAt everywhere, createdById/updatedById on
+//   user-authored records, deletedAt soft delete where records must be recoverable.
+// • All DateTime values are stored in UTC and presented in the org timezone
+//   (Asia/Dubai by default).
+// • Money is Decimal(14,2); currency defaults to AED.
+// • "Matter" is the core legal record. The UI calls it "Case" / "القضية"; its
+//   `kind` distinguishes court cases, consultations, contracts, disputes, etc.
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pg_trgm, unaccent]
+}
+
+// ═══════════════════════════ Tenancy & identity ═════════════════════════════
+
+model Organization {
+  id               String   @id @default(uuid()) @db.Uuid
+  slug             String   @unique
+  name             String
+  nameAr           String?
+  timezone         String   @default("Asia/Dubai")
+  currency         String   @default("AED")
+  defaultLocale    String   @default("ar")
+  vatRate          Decimal  @default(5) @db.Decimal(5, 2)
+  matterPrefix     String   @default("AH")
+  invoicePrefix    String   @default("INV")
+  trn              String? // UAE Tax Registration Number
+  address          String?
+  phone            String?
+  email            String?
+  // Alert thresholds, retention, AI & privacy configuration (validated by zod in app code)
+  settings         Json     @default("{}")
+  isDemo           Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  users            User[]
+  roles            Role[]
+  teams            Team[]
+  clients          Client[]
+  contacts         Contact[]
+  matters          Matter[]
+  jurisdictions    Jurisdiction[]
+  courts           Court[]
+  caseCategories   CaseCategory[]
+  caseTypes        CaseType[]
+  workflows        Workflow[]
+  checklistTemplates ChecklistTemplate[]
+  hearings         Hearing[]
+  deadlines        Deadline[]
+  appointments     Appointment[]
+  tasks            Task[]
+  documents        Document[]
+  notifications    Notification[]
+  invoices         Invoice[]
+  payments         Payment[]
+  expenses         Expense[]
+  timeEntries      TimeEntry[]
+  leads            Lead[]
+  pipelineStages   PipelineStage[]
+  communications   Communication[]
+  templates        Template[]
+  knowledgeDocs    KnowledgeDocument[]
+  integrations     Integration[]
+  auditLogs        AuditLog[]
+  accessRequests   AccessRequest[]
+  approvals        Approval[]
+  aiJobs           AIJob[]
+  automations      Automation[]
+  reminderPolicies ReminderPolicy[]
+  reminders        Reminder[]
+  activities       Activity[]
+  counters         Counter[]
+  legalResources   LegalResource[]
+  practiceAreas    PracticeArea[]
+  articles         Article[]
+  faqs             Faq[]
+  testimonials     Testimonial[]
+  bookingRequests  BookingRequest[]
+  savedViews       SavedView[]
+  imports          CourtImport[]
+  backups          BackupRecord[]
+  privacyRequests  PrivacyRequest[]
+  breachLogs       BreachLog[]
+  siteSettings     SiteSetting[]
+}
+
+enum UserKind {
+  STAFF
+  CLIENT
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id               String     @id @default(uuid()) @db.Uuid
+  organizationId   String     @db.Uuid
+  kind             UserKind   @default(STAFF)
+  email            String     @unique
+  name             String
+  nameAr           String?
+  position         String?
+  positionAr       String?
+  phone            String?
+  photoUrl         String?
+  passwordHash     String
+  status           UserStatus @default(ACTIVE)
+  roleId           String     @db.Uuid
+  locale           String     @default("ar")
+  // MFA (TOTP). Secret is AES-GCM encrypted at rest.
+  mfaEnabled       Boolean    @default(false)
+  mfaSecretEnc     String?
+  failedLoginCount Int        @default(0)
+  lockedUntil      DateTime?
+  lastLoginAt      DateTime?
+  passwordChangedAt DateTime?
+  // Portal users are bound to exactly one client
+  clientId         String?    @db.Uuid
+  // Dashboard widgets, notification channel prefs, etc.
+  preferences      Json       @default("{}")
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  role             Role         @relation(fields: [roleId], references: [id])
+  client           Client?      @relation("PortalUsers", fields: [clientId], references: [id])
+  sessions         Session[]
+  teamMemberships  TeamMember[]
+  matterMemberships MatterMember[] @relation("MemberUser")
+  grantedMemberships MatterMember[] @relation("MemberGrantedBy")
+  ledMatters       Matter[]     @relation("LeadLawyer")
+  ownedMatters     Matter[]     @relation("MatterOwner")
+  assignedTasks    Task[]       @relation("TaskAssignee")
+  createdTasks     Task[]       @relation("TaskCreator")
+  attendingHearings Hearing[]   @relation("HearingLawyer")
+  deadlinesAssigned Deadline[]  @relation("DeadlineAssignee")
+  deadlinesVerified Deadline[]  @relation("DeadlineVerifier")
+  appointments     Appointment[] @relation("AppointmentLawyer")
+  notifications    Notification[]
+  comments         Comment[]
+  notes            Note[]
+  timeEntries      TimeEntry[]
+  auditLogs        AuditLog[]
+  accessRequests   AccessRequest[] @relation("AccessRequester")
+  accessDecisions  AccessRequest[] @relation("AccessDecider")
+  approvalsRequested Approval[]    @relation("ApprovalRequester")
+  approvalsAssigned  Approval[]    @relation("ApprovalAssignee")
+  aiJobs           AIJob[]
+  documentVersions DocumentVersion[]
+  leadsAssigned    Lead[]
+  pushSubscriptions PushSubscription[]
+  reminders        Reminder[]
+  activities       Activity[]
+  savedViews       SavedView[]
+  documentPermissions DocumentPermission[]
+  articles         Article[]
+
+  @@index([organizationId, kind, status])
+}
+
+model Session {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @db.Uuid
+  tokenHash    String    @unique
+  realm        UserKind
+  mfaVerified  Boolean   @default(false)
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
+  expiresAt    DateTime
+  revokedAt    DateTime?
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ═══════════════════════════ RBAC ═══════════════════════════════════════════
+
+enum MatterScope {
+  ALL       // may see every non-confidential matter
+  ASSIGNED  // only matters where the user is an active member
+  NONE      // no matter access (e.g. Finance-only, Client)
+}
+
+model Role {
+  id             String      @id @default(uuid()) @db.Uuid
+  organizationId String      @db.Uuid
+  key            String
+  name           String
+  nameAr         String?
+  description    String?
+  isSystem       Boolean     @default(false)
+  matterScope    MatterScope @default(ASSIGNED)
+  rank           Int         @default(0) // for display ordering only, never for access decisions
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  permissions    RolePermission[]
+  users          User[]
+  documentPermissions DocumentPermission[]
+
+  @@unique([organizationId, key])
+}
+
+model Permission {
+  key         String  @id // e.g. "matters.create", "documents.approve"
+  module      String
+  action      String
+  description String?
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  roleId        String     @db.Uuid
+  permissionKey String
+  role          Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission    Permission @relation(fields: [permissionKey], references: [key], onDelete: Cascade)
+
+  @@id([roleId, permissionKey])
+}
+
+model Team {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String
+  nameAr         String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  members        TeamMember[]
+}
+
+model TeamMember {
+  teamId String @db.Uuid
+  userId String @db.Uuid
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+}
+
+// ═══════════════════════════ Jurisdiction engine ════════════════════════════
+// Nothing procedural is hard-coded: authorities, courts, categories, case types,
+// workflows and stages are all admin-managed data.
+
+enum JurisdictionKind {
+  FEDERAL
+  LOCAL
+  FREE_ZONE
+  ARBITRATION
+  OTHER
+}
+
+model Jurisdiction {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  code           String
+  name           String
+  nameAr         String?
+  kind           JurisdictionKind
+  emirate        String?
+  active         Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  courts         Court[]
+  matters        Matter[]
+  workflows      Workflow[]
+
+  @@unique([organizationId, code])
+}
+
+model Court {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  jurisdictionId String       @db.Uuid
+  name           String
+  nameAr         String?
+  level          String? // e.g. First Instance, Appeal, Cassation — admin-defined label
+  emirate        String?
+  address        String?
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  jurisdiction   Jurisdiction @relation(fields: [jurisdictionId], references: [id])
+  matters        Matter[]
+  hearings       Hearing[]
+
+  @@index([organizationId, jurisdictionId])
+}
+
+model CaseCategory {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String
+  nameAr         String?
+  order          Int          @default(0)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  caseTypes      CaseType[]
+}
+
+model CaseType {
+  id                  String       @id @default(uuid()) @db.Uuid
+  organizationId      String       @db.Uuid
+  categoryId          String?      @db.Uuid
+  code                String
+  name                String
+  nameAr              String?
+  active              Boolean      @default(true)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  category            CaseCategory? @relation(fields: [categoryId], references: [id])
+  matters             Matter[]
+  workflows           Workflow[]
+  checklistTemplates  ChecklistTemplate[]
+
+  @@unique([organizationId, code])
+}
+
+model Workflow {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @db.Uuid
+  name           String
+  nameAr         String?
+  jurisdictionId String?       @db.Uuid
+  caseTypeId     String?       @db.Uuid
+  isDefault      Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  jurisdiction   Jurisdiction? @relation(fields: [jurisdictionId], references: [id])
+  caseType       CaseType?     @relation(fields: [caseTypeId], references: [id])
+  stages         WorkflowStage[]
+}
+
+model WorkflowStage {
+  id         String   @id @default(uuid()) @db.Uuid
+  workflowId String   @db.Uuid
+  order      Int
+  key        String
+  name       String
+  nameAr     String?
+  isTerminal Boolean  @default(false)
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  matters    Matter[]
+
+  @@unique([workflowId, key])
+}
+
+model ChecklistTemplate {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  caseTypeId     String?      @db.Uuid
+  name           String
+  nameAr         String?
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  caseType       CaseType?    @relation(fields: [caseTypeId], references: [id])
+  items          ChecklistTemplateItem[]
+}
+
+model ChecklistTemplateItem {
+  id         String            @id @default(uuid()) @db.Uuid
+  templateId String            @db.Uuid
+  order      Int
+  title      String
+  titleAr    String?
+  required   Boolean           @default(false)
+  template   ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+// ═══════════════════════════ Clients & contacts ═════════════════════════════
+
+enum PartyType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+  PROSPECT
+}
+
+model Client {
+  id                 String       @id @default(uuid()) @db.Uuid
+  organizationId     String       @db.Uuid
+  clientNumber       String
+  type               PartyType
+  nameEn             String
+  nameAr             String?
+  email              String?
+  phone              String?
+  whatsapp           String?
+  address            String?
+  nationality        String?
+  preferredLanguage  String       @default("ar")
+  tradeLicenseNo     String?
+  companyName        String?
+  // Sensitive identifiers — AES-GCM encrypted, shown only with clients.viewSensitive
+  emiratesIdEnc      String?
+  passportEnc        String?
+  status             ClientStatus @default(ACTIVE)
+  source             String?
+  notes              String?
+  leadId             String?      @unique @db.Uuid
+  lastContactAt      DateTime?
+  createdById        String?      @db.Uuid
+  updatedById        String?      @db.Uuid
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  deletedAt          DateTime?
+
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  lead               Lead?        @relation("LeadConversion", fields: [leadId], references: [id])
+  contacts           Contact[]
+  matters            Matter[]
+  invoices           Invoice[]
+  appointments       Appointment[]
+  documents          Document[]
+  communications     Communication[]
+  portalUsers        User[]       @relation("PortalUsers")
+
+  @@unique([organizationId, clientNumber])
+  @@index([organizationId, deletedAt])
+  @@index([nameEn])
+}
+
+enum ContactCategory {
+  CLIENT
+  OPPONENT
+  LAWYER
+  EXPERT
+  TRANSLATOR
+  WITNESS
+  COMPANY
+  GOVERNMENT
+  OTHER
+}
+
+model Contact {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @db.Uuid
+  type           PartyType       @default(INDIVIDUAL)
+  category       ContactCategory
+  nameEn         String
+  nameAr         String?
+  companyName    String?
+  jobTitle       String?
+  email          String?
+  phone          String?
+  whatsapp       String?
+  address        String?
+  nationality    String?
+  notes          String?
+  clientId       String?         @db.Uuid // contact person of a client company
+  createdById    String?         @db.Uuid
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
+
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  client         Client?         @relation(fields: [clientId], references: [id])
+  parties        MatterParty[]
+  relationsFrom  ContactRelation[] @relation("RelFrom")
+  relationsTo    ContactRelation[] @relation("RelTo")
+
+  @@index([organizationId, category])
+  @@index([nameEn])
+}
+
+// Entity relationship graph: person ↔ company, subsidiary, director, etc.
+model ContactRelation {
+  id          String   @id @default(uuid()) @db.Uuid
+  fromId      String   @db.Uuid
+  toId        String   @db.Uuid
+  label       String // e.g. "Director of", "Subsidiary of"
+  createdAt   DateTime @default(now())
+  from        Contact  @relation("RelFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to          Contact  @relation("RelTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId, label])
+}
+
+// ═══════════════════════════ Matters (cases) ════════════════════════════════
+
+enum MatterKind {
+  COURT_CASE
+  CONSULTATION
+  CONTRACT
+  DISPUTE
+  EXECUTION
+  APPEAL
+  ARBITRATION
+  OTHER
+}
+
+enum MatterStatus {
+  INTAKE
+  ACTIVE
+  PENDING
+  ON_HOLD
+  CLOSED
+  ARCHIVED
+}
+
+enum Priority {
+  CRITICAL
+  HIGH
+  NORMAL
+  LOW
+}
+
+enum Confidentiality {
+  STANDARD
+  CONFIDENTIAL
+  HIGHLY_CONFIDENTIAL
+}
+
+enum BillingType {
+  NONE
+  FIXED
+  HOURLY
+  RETAINER
+  INSTALLMENTS
+}
+
+enum ConflictStatus {
+  NOT_RUN
+  CLEAR
+  POTENTIAL_MATCH_REVIEWED
+  WAIVED
+}
+
+model Matter {
+  id                 String          @id @default(uuid()) @db.Uuid
+  organizationId     String          @db.Uuid
+  // Internal number (AH-2026-00001) is independent of the official court case number.
+  internalNumber     String
+  officialCaseNumber String?
+  title              String
+  titleAr            String?
+  summary            String?
+  kind               MatterKind      @default(COURT_CASE)
+  status             MatterStatus    @default(ACTIVE)
+  priority           Priority        @default(NORMAL)
+  confidentiality    Confidentiality @default(STANDARD)
+  clientId           String          @db.Uuid
+  caseTypeId         String?         @db.Uuid
+  jurisdictionId     String?         @db.Uuid
+  courtId            String?         @db.Uuid
+  stageId            String?         @db.Uuid
+  ownerId            String          @db.Uuid
+  leadLawyerId       String?         @db.Uuid
+  claimAmount        Decimal?        @db.Decimal(16, 2)
+  currency           String          @default("AED")
+  claims             String?
+  internalNotes      String?
+  currentStatusText  String?
+  lastActionText     String?
+  nextActionText     String?
+  riskFlags          String[]        @default([])
+  billingType        BillingType     @default(NONE)
+  feeAmount          Decimal?        @db.Decimal(14, 2)
+  hourlyRate         Decimal?        @db.Decimal(10, 2)
+  feeNotes           String?
+  conflictStatus     ConflictStatus  @default(NOT_RUN)
+  conflictNotes      String?
+  conflictCheckedById String?        @db.Uuid
+  conflictCheckedAt  DateTime?
+  portalEnabled      Boolean         @default(false)
+  portalStatusText   String?
+  openedAt           DateTime        @default(now())
+  closedAt           DateTime?
+  lastActivityAt     DateTime        @default(now())
+  createdById        String?         @db.Uuid
+  updatedById        String?         @db.Uuid
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  deletedAt          DateTime?
+
+  organization       Organization    @relation(fields: [organizationId], references: [id])
+  client             Client          @relation(fields: [clientId], references: [id])
+  caseType           CaseType?       @relation(fields: [caseTypeId], references: [id])
+  jurisdiction       Jurisdiction?   @relation(fields: [jurisdictionId], references: [id])
+  court              Court?          @relation(fields: [courtId], references: [id])
+  stage              WorkflowStage?  @relation(fields: [stageId], references: [id])
+  owner              User            @relation("MatterOwner", fields: [ownerId], references: [id])
+  leadLawyer         User?           @relation("LeadLawyer", fields: [leadLawyerId], references: [id])
+  members            MatterMember[]
+  parties            MatterParty[]
+  checklist          MatterChecklistItem[]
+  hearings           Hearing[]
+  deadlines          Deadline[]
+  appointments       Appointment[]
+  tasks              Task[]
+  documents          Document[]
+  notes              Note[]
+  comments           Comment[]
+  timeline           TimelineEvent[]
+  activities         Activity[]
+  communications     Communication[]
+  invoices           Invoice[]
+  expenses           Expense[]
+  timeEntries        TimeEntry[]
+  accessRequests     AccessRequest[]
+  approvals          Approval[]
+  aiJobs             AIJob[]
+  auditLogs          AuditLog[]
+
+  @@unique([organizationId, internalNumber])
+  @@index([organizationId, status, deletedAt])
+  @@index([organizationId, clientId])
+  @@index([officialCaseNumber])
+  @@index([lastActivityAt])
+}
+
+enum MatterMemberRole {
+  OWNER
+  LEAD
+  ASSIGNED
+  ASSISTANT
+  OBSERVER
+  DOCUMENTS_ONLY
+}
+
+model MatterMember {
+  id          String           @id @default(uuid()) @db.Uuid
+  matterId    String           @db.Uuid
+  userId      String           @db.Uuid
+  role        MatterMemberRole
+  // Per-member overrides on top of the member-role defaults: "+documents.upload", "-finance.view"
+  overrides   String[]         @default([])
+  // Temporary access: revoked automatically after this instant
+  expiresAt   DateTime?
+  grantedById String?          @db.Uuid
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  matter      Matter           @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  user        User             @relation("MemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy   User?            @relation("MemberGrantedBy", fields: [grantedById], references: [id])
+
+  @@unique([matterId, userId])
+  @@index([userId])
+}
+
+enum PartyRole {
+  CLIENT
+  OPPONENT
+  OPPONENT_COUNSEL
+  CO_CLAIMANT
+  CO_DEFENDANT
+  WITNESS
+  EXPERT
+  THIRD_PARTY
+  RELATED
+}
+
+model MatterParty {
+  id         String    @id @default(uuid()) @db.Uuid
+  matterId   String    @db.Uuid
+  contactId  String    @db.Uuid
+  role       PartyRole
+  notes      String?
+  createdAt  DateTime  @default(now())
+  matter     Matter    @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  contact    Contact   @relation(fields: [contactId], references: [id])
+
+  @@unique([matterId, contactId, role])
+  @@index([contactId])
+}
+
+model MatterChecklistItem {
+  id          String    @id @default(uuid()) @db.Uuid
+  matterId    String    @db.Uuid
+  order       Int
+  title       String
+  titleAr     String?
+  required    Boolean   @default(false)
+  doneAt      DateTime?
+  doneById    String?   @db.Uuid
+  matter      Matter    @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  @@index([matterId])
+}
+
+enum TimelineSource {
+  MANUAL
+  SYSTEM
+  AI
+  IMPORT
+}
+
+enum ProposalStatus {
+  CONFIRMED
+  PROPOSED
+  REJECTED
+}
+
+model TimelineEvent {
+  id           String         @id @default(uuid()) @db.Uuid
+  matterId     String         @db.Uuid
+  eventType    String // CASE_CREATED, CLAIM_SUBMITTED, HEARING, JUDGMENT, ... (admin-extendable)
+  occurredAt   DateTime
+  title        String
+  description  String?
+  notes        String?
+  documentIds  String[]       @default([])
+  source       TimelineSource @default(MANUAL)
+  status       ProposalStatus @default(CONFIRMED)
+  // For AI proposals: where the fact came from
+  citations    Json?
+  userId       String?        @db.Uuid
+  decidedById  String?        @db.Uuid
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  matter       Matter         @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  @@index([matterId, occurredAt])
+}
+
+// ═══════════════════════════ Hearings, deadlines, appointments ══════════════
+
+enum HearingStatus {
+  SCHEDULED
+  PREPARING
+  READY
+  HELD
+  ADJOURNED
+  CANCELLED
+}
+
+enum Attendance {
+  REQUIRED
+  OPTIONAL
+  NOT_REQUIRED
+}
+
+model Hearing {
+  id                String        @id @default(uuid()) @db.Uuid
+  organizationId    String        @db.Uuid
+  matterId          String        @db.Uuid
+  courtId           String?       @db.Uuid
+  courtRoom         String?
+  isRemote          Boolean       @default(false)
+  remoteUrl         String?
+  startsAt          DateTime
+  endsAt            DateTime?
+  judge             String?
+  sessionType       String?
+  attendingLawyerId String?       @db.Uuid
+  clientAttendance  Attendance    @default(NOT_REQUIRED)
+  status            HearingStatus @default(SCHEDULED)
+  requiredDocuments String?
+  preparationNotes  String?
+  questions         String?
+  arguments         String?
+  // Hearing report (filled after the session)
+  outcome           String?
+  decisions         String?
+  requiredActions   String?
+  reportedAt        DateTime?
+  reportedById      String?       @db.Uuid
+  previousHearingId String?       @unique @db.Uuid
+  acknowledgedAt    DateTime? // attending lawyer acknowledged the reminder
+  createdById       String?       @db.Uuid
+  updatedById       String?       @db.Uuid
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+
+  organization      Organization  @relation(fields: [organizationId], references: [id])
+  matter            Matter        @relation(fields: [matterId], references: [id])
+  court             Court?        @relation(fields: [courtId], references: [id])
+  attendingLawyer   User?         @relation("HearingLawyer", fields: [attendingLawyerId], references: [id])
+  previousHearing   Hearing?      @relation("HearingChain", fields: [previousHearingId], references: [id])
+  nextHearing       Hearing?      @relation("HearingChain")
+  deadlines         Deadline[]
+
+  @@index([organizationId, startsAt])
+  @@index([matterId, startsAt])
+}
+
+enum DeadlineType {
+  SUBMISSION
+  APPEAL
+  PAYMENT
+  DOCUMENT
+  EXPERT_MEETING
+  COURT_APPOINTMENT
+  RENEWAL
+  FOLLOW_UP
+  INTERNAL
+  OTHER
+}
+
+enum DeadlineStatus {
+  OPEN
+  DONE
+  MISSED
+  CANCELLED
+}
+
+enum Verification {
+  CONFIRMED
+  NEEDS_VERIFICATION
+}
+
+enum EventSource {
+  MANUAL
+  HEARING_REPORT
+  AI
+  IMPORT
+  AUTOMATION
+}
+
+model Deadline {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  matterId       String?        @db.Uuid
+  hearingId      String?        @db.Uuid
+  type           DeadlineType
+  title          String
+  description    String?
+  dueAt          DateTime
+  isCritical     Boolean        @default(false)
+  assigneeId     String?        @db.Uuid
+  status         DeadlineStatus @default(OPEN)
+  // AI/import-extracted legal deadlines stay NEEDS_VERIFICATION until an authorised lawyer confirms.
+  verification   Verification   @default(CONFIRMED)
+  source         EventSource    @default(MANUAL)
+  verifiedById   String?        @db.Uuid
+  verifiedAt     DateTime?
+  completedAt    DateTime?
+  acknowledgedAt DateTime?
+  createdById    String?        @db.Uuid
+  updatedById    String?        @db.Uuid
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  matter         Matter?        @relation(fields: [matterId], references: [id])
+  hearing        Hearing?       @relation(fields: [hearingId], references: [id])
+  assignee       User?          @relation("DeadlineAssignee", fields: [assigneeId], references: [id])
+  verifiedBy     User?          @relation("DeadlineVerifier", fields: [verifiedById], references: [id])
+
+  @@index([organizationId, status, dueAt])
+  @@index([matterId])
+}
+
+enum AppointmentType {
+  CONSULTATION
+  FOLLOW_UP
+  DOCUMENT_SIGNING
+  CASE_MEETING
+  ONLINE_MEETING
+  INTERNAL_MEETING
+  CALL
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Appointment {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @db.Uuid
+  type           AppointmentType
+  title          String
+  startsAt       DateTime
+  endsAt         DateTime
+  lawyerId       String?           @db.Uuid
+  clientId       String?           @db.Uuid
+  leadId         String?           @db.Uuid
+  matterId       String?           @db.Uuid
+  location       String?
+  meetingUrl     String?
+  notes          String?
+  status         AppointmentStatus @default(CONFIRMED)
+  portalVisible  Boolean           @default(false)
+  createdById    String?           @db.Uuid
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  deletedAt      DateTime?
+
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  lawyer         User?             @relation("AppointmentLawyer", fields: [lawyerId], references: [id])
+  client         Client?           @relation(fields: [clientId], references: [id])
+  lead           Lead?             @relation(fields: [leadId], references: [id])
+  matter         Matter?           @relation(fields: [matterId], references: [id])
+
+  @@index([organizationId, startsAt])
+}
+
+// Reminder rules: which offsets (minutes before) fire for which event type.
+model ReminderPolicy {
+  id                  String       @id @default(uuid()) @db.Uuid
+  organizationId      String       @db.Uuid
+  subjectType         String // HEARING | DEADLINE | APPOINTMENT | TASK
+  offsetsMinutes      Int[]
+  channels            String[]     @default(["IN_APP"])
+  notifyOwner         Boolean      @default(false)
+  // Escalate to matter owner if the assignee has not acknowledged this many minutes before the event
+  escalateBeforeMinutes Int?
+  enabled             Boolean      @default(true)
+  updatedAt           DateTime     @updatedAt
+  organization        Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, subjectType])
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  CANCELLED
+  FAILED
+}
+
+// Materialised, schedulable reminders. Regenerated whenever the underlying event changes.
+model Reminder {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  subjectType    String
+  subjectId      String         @db.Uuid
+  userId         String         @db.Uuid
+  fireAt         DateTime
+  offsetMinutes  Int
+  kind           String         @default("REMINDER") // REMINDER | ESCALATION
+  channels       String[]
+  status         ReminderStatus @default(PENDING)
+  sentAt         DateTime?
+  error          String?
+  createdAt      DateTime       @default(now())
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, fireAt])
+  @@index([subjectType, subjectId])
+}
+
+// ═══════════════════════════ Tasks ══════════════════════════════════════════
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  WAITING
+  DONE
+  CANCELLED
+}
+
+model Task {
+  id               String       @id @default(uuid()) @db.Uuid
+  organizationId   String       @db.Uuid
+  matterId         String?      @db.Uuid
+  title            String
+  description      String?
+  assigneeId       String?      @db.Uuid
+  createdById      String?      @db.Uuid
+  priority         Priority     @default(NORMAL)
+  status           TaskStatus   @default(TODO)
+  startAt          DateTime?
+  dueAt            DateTime?
+  estimateMinutes  Int?
+  completedAt      DateTime?
+  // Origin, e.g. HEARING:<id>, AUTOMATION:<key>
+  sourceType       String?
+  sourceId         String?      @db.Uuid
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  matter           Matter?      @relation(fields: [matterId], references: [id])
+  assignee         User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdBy        User?        @relation("TaskCreator", fields: [createdById], references: [id])
+  checklist        TaskChecklistItem[]
+  comments         Comment[]
+  dependsOn        TaskDependency[] @relation("Dependent")
+  blocks           TaskDependency[] @relation("Blocker")
+
+  @@index([organizationId, assigneeId, status])
+  @@index([matterId])
+  @@index([dueAt])
+  @@index([sourceType, sourceId])
+}
+
+model TaskChecklistItem {
+  id      String    @id @default(uuid()) @db.Uuid
+  taskId  String    @db.Uuid
+  order   Int
+  title   String
+  doneAt  DateTime?
+  task    Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model TaskDependency {
+  taskId      String @db.Uuid
+  dependsOnId String @db.Uuid
+  task        Task   @relation("Dependent", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOn   Task   @relation("Blocker", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, dependsOnId])
+}
+
+// ═══════════════════════════ Documents ══════════════════════════════════════
+
+enum DocumentCategory {
+  COURT
+  CLIENT
+  EVIDENCE
+  CONTRACT
+  LEGAL_MEMO
+  CORRESPONDENCE
+  JUDGMENT
+  INVOICE
+  POWER_OF_ATTORNEY
+  EXPERT_REPORT
+  SUBMISSION
+  OTHER
+}
+
+enum DocumentStatus {
+  DRAFT
+  UNDER_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  SUBMITTED
+}
+
+enum ProcessingStatus {
+  NOT_REQUIRED
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+  UNAVAILABLE
+}
+
+model Document {
+  id               String           @id @default(uuid()) @db.Uuid
+  organizationId   String           @db.Uuid
+  matterId         String?          @db.Uuid
+  clientId         String?          @db.Uuid
+  category         DocumentCategory @default(OTHER)
+  title            String
+  description      String?
+  tags             String[]         @default([])
+  confidentiality  Confidentiality  @default(STANDARD)
+  status           DocumentStatus   @default(DRAFT)
+  currentVersion   Int              @default(1)
+  portalShared     Boolean          @default(false)
+  // Denormalised searchable text of the current version (OCR / extraction)
+  searchText       String?
+  createdById      String?          @db.Uuid
+  updatedById      String?          @db.Uuid
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  deletedAt        DateTime?
+
+  organization     Organization     @relation(fields: [organizationId], references: [id])
+  matter           Matter?          @relation(fields: [matterId], references: [id])
+  client           Client?          @relation(fields: [clientId], references: [id])
+  versions         DocumentVersion[]
+  permissions      DocumentPermission[]
+  comments         Comment[]
+  expenseReceipts  Expense[]
+
+  @@index([organizationId, matterId, deletedAt])
+  @@index([organizationId, status])
+}
+
+model DocumentVersion {
+  id               String           @id @default(uuid()) @db.Uuid
+  documentId       String           @db.Uuid
+  version          Int
+  fileName         String
+  storageKey       String           @unique
+  mimeType         String
+  sizeBytes        BigInt
+  checksumSha256   String
+  status           DocumentStatus   @default(DRAFT)
+  comment          String?
+  uploadedById     String?          @db.Uuid
+  extractedText    String?
+  pageTexts        Json? // [{page: 1, text: "..."}] used for AI citations
+  textStatus       ProcessingStatus @default(PENDING)
+  pageCount        Int?
+  createdAt        DateTime         @default(now())
+
+  document         Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  uploadedBy       User?            @relation(fields: [uploadedById], references: [id])
+
+  @@unique([documentId, version])
+}
+
+enum DocumentAccess {
+  VIEW
+  EDIT
+  DENY
+}
+
+model DocumentPermission {
+  id          String         @id @default(uuid()) @db.Uuid
+  documentId  String         @db.Uuid
+  userId      String?        @db.Uuid
+  roleId      String?        @db.Uuid
+  access      DocumentAccess
+  createdAt   DateTime       @default(now())
+  document    Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user        User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role?          @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
+
+// ═══════════════════════════ Collaboration ══════════════════════════════════
+
+model Comment {
+  id          String    @id @default(uuid()) @db.Uuid
+  authorId    String    @db.Uuid
+  matterId    String?   @db.Uuid
+  documentId  String?   @db.Uuid
+  taskId      String?   @db.Uuid
+  body        String
+  mentions    String[]  @default([]) // user ids
+  createdAt   DateTime  @default(now())
+  editedAt    DateTime?
+  deletedAt   DateTime?
+  author      User      @relation(fields: [authorId], references: [id])
+  matter      Matter?   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  document    Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  task        Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([matterId])
+  @@index([documentId])
+  @@index([taskId])
+}
+
+enum NoteVisibility {
+  PRIVATE // author only
+  TEAM    // matter members
+  CLIENT  // explicitly shared with the client portal
+}
+
+model Note {
+  id          String         @id @default(uuid()) @db.Uuid
+  matterId    String         @db.Uuid
+  authorId    String         @db.Uuid
+  visibility  NoteVisibility @default(TEAM)
+  body        String
+  pinned      Boolean        @default(false)
+  sharedAt    DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  deletedAt   DateTime?
+  matter      Matter         @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  author      User           @relation(fields: [authorId], references: [id])
+
+  @@index([matterId, visibility])
+}
+
+// Operational activity feed (distinct from the curated case timeline and the audit log)
+model Activity {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  matterId       String?      @db.Uuid
+  actorId        String?      @db.Uuid
+  type           String // e.g. hearing.rescheduled, document.uploaded
+  entityType     String
+  entityId       String?      @db.Uuid
+  // i18n-able payload: { title, params }
+  data           Json         @default("{}")
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  matter         Matter?      @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  actor          User?        @relation(fields: [actorId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([matterId, createdAt])
+}
+
+enum NotificationCategory {
+  CRITICAL
+  DEADLINE
+  HEARING
+  TASK
+  DOCUMENT
+  CLIENT
+  FINANCE
+  SYSTEM
+}
+
+model Notification {
+  id             String               @id @default(uuid()) @db.Uuid
+  organizationId String               @db.Uuid
+  userId         String               @db.Uuid
+  category       NotificationCategory
+  title          String
+  body           String?
+  link           String?
+  entityType     String?
+  entityId       String?              @db.Uuid
+  dedupeKey      String?
+  readAt         DateTime?
+  snoozedUntil   DateTime?
+  requiresAck    Boolean              @default(false)
+  acknowledgedAt DateTime?
+  createdAt      DateTime             @default(now())
+  organization   Organization         @relation(fields: [organizationId], references: [id])
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries     NotificationDelivery[]
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt, createdAt])
+}
+
+model NotificationDelivery {
+  id             String       @id @default(uuid()) @db.Uuid
+  notificationId String       @db.Uuid
+  channel        String // IN_APP | EMAIL | SMS | WHATSAPP | PUSH
+  status         String // SENT | SKIPPED_NOT_CONNECTED | FAILED
+  error          String?
+  createdAt      DateTime     @default(now())
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+}
+
+model Communication {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  matterId       String?      @db.Uuid
+  clientId       String?      @db.Uuid
+  channel        String // EMAIL | CALL | MEETING | WHATSAPP | LETTER | NOTE
+  direction      String       @default("OUTBOUND") // INBOUND | OUTBOUND | INTERNAL
+  subject        String?
+  body           String?
+  occurredAt     DateTime
+  userId         String?      @db.Uuid
+  externalRef    String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  matter         Matter?      @relation(fields: [matterId], references: [id])
+  client         Client?      @relation(fields: [clientId], references: [id])
+
+  @@index([matterId, occurredAt])
+  @@index([clientId, occurredAt])
+}
+
+// ═══════════════════════════ Finance ════════════════════════════════════════
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIALLY_PAID
+  PAID
+  VOID
+}
+
+model Invoice {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @db.Uuid
+  number         String
+  clientId       String        @db.Uuid
+  matterId       String?       @db.Uuid
+  issueDate      DateTime
+  dueDate        DateTime
+  status         InvoiceStatus @default(DRAFT)
+  currency       String        @default("AED")
+  subtotal       Decimal       @default(0) @db.Decimal(14, 2)
+  discount       Decimal       @default(0) @db.Decimal(14, 2)
+  vatRate        Decimal       @default(5) @db.Decimal(5, 2)
+  vatAmount      Decimal       @default(0) @db.Decimal(14, 2)
+  total          Decimal       @default(0) @db.Decimal(14, 2)
+  amountPaid     Decimal       @default(0) @db.Decimal(14, 2)
+  notes          String?
+  portalVisible  Boolean       @default(false)
+  createdById    String?       @db.Uuid
+  updatedById    String?       @db.Uuid
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  client         Client        @relation(fields: [clientId], references: [id])
+  matter         Matter?       @relation(fields: [matterId], references: [id])
+  items          InvoiceItem[]
+  payments       Payment[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId, status, dueDate])
+}
+
+model InvoiceItem {
+  id           String     @id @default(uuid()) @db.Uuid
+  invoiceId    String     @db.Uuid
+  kind         String     @default("FEE") // FEE | TIME | EXPENSE | DISBURSEMENT | COURT_FEE
+  description  String
+  quantity     Decimal    @default(1) @db.Decimal(10, 2)
+  unitPrice    Decimal    @db.Decimal(14, 2)
+  amount       Decimal    @db.Decimal(14, 2)
+  timeEntryId  String?    @unique @db.Uuid
+  expenseId    String?    @unique @db.Uuid
+  order        Int        @default(0)
+  invoice      Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  timeEntry    TimeEntry? @relation(fields: [timeEntryId], references: [id])
+  expense      Expense?   @relation(fields: [expenseId], references: [id])
+}
+
+model Payment {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  invoiceId      String       @db.Uuid
+  amount         Decimal      @db.Decimal(14, 2) // negative for refunds
+  method         String // BANK_TRANSFER | CARD | CASH | CHEQUE | OTHER
+  receivedAt     DateTime
+  reference      String?
+  notes          String?
+  isRefund       Boolean      @default(false)
+  recordedById   String?      @db.Uuid
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  invoice        Invoice      @relation(fields: [invoiceId], references: [id])
+
+  @@index([organizationId, receivedAt])
+}
+
+model Expense {
+  id                String       @id @default(uuid()) @db.Uuid
+  organizationId    String       @db.Uuid
+  matterId          String?      @db.Uuid
+  category          String // COURT_FEE | TRANSLATION | EXPERT_FEE | COURIER | TRAVEL | GOVERNMENT_FEE | OTHER
+  description       String
+  amount            Decimal      @db.Decimal(14, 2)
+  incurredAt        DateTime
+  billable          Boolean      @default(true)
+  receiptDocumentId String?      @db.Uuid
+  createdById       String?      @db.Uuid
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  deletedAt         DateTime?
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  matter            Matter?      @relation(fields: [matterId], references: [id])
+  receipt           Document?    @relation(fields: [receiptDocumentId], references: [id])
+  invoiceItem       InvoiceItem?
+
+  @@index([organizationId, incurredAt])
+}
+
+model TimeEntry {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  matterId       String       @db.Uuid
+  userId         String       @db.Uuid
+  activity       String // RESEARCH | DRAFTING | MEETING | COURT | CALL | REVIEW | OTHER
+  startedAt      DateTime
+  endedAt        DateTime?
+  minutes        Int          @default(0)
+  billable       Boolean      @default(true)
+  rate           Decimal?     @db.Decimal(10, 2)
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  matter         Matter       @relation(fields: [matterId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  invoiceItem    InvoiceItem?
+
+  @@index([organizationId, userId, startedAt])
+  @@index([matterId])
+}
+
+// ═══════════════════════════ CRM ════════════════════════════════════════════
+
+model PipelineStage {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String
+  nameAr         String?
+  order          Int
+  kind           String       @default("OPEN") // OPEN | WON | LOST
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  leads          Lead[]
+}
+
+model Lead {
+  id              String        @id @default(uuid()) @db.Uuid
+  organizationId  String        @db.Uuid
+  name            String
+  email           String?
+  phone           String?
+  source          String? // WEBSITE | REFERRAL | PHONE | WALK_IN | SOCIAL | OTHER
+  inquiry         String?
+  service         String?
+  estimatedValue  Decimal?      @db.Decimal(14, 2)
+  assignedToId    String?       @db.Uuid
+  stageId         String        @db.Uuid
+  nextFollowUpAt  DateTime?
+  lostReason      String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  assignedTo      User?         @relation(fields: [assignedToId], references: [id])
+  stage           PipelineStage @relation(fields: [stageId], references: [id])
+  convertedClient Client?       @relation("LeadConversion")
+  appointments    Appointment[]
+  bookingRequest  BookingRequest?
+
+  @@index([organizationId, stageId])
+}
+
+// ═══════════════════════════ Knowledge & templates ══════════════════════════
+
+model Template {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  kind           String // ENGAGEMENT_LETTER | LEGAL_NOTICE | CLIENT_UPDATE | INTERNAL_MEMO | ...
+  name           String
+  locale         String       @default("en")
+  body           String // supports {{client.name}}, {{matter.internalNumber}} …
+  active         Boolean      @default(true)
+  createdById    String?      @db.Uuid
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model KnowledgeDocument {
+  id              String          @id @default(uuid()) @db.Uuid
+  organizationId  String          @db.Uuid
+  kind            String // PRECEDENT | RESEARCH | COURT_DECISION | LEGAL_NOTE | POLICY | CHECKLIST | CLAUSE | TEMPLATE
+  title           String
+  body            String
+  tags            String[]        @default([])
+  locale          String          @default("en")
+  confidentiality Confidentiality @default(STANDARD)
+  authorId        String?         @db.Uuid
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+  organization    Organization    @relation(fields: [organizationId], references: [id])
+}
+
+model LegalResource {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  title          String
+  titleAr        String?
+  url            String
+  category       String // FEDERAL | LOCAL_COURT | LEGISLATION | FREE_ZONE | OTHER
+  description    String?
+  order          Int          @default(0)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+// ═══════════════════════════ Integrations ═══════════════════════════════════
+
+enum IntegrationStatus {
+  CONNECTED
+  NOT_CONNECTED
+  REQUIRES_CONFIGURATION
+  UNSUPPORTED
+  ERROR
+}
+
+model Integration {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @db.Uuid
+  provider       String // MICROSOFT_365 | GOOGLE_WORKSPACE | SMTP | SMS | WHATSAPP_BUSINESS | S3 | ACCOUNTING | COURT_<X>
+  category       String // FEDERAL | LOCAL_COURTS | EMAIL | CALENDAR | STORAGE | SMS | WHATSAPP | ACCOUNTING | AI | OCR
+  // Non-secret configuration only. Secrets live in environment / secret manager.
+  config         Json              @default("{}")
+  status         IntegrationStatus @default(NOT_CONNECTED)
+  statusDetail   String?
+  lastCheckedAt  DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, provider])
+}
+
+// Court data import (manual workflow when no official API exists)
+model CourtImport {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  matterId       String?      @db.Uuid
+  documentId     String?      @db.Uuid
+  sourceType     String // PDF | EXCEL | CSV | EMAIL | IMAGE | MANUAL
+  status         String       @default("PENDING_REVIEW") // PENDING_REVIEW | APPLIED | DISCARDED
+  suggestions    Json         @default("[]")
+  createdById    String?      @db.Uuid
+  reviewedById   String?      @db.Uuid
+  reviewedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+// ═══════════════════════════ Governance ═════════════════════════════════════
+
+// Append-only. UPDATE/DELETE are blocked by a database trigger (see migration),
+// and each row is hash-chained to the previous one for tamper evidence.
+model AuditLog {
+  id             String       @id @default(uuid()) @db.Uuid
+  seq            BigInt       @default(autoincrement())
+  organizationId String       @db.Uuid
+  actorId        String?      @db.Uuid
+  action         String // auth.login, matter.viewed, document.downloaded, permission.changed …
+  entityType     String?
+  entityId       String?
+  matterId       String?      @db.Uuid
+  ip             String?
+  userAgent      String?
+  sessionId      String?      @db.Uuid
+  before         Json?
+  after          Json?
+  metadata       Json?
+  prevHash       String?
+  hash           String
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  actor          User?        @relation(fields: [actorId], references: [id])
+  matter         Matter?      @relation(fields: [matterId], references: [id])
+
+  @@unique([seq])
+  @@index([organizationId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action])
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model AccessRequest {
+  id           String        @id @default(uuid()) @db.Uuid
+  organizationId String      @db.Uuid
+  matterId     String        @db.Uuid
+  requesterId  String        @db.Uuid
+  reason       String?
+  status       RequestStatus @default(PENDING)
+  grantedRole  MatterMemberRole?
+  expiresAt    DateTime?
+  decidedById  String?       @db.Uuid
+  decidedAt    DateTime?
+  decisionNote String?
+  createdAt    DateTime      @default(now())
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  matter       Matter        @relation(fields: [matterId], references: [id])
+  requester    User          @relation("AccessRequester", fields: [requesterId], references: [id])
+  decidedBy    User?         @relation("AccessDecider", fields: [decidedById], references: [id])
+
+  @@index([organizationId, status])
+}
+
+model Approval {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @db.Uuid
+  kind           String // DOCUMENT | CASE_CHANGE | FINANCIAL | CLIENT_COMMUNICATION | DEADLINE_VERIFICATION | AI_TIMELINE
+  entityType     String
+  entityId       String        @db.Uuid
+  matterId       String?       @db.Uuid
+  title          String
+  payload        Json?
+  requestedById  String?       @db.Uuid
+  assignedToId   String?       @db.Uuid
+  status         String        @default("PENDING") // PENDING | APPROVED | REJECTED | CHANGES_REQUESTED
+  comment        String?
+  decidedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  matter         Matter?       @relation(fields: [matterId], references: [id])
+  requestedBy    User?         @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  assignedTo     User?         @relation("ApprovalAssignee", fields: [assignedToId], references: [id])
+
+  @@index([organizationId, status])
+  @@index([entityType, entityId])
+}
+
+model AIJob {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  userId         String       @db.Uuid
+  matterId       String?      @db.Uuid
+  kind           String // CASE_BRIEF | DOCUMENT_SUMMARY | EXTRACT_DATES | TIMELINE_DRAFT | HEARING_BRIEF | DRAFT | TRANSLATE | ASK
+  status         String       @default("QUEUED") // QUEUED | RUNNING | SUCCEEDED | FAILED
+  documentIds    String[]     @default([])
+  input          Json?
+  output         String?
+  structured     Json?
+  citations      Json?
+  provider       String?
+  model          String?
+  inputTokens    Int?
+  outputTokens   Int?
+  error          String?
+  reviewStatus   String       @default("REVIEW_REQUIRED") // REVIEW_REQUIRED | ACCEPTED | DISCARDED
+  createdAt      DateTime     @default(now())
+  completedAt    DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  matter         Matter?      @relation(fields: [matterId], references: [id])
+
+  @@index([organizationId, userId, createdAt])
+}
+
+model Automation {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  key            String
+  name           String
+  nameAr         String?
+  trigger        String // hearing.created | document.uploaded | matter.closed | …
+  conditions     Json         @default("[]")
+  actions        Json         @default("[]")
+  enabled        Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  runs           AutomationRun[]
+
+  @@unique([organizationId, key])
+}
+
+model AutomationRun {
+  id           String     @id @default(uuid()) @db.Uuid
+  automationId String     @db.Uuid
+  entityId     String?
+  status       String // SUCCEEDED | FAILED | SKIPPED
+  detail       Json?
+  createdAt    DateTime   @default(now())
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([automationId, createdAt])
+}
+
+model Counter {
+  organizationId String       @db.Uuid
+  key            String // e.g. matter:2026, invoice:2026, client
+  value          Int          @default(0)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@id([organizationId, key])
+}
+
+model SavedView {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  userId         String       @db.Uuid
+  module         String
+  name           String
+  filters        Json         @default("{}")
+  columns        String[]     @default([])
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BackupRecord {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  kind           String // DATABASE | DOCUMENTS
+  status         String // RUNNING | SUCCEEDED | FAILED
+  location       String?
+  sizeBytes      BigInt?
+  checksum       String?
+  error          String?
+  startedAt      DateTime     @default(now())
+  finishedAt     DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model PrivacyRequest {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  kind           String // EXPORT | DELETION | RECTIFICATION
+  subjectType    String // CLIENT | CONTACT | LEAD
+  subjectId      String       @db.Uuid
+  status         String       @default("OPEN") // OPEN | ON_LEGAL_HOLD | COMPLETED | REJECTED
+  notes          String?
+  requestedById  String?      @db.Uuid
+  completedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model BreachLog {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  detectedAt     DateTime
+  description    String
+  severity       String
+  affectedData   String?
+  actionsTaken   String?
+  reportedToAuthorityAt DateTime?
+  recordedById   String?      @db.Uuid
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+// ═══════════════════════════ Public website CMS ═════════════════════════════
+
+model PracticeArea {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  slug           String
+  titleEn        String
+  titleAr        String
+  summaryEn      String?
+  summaryAr      String?
+  bodyEn         String?
+  bodyAr         String?
+  order          Int          @default(0)
+  published      Boolean      @default(false)
+  bookable       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, slug])
+}
+
+model Article {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  slug           String
+  locale         String // en | ar
+  title          String
+  excerpt        String?
+  body           String
+  category       String?
+  authorId       String?      @db.Uuid
+  status         String       @default("DRAFT") // DRAFT | PUBLISHED
+  publishedAt    DateTime?
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  author         User?        @relation(fields: [authorId], references: [id])
+
+  @@unique([organizationId, locale, slug])
+}
+
+model Faq {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  questionEn     String
+  questionAr     String
+  answerEn       String
+  answerAr       String
+  order          Int          @default(0)
+  published      Boolean      @default(true)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model Testimonial {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  authorName     String
+  quoteEn        String?
+  quoteAr        String?
+  published      Boolean      @default(false)
+  order          Int          @default(0)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model SiteSetting {
+  organizationId String       @db.Uuid
+  key            String // contact, hero, seo, about, team
+  value          Json
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@id([organizationId, key])
+}
+
+model BookingRequest {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  practiceAreaId String?      @db.Uuid
+  serviceLabel   String?
+  preferredAt    DateTime
+  mode           String // ONLINE | OFFICE
+  name           String
+  phone          String
+  email          String
+  description    String?
+  locale         String       @default("ar")
+  status         String       @default("NEW") // NEW | SCHEDULED | DECLINED
+  leadId         String?      @unique @db.Uuid
+  consentAt      DateTime
+  ip             String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  lead           Lead?        @relation(fields: [leadId], references: [id])
+}

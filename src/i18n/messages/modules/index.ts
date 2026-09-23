@@ -1,0 +1,4 @@
+import hearings from "./hearings";
+
+// Register module dictionaries here. Each module keeps `en` and `ar` side by side (ar: typeof en).
+export const MODULES: { en: object; ar: object }[] = [hearings];

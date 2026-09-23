@@ -1,0 +1,33 @@
+# Local development services for AH Legal OS.
+# Ports are shifted (5434 / 6380) to avoid clashing with other local projects.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ahlegal-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ahlegal
+      POSTGRES_PASSWORD: ahlegal_dev_only
+      POSTGRES_DB: ahlegal
+    ports:
+      - "5434:5432"
+    volumes:
+      - ahlegal_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ahlegal -d ahlegal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: ahlegal-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - ahlegal_redis:/data
+
+volumes:
+  ahlegal_pg:
+  ahlegal_redis:
