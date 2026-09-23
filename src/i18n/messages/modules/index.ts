@@ -1,4 +1,6 @@
 import hearings from "./hearings";
+import cases from "./cases";
+import clients from "./clients";
 
 // Register module dictionaries here. Each module keeps `en` and `ar` side by side (ar: typeof en).
-export const MODULES: { en: object; ar: object }[] = [hearings];
+export const MODULES: { en: object; ar: object }[] = [hearings, cases, clients];
