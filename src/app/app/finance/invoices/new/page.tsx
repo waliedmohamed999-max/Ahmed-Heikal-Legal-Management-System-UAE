@@ -5,6 +5,7 @@ import { db } from "@/server/db";
 import { matterAccess } from "@/server/services/access";
 import { PageHeader } from "@/components/ui/layout";
 import { InvoiceEditor } from "../../forms";
+import { isoDateInDays } from "@/lib/time";
 
 export const metadata = { title: "New invoice" };
 
@@ -28,7 +29,7 @@ export default async function NewInvoicePage({ searchParams }: { searchParams: P
           vatRate={ctx.org.vatRate}
           labels={init?.labels}
           initial={init ? {
-            id: "", clientId: init.clientId, matterId: init.matterId, issueDate: new Date().toISOString().slice(0, 10), dueDate: new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10),
+            id: "", clientId: init.clientId, matterId: init.matterId, issueDate: isoDateInDays(0, ctx.org.timezone), dueDate: isoDateInDays(30, ctx.org.timezone),
             discount: 0, vatRate: ctx.org.vatRate, notes: "", portalVisible: true, items: [{ description: "", kind: "FEE", quantity: 1, unitPrice: 0, timeEntryId: null, expenseId: null }],
           } : undefined}
         />

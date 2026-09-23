@@ -8,28 +8,27 @@ import { Button } from "@/components/ui/button";
 import { useServerForm } from "@/components/forms";
 import { bookingSchema } from "@/lib/crm-schemas";
 import { cn } from "@/lib/utils";
+import { isoDateInDays } from "@/lib/time";
 import { bookAction } from "./actions";
 
 type Slots = { slotMinutes: number; days: number[]; startHour: number; endHour: number };
 
 /** Next 21 bookable days (office weekdays, Dubai time) and the configured time slots. */
-function useDays(s: Slots) {
-  return useMemo(() => {
-    const out: string[] = [];
-    for (let i = 1; out.length < 21 && i < 60; i++) {
-      const d = new Date(Date.now() + i * 86400_000);
-      const iso = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dubai" }).format(d);
-      const dow = new Date(`${iso}T12:00:00+04:00`).getUTCDay();
-      if (s.days.includes(dow)) out.push(iso);
-    }
-    return out;
-  }, [s.days]);
+function bookableDays(s: Slots) {
+  const out: string[] = [];
+  for (let i = 1; out.length < 21 && i < 60; i++) {
+    const iso = isoDateInDays(i, "Asia/Dubai");
+    const dow = new Date(`${iso}T12:00:00+04:00`).getUTCDay();
+    if (s.days.includes(dow)) out.push(iso);
+  }
+  return out;
 }
 
 export function BookingForm({ services, slots, preset }: { services: { id: string; label: string }[]; slots: Slots; preset: string }) {
   const { t, locale } = useI18n();
   const [done, setDone] = useState(false);
-  const days = useDays(slots);
+  // Computed once per visit (lazy state) so the list does not shift between renders.
+  const [days] = useState(() => bookableDays(slots));
   const times = useMemo(() => {
     const out: string[] = [];
     for (let m = slots.startHour * 60; m + slots.slotMinutes <= slots.endHour * 60; m += slots.slotMinutes) out.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
@@ -54,7 +53,7 @@ export function BookingForm({ services, slots, preset }: { services: { id: strin
     );
   }
   return (
-    <form onSubmit={submit} className="mt-8 grid gap-5" noValidate>
+    <form onSubmit={submit} className="mt-8 grid grid-cols-1 gap-5" noValidate>
       <Field label={t("site.service")}>{(a) => <Select {...a} {...r("practiceAreaId")}><option value="">{t("site.serviceGeneral")}</option>{services.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</Select>}</Field>
       <div>
         <p className="mb-2 text-[13px] font-medium">{t("site.date")}</p>

@@ -23,3 +23,7 @@ Thumbs.db
 
 # Integration-test file storage
 storage-test/
+
+# Playwright output
+test-results/
+playwright-report/

@@ -15,9 +15,13 @@ const LEVEL_TEXT: Record<AlertLevel, string> = {
   NONE: "text-ink",
 };
 
-/** Shared ticking clock: 1s resolution when close, 30s otherwise. */
-export function useNow(fast = false) {
+/**
+ * Shared ticking clock. `fast` forces 1s resolution; passing a target time switches to
+ * 1s automatically within the last hour before it (30s otherwise).
+ */
+export function useNow(fastOrTarget: boolean | number = false) {
   const [now, setNow] = useState(() => Date.now());
+  const fast = typeof fastOrTarget === "number" ? fastOrTarget - now < 3600_000 : fastOrTarget;
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), fast ? 1000 : 30_000);
     return () => clearInterval(id);
@@ -31,7 +35,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 export function CountdownBlocks({ target, thresholds, className, dark }: { target: string; thresholds?: AlertThreshold[]; className?: string; dark?: boolean }) {
   const { t } = useI18n();
   const date = new Date(target);
-  const now = useNow(date.getTime() - Date.now() < 3600_000);
+  const now = useNow(date.getTime());
   const c = countdown(date, new Date(now));
   const level = alertLevel(date, new Date(now), thresholds);
   const blocks = [
@@ -67,7 +71,7 @@ export function CountdownBlocks({ target, thresholds, className, dark }: { targe
 export function CountdownInline({ target, thresholds, className, showLevel }: { target: string; thresholds?: AlertThreshold[]; className?: string; showLevel?: boolean }) {
   const { t } = useI18n();
   const date = new Date(target);
-  const now = useNow(date.getTime() - Date.now() < 3600_000);
+  const now = useNow(date.getTime());
   const c = countdown(date, new Date(now));
   const level = alertLevel(date, new Date(now), thresholds);
   const parts: [number, string][] =

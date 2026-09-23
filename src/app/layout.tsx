@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { getLocale } from "@/i18n/server";
 import { dirOf } from "@/i18n/config";
@@ -31,16 +32,10 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
+  // Theme is a non-sensitive display preference kept in a cookie, so it renders server-side (no flash, no inline script).
+  const dark = (await cookies()).get("ahl_theme")?.value === "dark";
   return (
-    <html lang={locale} dir={dirOf(locale)} className={`${inter.variable} ${arabic.variable}`} suppressHydrationWarning>
-      <head>
-        {/* Apply the saved theme before paint to avoid a flash. Theme preference is not sensitive. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem('ahl-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
-          }}
-        />
-      </head>
+    <html lang={locale} dir={dirOf(locale)} className={`${inter.variable} ${arabic.variable}${dark ? " dark" : ""}`} suppressHydrationWarning>
       <body className="min-h-dvh">{children}</body>
     </html>
   );

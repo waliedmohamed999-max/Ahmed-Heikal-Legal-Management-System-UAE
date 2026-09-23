@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge, HEARING_STATUS_TONE } from "@/components/ui/badge";
 import { EmptyState, Panel } from "@/components/ui/layout";
 import { Dialog } from "@/components/ui/overlay";
-import { CountdownBlocks } from "@/components/countdown";
+import { CountdownBlocks, useNow } from "@/components/countdown";
 import { useAction } from "@/components/forms";
 import { HearingDialog } from "@/components/quick/forms";
 import { formatDate, formatDateTime, formatTime, toZonedLocalInput } from "@/lib/time";
@@ -27,7 +27,7 @@ export type HearingRow = {
 export function HearingsView({ matterId, matterLabel, meId, focus, caps, hearings }: { matterId: string; matterLabel: string; meId: string; focus: string | null; caps: string[]; hearings: HearingRow[] }) {
   const { t, locale, tz } = useI18n();
   const router = useRouter();
-  const now = Date.now();
+  const now = useNow();
   const [edit, setEdit] = useState<HearingRow | "new" | null>(null);
   const [report, setReport] = useState<HearingRow | null>(null);
   const { run, pending } = useAction();

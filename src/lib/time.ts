@@ -121,3 +121,8 @@ export function formatMinutes(min: number, locale: Locale) {
   const m = min % 60;
   return locale === "ar" ? `${h}س ${m}د` : `${h}h ${m}m`;
 }
+
+/** Calendar date (yyyy-mm-dd) in the office timezone, `days` from now — e.g. invoice issue/due dates. */
+export function isoDateInDays(days = 0, tz = DEFAULT_TZ) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(Date.now() + days * 86400_000));
+}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Dialog as D } from "radix-ui";
 import {
   ChevronsLeft, ChevronsRight, Plus, Search, Menu as MenuIcon, LogOut, Moon, Sun, Languages, MoreHorizontal, User, Keyboard,
@@ -35,12 +35,9 @@ const QUICK: { type: QuickType; labelKey: string; icon: React.ComponentType<{ cl
   { type: "note", labelKey: "quick.newNote", icon: StickyNote, perm: "notes.create" },
 ];
 
-function readCollapsed() {
-  try {
-    return localStorage.getItem("ahl-sidebar") === "collapsed";
-  } catch {
-    return false;
-  }
+/** Non-sensitive display preferences, kept in cookies so the server renders them (no flicker). */
+function savePref(name: "ahl_theme" | "ahl_sidebar", value: string) {
+  document.cookie = `${name}=${value}; path=/; max-age=31536000; samesite=lax`;
 }
 
 export function AppShell({
@@ -49,6 +46,7 @@ export function AppShell({
   counts,
   nextHearing,
   isDemo,
+  prefs,
   children,
 }: {
   user: ShellUser;
@@ -56,6 +54,7 @@ export function AppShell({
   counts: { unread: number; approvals: number };
   nextHearing: NextHearingData | null;
   isDemo: boolean;
+  prefs: { dark: boolean; collapsed: boolean };
   children: React.ReactNode;
 }) {
   const { t, locale } = useI18n();
@@ -63,31 +62,28 @@ export function AppShell({
   const router = useRouter();
   const perms = new Set(permissions);
   const can = (p?: string) => !p || perms.has(p);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(prefs.collapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(prefs.dark);
   const [, startTransition] = useTransition();
 
-  useEffect(() => {
-    setCollapsed(readCollapsed());
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
-  useEffect(() => setMobileOpen(false), [pathname]);
+  // Close the mobile drawer on navigation (state adjusted during render, not in an effect).
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    setMobileOpen(false);
+  }
 
   const toggleCollapse = () => {
     const next = !collapsed;
     setCollapsed(next);
-    try {
-      localStorage.setItem("ahl-sidebar", next ? "collapsed" : "expanded");
-    } catch {}
+    savePref("ahl_sidebar", next ? "collapsed" : "expanded");
   };
   const toggleTheme = () => {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
-    try {
-      localStorage.setItem("ahl-theme", next ? "dark" : "light");
-    } catch {}
+    savePref("ahl_theme", next ? "dark" : "light");
   };
   const switchLocale = () =>
     startTransition(async () => {

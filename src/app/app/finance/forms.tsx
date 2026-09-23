@@ -11,12 +11,13 @@ import { Field, Input, Select, Textarea, Checkbox } from "@/components/ui/form";
 import { Picker } from "@/components/picker";
 import { useAction, useServerForm } from "@/components/forms";
 import { expenseSchema, invoiceSchema, paymentSchema, timeEntrySchema, TIME_ACTIVITIES, EXPENSE_CATEGORIES } from "@/lib/finance-schemas";
-import { formatMoney } from "@/lib/time";
+import { formatMoney, isoDateInDays } from "@/lib/time";
 import { useNow } from "@/components/countdown";
 import { expenseAction, saveInvoiceAction, paymentAction, invoiceStatusAction, unbilledAction, logTimeAction, startTimerAction, stopTimerAction } from "./actions";
 import type { z } from "zod";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => isoDateInDays(0);
+const isoInDays = (n: number) => isoDateInDays(n);
 
 // ─────────────────────────── Expense ───────────────────────────
 export function ExpenseButton({ matterId, label }: { matterId?: string; label?: string }) {
@@ -59,9 +60,11 @@ export function InvoiceEditor({ initial, labels, vatRate }: { initial?: z.input<
   const { t, locale } = useI18n();
   const router = useRouter();
   const { run, pending: loadingUnbilled } = useAction();
+  // Defaults are computed once (lazy state) — dates must not change between renders.
+  const [defaults] = useState<z.input<typeof invoiceSchema>>(() => initial ?? { id: "", clientId: "", matterId: "", issueDate: today(), dueDate: isoInDays(30), discount: 0, vatRate, notes: "", portalVisible: true, items: [{ description: "", kind: "FEE", quantity: 1, unitPrice: 0, timeEntryId: null, expenseId: null }] });
   const { form, submit, pending, err } = useServerForm({
     schema: invoiceSchema,
-    defaultValues: initial ?? { id: "", clientId: "", matterId: "", issueDate: today(), dueDate: new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10), discount: 0, vatRate, notes: "", portalVisible: true, items: [{ description: "", kind: "FEE", quantity: 1, unitPrice: 0, timeEntryId: null, expenseId: null }] },
+    defaultValues: defaults,
     action: saveInvoiceAction, successMessage: t("common.changesSaved"), onSuccess: (d) => router.push(`/app/finance/invoices/${(d as { id: string }).id}`),
   });
   const items = useFieldArray({ control: form.control, name: "items" });

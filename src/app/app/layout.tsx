@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { nextHearing } from "@/server/services/dashboard";
 import { matterScopeWhere } from "@/server/services/access";
 import { Providers } from "@/components/providers";
+import { cookies } from "next/headers";
 import { AppShell } from "@/components/shell/app-shell";
 import { QuickCreateHost } from "@/components/quick/quick-create-host";
 
@@ -26,6 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     nextHearing(ctx),
   ]);
 
+  const jar = await cookies();
   return (
     <Providers locale={locale} dict={DICTS[locale]} tz={ctx.org.timezone}>
       <AppShell
@@ -37,6 +39,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         counts={{ unread, approvals }}
         nextHearing={hearing}
         isDemo={ctx.org.isDemo}
+        prefs={{ dark: jar.get("ahl_theme")?.value === "dark", collapsed: jar.get("ahl_sidebar")?.value === "collapsed" }}
       >
         {children}
       </AppShell>

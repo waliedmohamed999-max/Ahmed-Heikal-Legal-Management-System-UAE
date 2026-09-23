@@ -396,4 +396,5 @@ const ar: typeof en = {
   },
 };
 
-export default { en, ar };
+const messages = { en, ar };
+export default messages;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog as D } from "radix-ui";
@@ -30,10 +30,16 @@ export function TaskList({ rows, emptyTitle, emptyAction, showMatter = true }: {
   const { t, locale, tz } = useI18n();
   const router = useRouter();
   const sp = useSearchParams();
-  const [openId, setOpenId] = useState<string | null>(sp.get("task"));
+  const taskParam = sp.get("task");
+  const [openId, setOpenId] = useState<string | null>(taskParam);
+  // Follow ?task= changes (state adjusted during render, not in an effect).
+  const [lastParam, setLastParam] = useState(taskParam);
+  if (taskParam !== lastParam) {
+    setLastParam(taskParam);
+    setOpenId(taskParam);
+  }
   const { run } = useAction();
   const L = (en: string, ar: string | null | undefined) => (locale === "ar" ? ar || en : en);
-  useEffect(() => setOpenId(sp.get("task")), [sp]);
 
   const toggle = (r: TaskRow) => run(() => taskStatusAction({ id: r.id, status: r.status === "DONE" ? "TODO" : "DONE" }), { onSuccess: () => router.refresh() });
 

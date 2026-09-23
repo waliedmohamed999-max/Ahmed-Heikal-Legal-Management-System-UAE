@@ -37,7 +37,7 @@ export default async function PreparePage({ params }: { params: Promise<{ id: st
   const evidence = docs.filter((d) => d.category === "EVIDENCE");
   const important = docs.filter((d) => d.category !== "EVIDENCE");
 
-  const DocList = ({ list }: { list: typeof docs }) =>
+  const docList = (list: typeof docs) =>
     list.length ? (
       <ul className="divide-y divide-line">
         {list.map((d) => (
@@ -80,8 +80,8 @@ export default async function PreparePage({ params }: { params: Promise<{ id: st
             initial={{ questions: h.questions ?? "", arguments: h.arguments ?? "", preparationNotes: h.preparationNotes ?? "" }}
           />
           <div className="grid gap-5 md:grid-cols-2">
-            <Panel title={t("hearings.prepDocuments")} icon={<FolderOpen />}><DocList list={important} /></Panel>
-            <Panel title={t("hearings.prepEvidence")} icon={<ShieldCheck />}><DocList list={evidence} /></Panel>
+            <Panel title={t("hearings.prepDocuments")} icon={<FolderOpen />}>{docList(important)}</Panel>
+            <Panel title={t("hearings.prepEvidence")} icon={<ShieldCheck />}>{docList(evidence)}</Panel>
           </div>
         </div>
         <div className="space-y-5 xl:col-span-5">

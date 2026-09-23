@@ -43,7 +43,11 @@ export function Picker({
     const h = setTimeout(() => setDq(q), 180);
     return () => clearTimeout(h);
   }, [q]);
-  useEffect(() => setLabel(initialLabel ?? ""), [initialLabel]);
+  const [prevInitial, setPrevInitial] = useState(initialLabel);
+  if (initialLabel !== prevInitial) {
+    setPrevInitial(initialLabel);
+    setLabel(initialLabel ?? "");
+  }
 
   const { data, isFetching, isError } = useQuery({
     queryKey: ["lookup", type, dq],
@@ -71,6 +75,9 @@ export function Picker({
           type="button"
           disabled={disabled}
           aria-invalid={invalid || undefined}
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={`${id ?? type}-list`}
           aria-haspopup="listbox"
           className={cn(
             "flex h-9 w-full items-center gap-2 rounded-md border border-line-strong bg-surface px-3 text-start text-sm shadow-xs hover:border-ink-subtle/60 disabled:opacity-60",
