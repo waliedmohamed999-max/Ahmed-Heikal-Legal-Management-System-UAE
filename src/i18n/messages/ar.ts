@@ -233,6 +233,7 @@ const ar: Messages = {
     overpayment: "الدفعة تتجاوز المبلغ المستحق.",
     storage: "خطأ في تخزين الملفات.",
     unsupported: "غير مدعوم.",
+    taskBlocked: "هذه المهمة معلقة على مهام سابقة غير منجزة.",
   },
   validation: {
     required: "هذا الحقل مطلوب.",

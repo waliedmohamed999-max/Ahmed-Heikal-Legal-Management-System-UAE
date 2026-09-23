@@ -231,6 +231,7 @@ const en = {
     overpayment: "Payment exceeds the amount due.",
     storage: "File storage error.",
     unsupported: "Not supported.",
+    taskBlocked: "This task is blocked by unfinished dependencies.",
   },
   validation: {
     required: "This field is required.",

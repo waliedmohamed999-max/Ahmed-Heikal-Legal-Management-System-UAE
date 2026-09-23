@@ -41,6 +41,13 @@ export const GET = staffRoute(async (req, ctx) => {
       });
       return { items: rows.map((r) => ({ id: r.id, label: r.name, labelAr: r.nameAr, sub: r.position })) };
     }
+    case "courts": {
+      const rows = await db.court.findMany({
+        where: { organizationId: ctx.org.id, active: true, ...(q ? { OR: [{ name: ci }, { nameAr: ci }] } : {}) },
+        orderBy: { name: "asc" }, take: 50, select: { id: true, name: true, nameAr: true, level: true },
+      });
+      return { items: rows.map((r) => ({ id: r.id, label: r.name, labelAr: r.nameAr, sub: r.level })) };
+    }
     default:
       throw new AppError("validation", 400);
   }

@@ -1,25 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Gavel, CalendarClock, Users, UserRound, FileUp, Microscope, Wallet, CheckSquare, RotateCw, ShieldAlert, type LucideIcon } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { formatTime, formatDate } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { CountdownInline } from "./countdown";
 import { Badge } from "./ui/badge";
 
-/** Semantic event palette — one colour per event type across calendar, agenda and widgets. */
-export const EVENT_STYLE: Record<string, { color: string; icon: LucideIcon }> = {
-  HEARING: { color: "var(--ev-hearing)", icon: Gavel },
-  COURT_DEADLINE: { color: "var(--ev-court-deadline)", icon: CalendarClock },
-  CLIENT_MEETING: { color: "var(--ev-client-meeting)", icon: UserRound },
-  INTERNAL_MEETING: { color: "var(--ev-internal-meeting)", icon: Users },
-  SUBMISSION: { color: "var(--ev-submission)", icon: FileUp },
-  EXPERT_MEETING: { color: "var(--ev-expert)", icon: Microscope },
-  PAYMENT: { color: "var(--ev-payment)", icon: Wallet },
-  TASK_DEADLINE: { color: "var(--ev-task)", icon: CheckSquare },
-  FOLLOW_UP: { color: "var(--ev-follow-up)", icon: RotateCw },
-};
+import { EVENT_STYLE } from "./event-style";
+export { EVENT_STYLE };
 
 export function EventTypeChip({ type, className }: { type: string; className?: string }) {
   const { t } = useI18n();

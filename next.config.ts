@@ -15,7 +15,11 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "2mb" },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      // File previews set their own SAMEORIGIN framing policy so PDFs can render in-app.
+      { source: "/((?!api/files).*)", headers: securityHeaders },
+      { source: "/api/files/:path*", headers: securityHeaders.filter((h) => h.key !== "X-Frame-Options") },
+    ];
   },
 };
 

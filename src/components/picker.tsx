@@ -23,7 +23,7 @@ export function Picker({
   invalid,
   disabled,
 }: {
-  type: "clients" | "contacts" | "matters" | "users";
+  type: "clients" | "contacts" | "matters" | "users" | "courts";
   value: string | null | undefined;
   onChange: (item: PickItem | null) => void;
   placeholder?: string;
