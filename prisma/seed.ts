@@ -244,7 +244,7 @@ async function seedFoundation(orgId: string) {
     ["SMTP", "EMAIL", "REQUIRES_CONFIGURATION", "Set SMTP_* environment variables"],
     ["GOOGLE_CALENDAR", "CALENDAR", "NOT_CONNECTED", "OAuth client required"],
     ["OUTLOOK_CALENDAR", "CALENDAR", "NOT_CONNECTED", "OAuth app registration required"],
-    ["S3_STORAGE", "STORAGE", "NOT_CONNECTED", "Local encrypted-at-rest disk storage in use"],
+    ["S3_STORAGE", "STORAGE", "NOT_CONNECTED", "Local disk storage in use (files are not encrypted by the app — use an encrypted volume or S3 with SSE)"],
     ["SMS", "SMS", "REQUIRES_CONFIGURATION", "Choose a UAE-approved SMS provider"],
     ["WHATSAPP_BUSINESS", "WHATSAPP", "REQUIRES_CONFIGURATION", "Official WhatsApp Business Cloud API only"],
     ["ACCOUNTING", "ACCOUNTING", "NOT_CONNECTED", "Export available; connector not configured"],
@@ -257,7 +257,7 @@ async function seedFoundation(orgId: string) {
   for (const [provider, category, status, statusDetail] of integrations) {
     await db.integration.upsert({
       where: { organizationId_provider: { organizationId: orgId, provider } },
-      update: {},
+      update: { statusDetail }, // keep the informational text accurate on re-seed
       create: { organizationId: orgId, provider, category, status, statusDetail },
     });
   }

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, FileInput, Check, X, AlertTriangle, History, Info } from "lucide-react";
+import { Upload, FileInput, Check, X, AlertTriangle, History } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/i18n/client";
 import { Panel, EmptyState } from "@/components/ui/layout";
@@ -63,10 +63,6 @@ export function ImportView({ history }: { history: { id: string; sourceType: str
 
   return (
     <div className="mt-6 space-y-5">
-      <p className="flex items-start gap-2 rounded-lg border border-line bg-surface-muted/60 px-4 py-3 text-[12.5px] text-ink-muted">
-        <Info className="mt-0.5 size-4 shrink-0 text-accent" />
-        {t("courtImport.subtitle")}
-      </p>
       {!res && (
         <Panel title={t("courtImport.upload")} icon={<FileInput />}>
           <div className="grid gap-4 p-5">

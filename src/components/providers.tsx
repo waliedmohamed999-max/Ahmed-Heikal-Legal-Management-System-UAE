@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/overlay";
@@ -14,6 +14,10 @@ export function Providers({ locale, dict, tz, children }: { locale: "ar" | "en";
         defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 15_000 } },
       }),
   );
+  // PWA: static-asset + offline-page service worker (production only; never caches client data).
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }, []);
   return (
     <QueryClientProvider client={qc}>
       <I18nProvider locale={locale} dict={dict} tz={tz}>
