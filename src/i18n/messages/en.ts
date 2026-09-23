@@ -232,6 +232,12 @@ const en = {
     storage: "File storage error.",
     unsupported: "Not supported.",
     taskBlocked: "This task is blocked by unfinished dependencies.",
+    lastOwner: "The office must keep at least one active owner.",
+    roleInUse: "System roles and roles assigned to users cannot be deleted.",
+    invalidPassword: "The current password is incorrect.",
+    aiTooLarge: "The selected documents are too long for one request. Select fewer documents.",
+    aiRefused: "The AI provider declined this request.",
+    aiProviderError: "The AI provider returned an error. Please try again.",
   },
   validation: {
     required: "This field is required.",

@@ -13,7 +13,7 @@ const schema = z.object({
   STORAGE_LOCAL_DIR: z.string().default("./storage"),
   AI_PROVIDER: z.string().default("anthropic"),
   ANTHROPIC_API_KEY: z.string().optional(),
-  AI_MODEL: z.string().default("claude-sonnet-5"),
+  AI_MODEL: z.string().default("claude-opus-5"),
   OCR_PROVIDER: z.string().default("none"),
   SMTP_HOST: z.string().optional(),
   SMS_PROVIDER: z.string().optional(),
