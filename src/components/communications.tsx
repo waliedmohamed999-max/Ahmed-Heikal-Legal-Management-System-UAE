@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Phone, Users, MessageCircle, FileSignature, StickyNote, Plus, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, type LucideIcon } from "lucide-react";
+import { Mail, Phone, Users, MessageCircle, FileSignature, StickyNote, Globe, Plus, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { Button } from "@/components/ui/button";
 import { EmptyState, Panel } from "@/components/ui/layout";
@@ -13,7 +13,7 @@ import { communicationSchema } from "@/lib/schemas";
 import { formatDateTime, toZonedLocalInput } from "@/lib/time";
 import { logCommunicationAction } from "@/app/app/collab-actions";
 
-const ICON: Record<string, LucideIcon> = { EMAIL: Mail, CALL: Phone, MEETING: Users, WHATSAPP: MessageCircle, LETTER: FileSignature, NOTE: StickyNote };
+const ICON: Record<string, LucideIcon> = { EMAIL: Mail, CALL: Phone, MEETING: Users, WHATSAPP: MessageCircle, LETTER: FileSignature, NOTE: StickyNote, PORTAL: Globe };
 const DIR: Record<string, LucideIcon> = { INBOUND: ArrowDownLeft, OUTBOUND: ArrowUpRight, INTERNAL: ArrowLeftRight };
 
 type Item = { id: string; channel: string; direction: string; subject: string | null; body: string | null; occurredAt: string; user: string | null };

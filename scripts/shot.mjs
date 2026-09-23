@@ -17,7 +17,7 @@ if (email !== "none") {
   await page.goto(`${BASE}${portal ? "/portal/login" : "/login"}`, { waitUntil: "networkidle", timeout: 120000 });
   await page.fill("#email", email);
   await page.fill("#password", process.env.PW ?? "Demo-Password-2026");
-  await Promise.all([page.waitForURL(portal ? /\/portal/ : /\/app/, { timeout: 120000 }), page.click("button[type=submit]")]);
+  await Promise.all([page.waitForURL((u) => !u.pathname.includes("login") && u.pathname.startsWith(portal ? "/portal" : "/app"), { timeout: 120000 }), page.click("button[type=submit]")]);
 }
 for (const p of paths) {
   const res = await page.goto(`${BASE}${p}`, { waitUntil: "networkidle", timeout: 180000 });

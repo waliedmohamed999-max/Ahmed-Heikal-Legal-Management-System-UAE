@@ -378,6 +378,7 @@ const en = {
     paymentReceived: "Payment received on {number}",
     approvalRequested: "Approval requested: {title}",
     addedToMatter: "You were added to {number}",
+    portalMessage: "New client message from {name}",
   },
   enums: {
     matterStatus: { INTAKE: "Intake", ACTIVE: "Active", PENDING: "Pending", ON_HOLD: "On hold", CLOSED: "Closed", ARCHIVED: "Archived" },

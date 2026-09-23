@@ -169,7 +169,7 @@ const en = {
     timeLogged: "Time logged",
     expenses: "Expenses",
     invoices: "Invoices",
-    channels: { EMAIL: "Email", CALL: "Call", MEETING: "Meeting", WHATSAPP: "WhatsApp", LETTER: "Letter", NOTE: "Note" },
+    channels: { EMAIL: "Email", CALL: "Call", MEETING: "Meeting", WHATSAPP: "WhatsApp", LETTER: "Letter", NOTE: "Note", PORTAL: "Client portal message" },
     directions: { INBOUND: "Inbound", OUTBOUND: "Outbound", INTERNAL: "Internal" },
     eventTypes: {
       CASE_CREATED: "Case created", DOCUMENTS_RECEIVED: "Documents received", CLAIM_SUBMITTED: "Claim submitted", HEARING: "Hearing", EXPERT_ASSIGNED: "Expert assigned",
@@ -351,7 +351,7 @@ const ar: typeof en = {
     timeLogged: "الوقت المسجل",
     expenses: "المصروفات",
     invoices: "الفواتير",
-    channels: { EMAIL: "بريد إلكتروني", CALL: "مكالمة", MEETING: "اجتماع", WHATSAPP: "واتساب", LETTER: "خطاب", NOTE: "ملاحظة" },
+    channels: { EMAIL: "بريد إلكتروني", CALL: "مكالمة", MEETING: "اجتماع", WHATSAPP: "واتساب", LETTER: "خطاب", NOTE: "ملاحظة", PORTAL: "رسالة بوابة العميل" },
     directions: { INBOUND: "وارد", OUTBOUND: "صادر", INTERNAL: "داخلي" },
     eventTypes: {
       CASE_CREATED: "إنشاء القضية", DOCUMENTS_RECEIVED: "استلام المستندات", CLAIM_SUBMITTED: "قيد الدعوى", HEARING: "جلسة", EXPERT_ASSIGNED: "ندب خبير",

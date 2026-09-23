@@ -33,6 +33,7 @@ export const MORE_NAV: NavItem[] = [
   { key: "tasks-all", href: "/app/tasks", labelKey: "nav.tasks", icon: ListTodo, perm: "tasks.view" },
   { key: "contacts", href: "/app/contacts", labelKey: "nav.contacts", icon: Contact, perm: "contacts.view" },
   { key: "crm", href: "/app/crm", labelKey: "nav.crm", icon: Target, perm: "crm.view" },
+  { key: "appointments", href: "/app/appointments", labelKey: "nav.appointments", icon: CalendarDays, perm: "calendar.view" },
   { key: "reports", href: "/app/reports", labelKey: "nav.reports", icon: BarChart3, perm: "reports.view" },
   { key: "knowledge", href: "/app/knowledge", labelKey: "nav.knowledge", icon: BookOpen, perm: "knowledge.view" },
   { key: "templates", href: "/app/templates", labelKey: "nav.templates", icon: FileStack, perm: "knowledge.view" },

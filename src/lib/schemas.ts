@@ -242,7 +242,7 @@ export const commentSchema = z.object({
 export const communicationSchema = z.object({
   matterId: optUuid,
   clientId: optUuid,
-  channel: z.enum(["EMAIL", "CALL", "MEETING", "WHATSAPP", "LETTER", "NOTE"]),
+  channel: z.enum(["EMAIL", "CALL", "MEETING", "WHATSAPP", "LETTER", "NOTE", "PORTAL"]),
   direction: z.enum(["INBOUND", "OUTBOUND", "INTERNAL"]).default("OUTBOUND"),
   subject: optText(300),
   body: optText(20000),

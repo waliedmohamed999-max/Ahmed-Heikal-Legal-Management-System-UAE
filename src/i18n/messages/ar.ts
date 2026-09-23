@@ -380,6 +380,7 @@ const ar: Messages = {
     paymentReceived: "تم استلام دفعة على {number}",
     approvalRequested: "طلب اعتماد: {title}",
     addedToMatter: "تمت إضافتك إلى {number}",
+    portalMessage: "رسالة جديدة من العميل {name}",
   },
   enums: {
     matterStatus: { INTAKE: "قيد الاستلام", ACTIVE: "نشطة", PENDING: "معلقة", ON_HOLD: "موقوفة مؤقتًا", CLOSED: "مغلقة", ARCHIVED: "مؤرشفة" },
