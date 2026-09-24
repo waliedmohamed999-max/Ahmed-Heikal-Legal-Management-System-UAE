@@ -31,7 +31,11 @@ npm run dev                     # http://localhost:3100
 ```
 
 Using XAMPP instead of Docker for the database: create an empty database (e.g. `ahmedhiekal`),
-set `DATABASE_URL=mysql://root@127.0.0.1:3306/ahmedhiekal` in `.env`, then run `npm run db:deploy`.
+set `DATABASE_URL=mysql://root@127.0.0.1:3306/ahmedhiekal` in `.env`, then run `npm run db:deploy`
+and `npm run db:seed`. **Local development only.** XAMPP ships MariaDB 10.4 (end of life), not MySQL 8.4,
+and on Windows it stores table names in lower case (`lower_case_table_names=1`). The app works against it,
+but a dump taken from it will not restore correctly onto Linux MySQL. Staging and production use MySQL 8.4
+(see `docs/STAGING-SETUP.md`).
 
 In development the background jobs run in-process. In production they run in the worker:
 
