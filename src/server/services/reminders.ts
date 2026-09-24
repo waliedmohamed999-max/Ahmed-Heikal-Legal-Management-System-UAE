@@ -1,8 +1,9 @@
+import { stringList, numberList } from "@/lib/json-lists";
 import "server-only";
 import { db, type Tx } from "../db";
 import { alertLevel, DEFAULT_REMINDER_OFFSETS, reminderSchedule, type AlertThreshold, DEFAULT_THRESHOLDS } from "@/lib/deadline";
 import { notify } from "./notifications";
-import type { Channel } from "./channels";
+import { channelProvider, deliver, type Channel } from "./channels";
 
 export type SubjectType = "HEARING" | "DEADLINE" | "APPOINTMENT" | "TASK";
 
@@ -99,8 +100,8 @@ export async function syncReminders(tx: Tx, type: SubjectType, id: string, now =
 
   const policy = await tx.reminderPolicy.findUnique({ where: { organizationId_subjectType: { organizationId: s.organizationId, subjectType: type } } });
   if (policy && !policy.enabled) return 0;
-  const offsets = policy?.offsetsMinutes ?? DEFAULT_REMINDER_OFFSETS[type] ?? [];
-  const channels = policy?.channels ?? ["IN_APP"];
+  const offsets = numberList(policy?.offsetsMinutes ?? DEFAULT_REMINDER_OFFSETS[type] ?? []);
+  const channels = stringList(policy?.channels ?? ["IN_APP"]);
   const recipients = new Set(s.recipients);
   if (policy?.notifyOwner && s.ownerId) recipients.add(s.ownerId);
 
@@ -127,44 +128,127 @@ export async function cancelReminders(tx: Tx, type: SubjectType, id: string) {
 
 const CATEGORY: Record<SubjectType, "HEARING" | "DEADLINE" | "TASK" | "CLIENT"> = { HEARING: "HEARING", DEADLINE: "DEADLINE", APPOINTMENT: "CLIENT", TASK: "TASK" };
 
+export const MAX_ATTEMPTS = 5;
+const LEASE_MS = 2 * 60_000;
+const backoffMs = (attempt: number) => Math.min(60, 2 ** attempt) * 60_000;
+
 /**
- * Dispatch due reminders. Run by the worker every minute. Idempotent: each reminder
- * is claimed with a conditional update before sending, so concurrent workers never double-send.
+ * Dispatch due reminders (run by the worker). Durable and idempotent:
+ *  • Claimed with a lease (PROCESSING + lockedUntil). If the worker dies mid-job the
+ *    lease expires and another tick re-claims it — restarts never lose reminders.
+ *  • The in-app notification and the SENT mark commit in ONE transaction, and the
+ *    notification carries a unique dedupe key (reminder id), so a retry after a crash
+ *    can never create a second notification for the user.
+ *  • Failures retry with exponential backoff up to MAX_ATTEMPTS, then FAILED.
  */
 export async function dispatchDueReminders(now = new Date(), limit = 200) {
-  const due = await db.reminder.findMany({ where: { status: "PENDING", fireAt: { lte: now } }, orderBy: { fireAt: "asc" }, take: limit });
+  const due = await db.reminder.findMany({
+    where: { status: { in: ["PENDING", "PROCESSING"] }, fireAt: { lte: now }, OR: [{ lockedUntil: null }, { lockedUntil: { lt: now } }] },
+    orderBy: { fireAt: "asc" },
+    take: limit,
+    select: { id: true },
+  });
   let sent = 0;
-  for (const r of due) {
-    const claimed = await db.reminder.updateMany({ where: { id: r.id, status: "PENDING" }, data: { status: "SENT", sentAt: now } });
+  for (const { id } of due) {
+    const claimed = await db.reminder.updateMany({
+      where: { id, status: { in: ["PENDING", "PROCESSING"] }, OR: [{ lockedUntil: null }, { lockedUntil: { lt: now } }] },
+      data: { status: "PROCESSING", lockedUntil: new Date(now.getTime() + LEASE_MS), attempts: { increment: 1 }, lastAttemptAt: now },
+    });
     if (!claimed.count) continue;
+    const r = await db.reminder.findUniqueOrThrow({ where: { id } });
     try {
-      const s = await loadSubject(db, r.subjectType as SubjectType, r.subjectId);
-      if (!s || !s.active || (r.kind === "ESCALATION" && s.acknowledged)) {
-        await db.reminder.update({ where: { id: r.id }, data: { status: "CANCELLED" } });
-        continue;
-      }
-      const org = await db.organization.findUnique({ where: { id: s.organizationId }, select: { settings: true } });
-      const thresholds = ((org?.settings as { alertThresholds?: AlertThreshold[] | null })?.alertThresholds ?? DEFAULT_THRESHOLDS) as AlertThreshold[];
-      const level = alertLevel(s.eventAt, now, thresholds);
-      const critical = ["IMMEDIATE", "CRITICAL", "OVERDUE"].includes(level);
-      await notify({
-        organizationId: s.organizationId,
-        userIds: [r.userId],
-        category: critical || r.kind === "ESCALATION" ? "CRITICAL" : CATEGORY[r.subjectType as SubjectType],
-        titleKey: r.kind === "ESCALATION" ? "notif.escalation" : `notif.reminder.${r.subjectType}`,
-        bodyKey: "notif.reminderBody",
-        params: { title: s.title, number: s.matterNumber ?? "", when: s.eventAt.toISOString(), level },
-        link: s.link,
-        entityType: r.subjectType,
-        entityId: r.subjectId,
-        dedupeKey: `reminder:${r.id}`,
-        requiresAck: r.subjectType === "HEARING" || r.subjectType === "DEADLINE",
-        channels: r.channels as Channel[],
+      const done = await db.$transaction(async (tx) => {
+        const s = await loadSubject(tx, r.subjectType as SubjectType, r.subjectId);
+        if (!s || !s.active || (r.kind === "ESCALATION" && s.acknowledged)) {
+          await tx.reminder.update({ where: { id: r.id }, data: { status: "CANCELLED", lockedUntil: null } });
+          return false;
+        }
+        const org = await tx.organization.findUnique({ where: { id: s.organizationId }, select: { settings: true } });
+        const thresholds = ((org?.settings as { alertThresholds?: AlertThreshold[] | null })?.alertThresholds ?? DEFAULT_THRESHOLDS) as AlertThreshold[];
+        const level = alertLevel(s.eventAt, now, thresholds);
+        const critical = ["IMMEDIATE", "CRITICAL", "OVERDUE"].includes(level);
+        await notify(
+          {
+            organizationId: s.organizationId,
+            userIds: [r.userId],
+            category: critical || r.kind === "ESCALATION" ? "CRITICAL" : CATEGORY[r.subjectType as SubjectType],
+            titleKey: r.kind === "ESCALATION" ? "notif.escalation" : `notif.reminder.${r.subjectType}`,
+            bodyKey: "notif.reminderBody",
+            params: { title: s.title, number: s.matterNumber ?? "", when: s.eventAt.toISOString(), level },
+            link: s.link,
+            entityType: r.subjectType,
+            entityId: r.subjectId,
+            dedupeKey: `reminder:${r.id}`,
+            requiresAck: r.subjectType === "HEARING" || r.subjectType === "DEADLINE",
+            channels: stringList(r.channels) as Channel[],
+          },
+          tx,
+        );
+        await tx.reminder.update({ where: { id: r.id }, data: { status: "SENT", sentAt: now, lockedUntil: null, error: null } });
+        return true;
       });
-      sent++;
+      if (done) sent++;
     } catch (e) {
-      await db.reminder.update({ where: { id: r.id }, data: { status: "FAILED", error: e instanceof Error ? e.message.slice(0, 300) : "error" } });
+      const final = r.attempts >= MAX_ATTEMPTS;
+      await db.reminder.update({
+        where: { id: r.id },
+        data: {
+          status: final ? "FAILED" : "PENDING",
+          lockedUntil: final ? null : new Date(now.getTime() + backoffMs(r.attempts)),
+          error: e instanceof Error ? e.message.slice(0, 300) : "error",
+        },
+      });
     }
+  }
+  return sent;
+}
+
+/**
+ * Send queued external deliveries (e-mail / SMS / WhatsApp). Same lease + retry model.
+ * In-app delivery is exactly-once (transactional). External providers are at-least-once:
+ * a crash after the provider accepted a message but before SENT is recorded can cause
+ * one resend — providers expose no idempotency key for plain SMTP.
+ */
+export async function dispatchPendingDeliveries(now = new Date(), limit = 100) {
+  const due = await db.notificationDelivery.findMany({
+    where: {
+      OR: [
+        { status: "PENDING", OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }] },
+        { status: "SENDING", lockedUntil: { lt: now } },
+      ],
+    },
+    orderBy: { createdAt: "asc" },
+    take: limit,
+    select: { id: true },
+  });
+  let sent = 0;
+  for (const { id } of due) {
+    const claimed = await db.notificationDelivery.updateMany({
+      where: { id, OR: [{ status: "PENDING" }, { status: "SENDING", lockedUntil: { lt: now } }] },
+      data: { status: "SENDING", lockedUntil: new Date(now.getTime() + LEASE_MS), attempts: { increment: 1 }, lastAttemptAt: now },
+    });
+    if (!claimed.count) continue;
+    const d = await db.notificationDelivery.findUniqueOrThrow({
+      where: { id },
+      include: { notification: { select: { title: true, body: true, link: true, user: { select: { email: true, phone: true, status: true } } } } },
+    });
+    const u = d.notification.user;
+    const res =
+      u.status !== "ACTIVE"
+        ? { status: "SKIPPED_NOT_CONNECTED" as const, error: "recipient inactive" }
+        : await deliver(d.channel as Channel, { to: { email: u.email, phone: u.phone }, subject: d.notification.title, body: d.notification.body ?? d.notification.title, link: d.notification.link });
+    const retry = res.status === "FAILED" && d.attempts < MAX_ATTEMPTS;
+    await db.notificationDelivery.update({
+      where: { id },
+      data: {
+        status: retry ? "PENDING" : res.status,
+        error: res.error ?? null,
+        lockedUntil: null,
+        nextAttemptAt: retry ? new Date(now.getTime() + backoffMs(d.attempts)) : null,
+        provider: channelProvider(d.channel as Channel),
+      },
+    });
+    if (res.status === "SENT") sent++;
   }
   return sent;
 }

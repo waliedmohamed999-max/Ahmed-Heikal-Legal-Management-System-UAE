@@ -4,7 +4,7 @@ import { db, type Tx } from "../db";
 import { DICTS } from "@/i18n/server";
 import { makeT, type Params } from "@/i18n/translate";
 import { isLocale } from "@/i18n/config";
-import { deliver, type Channel } from "./channels";
+import { channelProvider, type Channel } from "./channels";
 
 export type NotifyInput = {
   organizationId: string;
@@ -58,9 +58,16 @@ export async function notify(input: NotifyInput, tx: Tx = db) {
     created.push(n.id);
     const prefs = (u.preferences ?? {}) as { channels?: Channel[] };
     const channels = (input.channels ?? ["IN_APP"]).filter((c) => c === "IN_APP" || !prefs.channels || prefs.channels.includes(c));
-    for (const ch of channels) {
-      const res = await deliver(ch, { to: { email: u.email, phone: u.phone }, subject: title, body: body ?? title, link: input.link });
-      await tx.notificationDelivery.create({ data: { notificationId: n.id, channel: ch, status: res.status, error: res.error ?? null } });
+    // External channels are queued (PENDING) and sent by the worker with retries; never
+    // inside this transaction. deliveryKey is unique: one delivery per notification + channel.
+    for (const ch of new Set(channels)) {
+      const external = ch !== "IN_APP";
+      await tx.notificationDelivery.create({
+        data: {
+          notificationId: n.id, channel: ch, deliveryKey: `${n.id}:${ch}`, provider: channelProvider(ch),
+          status: external ? "PENDING" : "SENT", nextAttemptAt: external ? new Date() : null,
+        },
+      });
     }
   }
   return created;

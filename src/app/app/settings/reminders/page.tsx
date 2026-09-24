@@ -1,3 +1,4 @@
+import { stringList, numberList } from "@/lib/json-lists";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/server/auth/session";
 import { db } from "@/server/db";
@@ -16,7 +17,7 @@ export default async function RemindersPage() {
       thresholds={currentThresholds(ctx.org.settings) as never}
       policies={types.map((st) => {
         const p = policies.find((x) => x.subjectType === st);
-        return { subjectType: st, offsetsMinutes: p?.offsetsMinutes ?? [], channels: (p?.channels ?? ["IN_APP"]) as never, notifyOwner: p?.notifyOwner ?? false, escalateBeforeMinutes: p?.escalateBeforeMinutes ?? null, enabled: p?.enabled ?? true };
+        return { subjectType: st, offsetsMinutes: numberList(p?.offsetsMinutes ?? []), channels: stringList(p?.channels ?? ["IN_APP"]) as never, notifyOwner: p?.notifyOwner ?? false, escalateBeforeMinutes: p?.escalateBeforeMinutes ?? null, enabled: p?.enabled ?? true };
       })}
     />
   );
