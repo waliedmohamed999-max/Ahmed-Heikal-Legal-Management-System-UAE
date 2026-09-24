@@ -163,9 +163,11 @@ export function InvoiceActions({ id, status, due, canManage, canApprove, paid }:
 
 function PaymentDialog({ invoiceId, max, refund, onDone }: { invoiceId: string; max: number; refund: boolean; onDone: () => void }) {
   const { t } = useI18n();
+  // One key per opened dialog: a double click / resubmission records the payment once.
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
   const { form, submit, pending, err } = useServerForm({
     schema: paymentSchema,
-    defaultValues: { invoiceId, amount: max, method: "BANK_TRANSFER", receivedAt: today(), reference: "", notes: "", isRefund: refund },
+    defaultValues: { invoiceId, amount: max, method: "BANK_TRANSFER", receivedAt: today(), reference: "", notes: "", isRefund: refund, idempotencyKey },
     action: paymentAction, successMessage: t("common.changesSaved"), onSuccess: onDone,
   });
   const r = form.register;

@@ -31,6 +31,8 @@ export const paymentSchema = z.object({
   reference: z.string().max(120).optional().or(z.literal("")),
   notes: z.string().max(1000).optional().or(z.literal("")),
   isRefund: z.boolean().default(false),
+  // Generated once per opened payment form; makes double submission harmless.
+  idempotencyKey: z.string().uuid().optional(),
 });
 
 export const expenseSchema = z.object({

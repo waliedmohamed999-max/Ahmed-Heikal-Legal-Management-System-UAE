@@ -1,7 +1,8 @@
+import { nameSimilarity } from "@/lib/name-similarity";
 import "server-only";
 import { Prisma, type MatterMemberRole } from "@prisma/client";
 import { z } from "zod";
-import { db, type Tx } from "../db";
+import { db, type Tx, withTxRetry } from "../db";
 import type { StaffContext } from "../auth/session";
 import { AppError, forbidden, notFound } from "../errors";
 import { audit, diff } from "../audit";
@@ -15,13 +16,22 @@ import { intakeSchema, matterUpdateSchema, timelineSchema } from "@/lib/schemas"
 import { fromZonedLocal, zonedParts } from "@/lib/time";
 
 // ─────────────────────────── Numbering ───────────────────────────
-/** Atomic per-organisation counter (row-level lock via UPDATE … RETURNING). */
+/**
+ * Atomic per-organisation counter (AH-YYYY-XXXXX, CL-XXXX, invoice numbers).
+ * A plain UPDATE on the existing row takes an exclusive row lock (no gap locks), held until
+ * the surrounding transaction commits, so concurrent transactions are serialised and never
+ * read the same value. `INSERT … ON DUPLICATE KEY UPDATE` was replaced: under concurrency it
+ * deadlocks on InnoDB (found by the Phase 11 concurrency test). The row is created once with
+ * INSERT IGNORE; callers also retry on deadlock (withTxRetry).
+ */
 export async function nextCounter(tx: Tx, organizationId: string, key: string) {
-  const rows = await tx.$queryRaw<{ value: number }[]>`
-    INSERT INTO "Counter" ("organizationId", key, value) VALUES (${organizationId}::uuid, ${key}, 1)
-    ON CONFLICT ("organizationId", key) DO UPDATE SET value = "Counter".value + 1
-    RETURNING value`;
-  return rows[0].value;
+  let updated = await tx.$executeRaw`UPDATE \`Counter\` SET \`value\` = \`value\` + 1 WHERE \`organizationId\` = ${organizationId} AND \`key\` = ${key}`;
+  if (updated === 0) {
+    await tx.$executeRaw`INSERT IGNORE INTO \`Counter\` (\`organizationId\`, \`key\`, \`value\`) VALUES (${organizationId}, ${key}, 0)`;
+    updated = await tx.$executeRaw`UPDATE \`Counter\` SET \`value\` = \`value\` + 1 WHERE \`organizationId\` = ${organizationId} AND \`key\` = ${key}`;
+  }
+  const row = await tx.counter.findUniqueOrThrow({ where: { organizationId_key: { organizationId, key } } });
+  return row.value;
 }
 
 export async function nextMatterNumber(tx: Tx, orgId: string, prefix: string, tz: string) {
@@ -75,7 +85,7 @@ function viewWhere(view: MatterView, userId: string): Prisma.MatterWhereInput {
 export const PAGE_SIZE = 25;
 
 export async function listMatters(ctx: StaffContext, q: MatterListQuery) {
-  const ci = q.q ? { contains: q.q, mode: "insensitive" as const } : undefined;
+  const ci = q.q ? { contains: q.q } : undefined;
   const where: Prisma.MatterWhereInput = {
     AND: [
       matterScopeWhere(ctx),
@@ -147,16 +157,29 @@ export async function conflictCheck(ctx: StaffContext, names: string[]) {
   }[] = [];
   const scope = matterScopeWhere(ctx);
   for (const term of terms) {
-    // Trigram similarity catches spelling variants (e.g. "Al Noor" vs "Alnoor")
-    const hits = await db.$queryRaw<{ id: string; kind: string; name: string; sim: number }[]>`
-      SELECT id, 'CLIENT' AS kind, "nameEn" AS name, GREATEST(similarity("nameEn", ${term}), similarity(coalesce("nameAr", ''), ${term})) AS sim
-        FROM "Client" WHERE "organizationId" = ${ctx.org.id}::uuid AND "deletedAt" IS NULL
-          AND ("nameEn" % ${term} OR coalesce("nameAr", '') % ${term} OR "nameEn" ILIKE ${"%" + term + "%"} OR coalesce("nameAr", '') ILIKE ${"%" + term + "%"})
-      UNION ALL
-      SELECT id, 'CONTACT' AS kind, "nameEn" AS name, GREATEST(similarity("nameEn", ${term}), similarity(coalesce("nameAr", ''), ${term}), similarity(coalesce("companyName", ''), ${term})) AS sim
-        FROM "Contact" WHERE "organizationId" = ${ctx.org.id}::uuid AND "deletedAt" IS NULL
-          AND ("nameEn" % ${term} OR coalesce("nameAr", '') % ${term} OR coalesce("companyName", '') % ${term} OR "nameEn" ILIKE ${"%" + term + "%"} OR coalesce("nameAr", '') ILIKE ${"%" + term + "%"})
-      ORDER BY sim DESC LIMIT 25`;
+    // Page through tenant records so approximate matches are not lost to a SQL LIMIT.
+    const hits: { id: string; kind: string; name: string; sim: number }[] = [];
+    for (const kind of ["CLIENT", "CONTACT"] as const) {
+      let cursor: string | undefined;
+      for (;;) {
+        const args = {
+          where: { organizationId: ctx.org.id, deletedAt: null },
+          select: { id: true, nameEn: true, nameAr: true, companyName: true },
+          orderBy: { id: "asc" as const }, take: 500,
+          ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        };
+        const batch: { id: string; nameEn: string; nameAr: string | null; companyName: string | null }[] = kind === "CLIENT"
+          ? await db.client.findMany(args) : await db.contact.findMany(args);
+        for (const row of batch) {
+          const sim = Math.max(...[row.nameEn, row.nameAr, row.companyName].map((name) => nameSimilarity(name ?? "", term)));
+          if (sim >= 0.3) hits.push({ id: row.id, kind, name: row.nameEn, sim });
+        }
+        hits.sort((a, b) => b.sim - a.sim);
+        hits.splice(25);
+        if (batch.length < 500) break;
+        cursor = batch[batch.length - 1].id;
+      }
+    }
     for (const h of hits) {
       if (h.kind === "CLIENT") {
         const matters = await db.matter.findMany({ where: { clientId: h.id, deletedAt: null }, select: { id: true, internalNumber: true, title: true, confidentiality: true } });
@@ -194,7 +217,7 @@ export async function createMatter(ctx: StaffContext, input: z.output<typeof int
   }
 
   const org = await db.organization.findUniqueOrThrow({ where: { id: ctx.org.id }, select: { matterPrefix: true } });
-  const matter = await db.$transaction(async (tx) => {
+  const matter = await withTxRetry(() => db.$transaction(async (tx) => {
     let clientId = input.clientId;
     if (!clientId) {
       const nc = input.newClient!;
@@ -214,7 +237,7 @@ export async function createMatter(ctx: StaffContext, input: z.output<typeof int
 
     const workflow = await tx.workflow.findFirst({
       where: { organizationId: ctx.org.id, OR: [{ caseTypeId: input.caseTypeId ?? undefined }, { jurisdictionId: input.jurisdictionId ?? undefined }, { isDefault: true }] },
-      orderBy: [{ caseTypeId: { sort: "asc", nulls: "last" } }, { jurisdictionId: { sort: "asc", nulls: "last" } }],
+      orderBy: [{ caseTypeId: "desc" }, { jurisdictionId: "desc" }],
       include: { stages: { orderBy: { order: "asc" }, take: 1 } },
     });
 
@@ -262,7 +285,7 @@ export async function createMatter(ctx: StaffContext, input: z.output<typeof int
     await notify({ organizationId: ctx.org.id, userIds: [...members.keys()], excludeUserId: ctx.user.id, category: "SYSTEM", titleKey: "notif.addedToMatter", params: { number: internalNumber }, link: `/app/cases/${m.id}` }, tx);
     await runAutomations(tx, "matter.created", { organizationId: ctx.org.id, actorId: ctx.user.id, entityId: m.id, matter: { id: m.id, internalNumber, leadLawyerId: m.leadLawyerId, ownerId: m.ownerId } });
     return m;
-  });
+  }));
   return { id: matter.id, internalNumber: matter.internalNumber };
 }
 

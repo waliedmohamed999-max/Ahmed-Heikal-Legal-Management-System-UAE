@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { db, type Tx } from "../db";
+import { db, type Tx, withTxRetry } from "../db";
 import type { StaffContext } from "../auth/session";
 import { AppError, forbidden, notFound } from "../errors";
 import { audit } from "../audit";
@@ -58,7 +58,7 @@ export async function saveInvoice(ctx: StaffContext, input: z.output<typeof invo
   const dueDate = fromZonedLocal(input.dueDate, tz);
   if (dueDate < issueDate) throw new AppError("validation", 400, { dueDate: "endBeforeStart" });
 
-  return db.$transaction(async (tx) => {
+  return withTxRetry(() => db.$transaction(async (tx) => {
     // Linked time entries / expenses can only be billed once.
     const timeIds = input.items.map((i) => i.timeEntryId).filter(Boolean) as string[];
     const expIds = input.items.map((i) => i.expenseId).filter(Boolean) as string[];
@@ -86,7 +86,7 @@ export async function saveInvoice(ctx: StaffContext, input: z.output<typeof invo
     });
     await audit({ organizationId: ctx.org.id, actorId: ctx.user.id, sessionId: ctx.sessionId, action: invoiceId ? "invoice.changed" : "invoice.created", entityType: "Invoice", entityId: inv.id, matterId: inv.matterId, after: { number: inv.number, total: t.total.toString(), items: input.items.length } }, tx);
     return { id: inv.id };
-  });
+  }));
 }
 
 export async function setInvoiceStatus(ctx: StaffContext, id: string, to: "ISSUED" | "VOID") {
@@ -100,6 +100,10 @@ export async function setInvoiceStatus(ctx: StaffContext, id: string, to: "ISSUE
     if (D(inv.amountPaid).gt(0)) throw new AppError("invalidTransition", 400);
   }
   await db.$transaction(async (tx) => {
+    // Re-check under a row lock so a payment recorded concurrently cannot be voided away.
+    await tx.$queryRaw`SELECT id FROM \`Invoice\` WHERE id = ${id} FOR UPDATE`;
+    const cur = await tx.invoice.findUniqueOrThrow({ where: { id }, select: { status: true, amountPaid: true } });
+    if (cur.status !== inv.status || (to === "VOID" && D(cur.amountPaid).gt(0))) throw new AppError("invalidTransition", 400);
     await tx.invoice.update({ where: { id }, data: { status: to, updatedById: ctx.user.id } });
     if (to === "VOID") await tx.invoiceItem.updateMany({ where: { invoiceId: id }, data: { timeEntryId: null, expenseId: null } }); // release items for re-billing
     await audit({ organizationId: ctx.org.id, actorId: ctx.user.id, sessionId: ctx.sessionId, action: to === "ISSUED" ? "invoice.issued" : "invoice.voided", entityType: "Invoice", entityId: id, matterId: inv.matterId, before: { status: inv.status }, after: { status: to } }, tx);
@@ -114,24 +118,51 @@ export async function recordPayment(ctx: StaffContext, input: z.output<typeof pa
   if (["DRAFT", "VOID"].includes(inv.status)) throw new AppError("invalidTransition", 400);
   if (input.isRefund && !ctx.can("finance.approve")) throw forbidden();
   const amount = round2(D(input.amount));
-  const due = D(inv.total).minus(D(inv.amountPaid));
-  if (!input.isRefund && amount.gt(due)) throw new AppError("overpayment", 400, { amount: "invalid" });
-  if (input.isRefund && amount.gt(D(inv.amountPaid))) throw new AppError("overpayment", 400, { amount: "invalid" });
-  return db.$transaction(async (tx) => {
-    const signed = input.isRefund ? amount.negated() : amount;
-    const p = await tx.payment.create({
-      data: { organizationId: ctx.org.id, invoiceId: inv.id, amount: signed, method: input.method, receivedAt: fromZonedLocal(input.receivedAt, ctx.org.timezone), reference: input.reference || null, notes: input.notes || null, isRefund: input.isRefund, recordedById: ctx.user.id },
-    });
-    const paid = round2(D(inv.amountPaid).plus(signed));
-    await tx.invoice.update({ where: { id: inv.id }, data: { amountPaid: paid, status: statusFor(D(inv.total), paid, inv.status) as never } });
-    await audit({ organizationId: ctx.org.id, actorId: ctx.user.id, sessionId: ctx.sessionId, action: input.isRefund ? "payment.refunded" : "payment.received", entityType: "Payment", entityId: p.id, matterId: inv.matterId, after: { invoice: inv.number, amount: signed.toString(), method: input.method } }, tx);
-    if (inv.matterId) {
-      await logActivity({ organizationId: ctx.org.id, matterId: inv.matterId, actorId: ctx.user.id, type: "payment.received", entityType: "Payment", entityId: p.id, data: { amount: signed.toString() } }, tx);
-      const m = await tx.matter.findUnique({ where: { id: inv.matterId }, select: { leadLawyerId: true } });
-      await notify({ organizationId: ctx.org.id, userIds: [m?.leadLawyerId], excludeUserId: ctx.user.id, category: "FINANCE", titleKey: "notif.paymentReceived", params: { number: inv.number }, link: `/app/finance/invoices/${inv.id}` }, tx);
+  // Idempotency: the same payment form submitted twice records one payment.
+  if (input.idempotencyKey) {
+    const existing = await db.payment.findUnique({ where: { idempotencyKey: input.idempotencyKey }, select: { id: true, invoiceId: true } });
+    if (existing) {
+      if (existing.invoiceId !== inv.id) throw new AppError("conflict", 409);
+      return { id: existing.id, duplicate: true };
     }
-    return { id: p.id };
-  });
+  }
+  try {
+    return await withTxRetry(() => db.$transaction(async (tx) => {
+      // Lock the invoice row and re-validate against the locked balance: concurrent payments
+      // are serialised, so none is lost and the overpayment check cannot be raced.
+      await tx.$queryRaw`SELECT id FROM \`Invoice\` WHERE id = ${inv.id} FOR UPDATE`;
+      const cur = await tx.invoice.findUniqueOrThrow({ where: { id: inv.id }, select: { total: true, amountPaid: true, status: true } });
+      if (["DRAFT", "VOID"].includes(cur.status)) throw new AppError("invalidTransition", 400);
+      const due = D(cur.total).minus(D(cur.amountPaid));
+      if (!input.isRefund && amount.gt(due)) throw new AppError("overpayment", 400, { amount: "invalid" });
+      if (input.isRefund && amount.gt(D(cur.amountPaid))) throw new AppError("overpayment", 400, { amount: "invalid" });
+      const signed = input.isRefund ? amount.negated() : amount;
+      const p = await tx.payment.create({
+        data: { organizationId: ctx.org.id, invoiceId: inv.id, amount: signed, method: input.method, receivedAt: fromZonedLocal(input.receivedAt, ctx.org.timezone), reference: input.reference || null, notes: input.notes || null, isRefund: input.isRefund, recordedById: ctx.user.id, idempotencyKey: input.idempotencyKey || null },
+      });
+      const paid = round2(D(cur.amountPaid).plus(signed));
+      await tx.invoice.update({ where: { id: inv.id }, data: { amountPaid: paid, status: statusFor(D(cur.total), paid, cur.status) as never } });
+      return await afterPayment(tx, p.id, signed);
+    }));
+  } catch (e) {
+    // Two simultaneous submissions with the same key: the unique index lets exactly one win.
+    if (input.idempotencyKey && e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      const existing = await db.payment.findUnique({ where: { idempotencyKey: input.idempotencyKey }, select: { id: true } });
+      if (existing) return { id: existing.id, duplicate: true };
+    }
+    throw e;
+  }
+
+  async function afterPayment(tx: Prisma.TransactionClient, paymentId: string, signed: ReturnType<typeof D>) {
+    const p = { id: paymentId };
+    await audit({ organizationId: ctx.org.id, actorId: ctx.user.id, sessionId: ctx.sessionId, action: input.isRefund ? "payment.refunded" : "payment.received", entityType: "Payment", entityId: p.id, matterId: inv!.matterId, after: { invoice: inv!.number, amount: signed.toString(), method: input.method } }, tx);
+    if (inv!.matterId) {
+      await logActivity({ organizationId: ctx.org.id, matterId: inv!.matterId, actorId: ctx.user.id, type: "payment.received", entityType: "Payment", entityId: p.id, data: { amount: signed.toString() } }, tx);
+      const m = await tx.matter.findUnique({ where: { id: inv!.matterId }, select: { leadLawyerId: true } });
+      await notify({ organizationId: ctx.org.id, userIds: [m?.leadLawyerId], excludeUserId: ctx.user.id, category: "FINANCE", titleKey: "notif.paymentReceived", params: { number: inv!.number }, link: `/app/finance/invoices/${inv!.id}` }, tx);
+    }
+    return { id: p.id, duplicate: false };
+  }
 }
 
 // ─────────────────────────── Expenses ───────────────────────────
