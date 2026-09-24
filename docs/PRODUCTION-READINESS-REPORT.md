@@ -47,7 +47,7 @@ secret manager) and the external reviews have not been performed (see *L. Produc
 |---|---|
 | Prisma provider | `mysql` (`prisma/schema.prisma`) |
 | MySQL version tested | **MySQL 8.4.8** (Docker `mysql:8.4`); the dev client tools in the production image are MariaDB 10.11's `mysqldump`/`mysql` (flag-compatible handling built in) |
-| MariaDB | Local XAMPP MariaDB **10.4.32** detected; migrations were **not** applied to it (the tool deployment to your local database was blocked by the permission system — run `npm run db:deploy` yourself, see README) |
+| MariaDB (local XAMPP) | `ahmedhiekal` on XAMPP **MariaDB 10.4.32** (not MySQL; `lower_case_table_names=1`): **PASS** in the finalisation step. 7/7 migrations applied, `migrate status` up to date, `migrate diff` against the schema empty, 75 tables, 24 triggers, 2 FULLTEXT indexes, MFA columns present. Audit INSERT ok, UPDATE and DELETE rejected, hard DELETE of a client rejected (test transaction rolled back). Foundation seed only: 1 organisation, 11 roles, 0 users, no demo data. **Local development only**: MariaDB 10.4 is end of life, and lower-case table names make its dumps non-portable to Linux MySQL. |
 | Fresh migration (empty DB → latest) | **PASS** — `ahlegal_fresh`: all migrations applied; 24 integrity triggers present |
 | Upgrade migration (pre-Phase-11 schema **with data** → latest) | **PASS** — `ahlegal_upgrade`: baseline applied + rows inserted (org, role, user, document version, reminder, notification delivery) → Phase 11 migrations applied; backfills verified (`scanStatus=NOT_SCANNED`, delivery keys set, reminder preserved) |
 | Migrations | `20260924180000_mysql_init` (baseline incl. triggers) → `…190000_phase11_hardening` → `…190100_restorable_trigger_messages` → `…190200_trigger_bodies_begin_end` → `…190300_payment_idempotency` → `…190400_list_indexes` → `…190500_document_list_index`. No empty migration folders (checked). |
@@ -62,8 +62,8 @@ secret manager) and the external reviews have not been performed (see *L. Produc
 ---
 
 ## A. MySQL migration status
-Complete, as above. Development default: Docker MySQL 8.4 (`ahlegal_dev`). Local XAMPP MariaDB 10.4 works with
-`DATABASE_URL=mysql://root@127.0.0.1:3306/ahmedhiekal` + `npm run db:deploy` (not executed by me — blocked by permissions).
+Complete, as above. Development default: Docker MySQL 8.4 (`ahlegal_dev`). Local XAMPP (`ahmedhiekal`, MariaDB 10.4) is
+migrated, verified and seeded with foundation data only. It is for local development, not a staging target.
 
 ## B. Security fixes (implemented and tested)
 | Area | What changed | Evidence |
@@ -183,6 +183,9 @@ database reconnect (restore drill / readiness) · CSV formula injection · cross
 9. **MFA required** switched on for all privileged roles, and the owner enrolled — to do at go-live.
 10. Performance tuning for the documents list / FULLTEXT and the dashboard under concurrency, and horizontal scaling
     of the web tier, if the office expects > 10 concurrent heavy users.
+11. **Client-portal account provisioning**: NOT IMPLEMENTED. Only the demo seed creates portal users (`docs/TECH-DEBT.md` TD-002).
+12. **`deepmerge-ts` advisory** (GHSA-ggr8-5vv4-36mx, 3 high `npm audit` entries): Prisma CLI only, present in the migrate image and not the runtime image. Open until the Prisma 7 migration (`docs/TECH-DEBT.md` TD-001).
+13. **Hosted staging environment**: NOT PROVISIONED. Topology and smoke test are defined in `docs/STAGING-SETUP.md`; every smoke-test item is NOT RUN.
 
 ## M. External requirements
 - Independent **penetration test** — NOT PERFORMED (preparation: `docs/SECURITY-TESTING.md`).
@@ -223,20 +226,19 @@ Redeploy the previous image tag (kept ≥ 3). Because migrations are additive (e
 runs on the newer schema. If a migration failed: `prisma migrate status`; fix forward with a new migration, or restore the
 pre-release backup into a new database and repoint (see `docs/DISASTER-RECOVERY.md` §7). Never edit an applied migration.
 
-## N. Uncommitted files
-All Phase 11 work is uncommitted (the last commit is `1f83b90`). It includes the other tool's MySQL conversion, which
-this phase completed and verified. See `git status`: about 100 modified files, about 60 new files, and one deleted file
-(the PostgreSQL `init` migration, moved to `prisma/legacy-postgresql-migrations/`).
+## N. Repository state
+Phase 11 is committed as 14 logical commits (`e1fbd88` … `2cce749`), followed by the finalisation docs commit
+(`6fabe61`: staging setup, env template, tech-debt register) and this report update. The working tree is clean. The
+commits are grouped by file: a file that touches several concerns sits with its main concern, and only the final state
+is build-verified. The `.gitignore` rules for local data are now anchored to the repository root, because the
+unanchored `backups/` rule had kept `src/app/app/settings/backups/` out of version control since an earlier phase.
 
-## O. Recommended commit structure
-1. `chore(db): switch to MySQL 8.4 — baseline migration, archive PostgreSQL history` (schema, `mysql_init`, legacy folder + README, JSON-list helpers, query adaptations)
-2. `feat(db): Phase 11 hardening migrations` (hardening, trigger fixes, payment idempotency, list indexes)
-3. `feat(security): config validation, structured redacted logging, trusted proxy, boot checks`
-4. `feat(auth): MFA hardening, recovery codes, password reset, invitations, step-up, offboarding, sessions`
-5. `feat(documents): S3 storage, ClamAV quarantine, integrity sweep, upload hardening, sharing gate`
-6. `feat(jobs): durable reminder/delivery queue, SMTP/SMS/WhatsApp adapters, worker bundle`
-7. `feat(ops): backups + restore test, health endpoints, system health page, office export, error boundaries`
-8. `fix: search confidentiality leak, counter deadlock, payment race, workspace/task/dashboard query performance, route runtime tracing`
-9. `feat(web): nonce CSP, CORS guard, bot protection, AI hardening`
-10. `test: security suites, unit security tests, e2e security spec, perf + load tools`
-11. `ci/docker/docs: CI workflow, Dockerfile, compose stack, production docs`
+## O. Finalisation (2026-09-24)
+- **Cleanup:** test databases `ahlegal_verify`, `ahlegal_large`, `ahlegal_stg_large`, `ahlegal_fresh` and
+  `ahlegal_upgrade` dropped, along with the temporary `ahl_app` user. The legacy container `ahlegal-postgres` was
+  removed after confirming no compose file, script or runtime dependency references it (its old named volume
+  `ahmedheikallegalmanagementsystemuae_ahlegal_pg` is kept and can be deleted by hand). No `pg` / `pg-boss` package remains.
+- **XAMPP `ahmedhiekal`:** see *MySQL Migration Verification*.
+- **Prisma advisory:** assessed in `docs/TECH-DEBT.md` (TD-001).
+- **Docker rebuild from committed source:** **NOT VERIFIED YET.** The `runtime` image built successfully from `git archive` of `6fabe61` (exact committed source). Docker Desktop then crashed during the `migrate` image build, so the web / worker / backup smoke tests have **not** been re-run on the final commit. The last verified run (web, worker, backup `all`) used the pre-commit working tree. Re-run: `docker build --target runtime` and `--target migrate` from HEAD, then the three roles.
+- **Checks on the committed tree:** `tsc` clean, ESLint 0 errors (1 known warning), unit 69/69.
