@@ -1,0 +1,18 @@
+# Never send secrets, data or build output into the image build context.
+.env
+.env.*
+!.env.example
+node_modules
+.next
+dist
+storage
+storage-test
+backups
+backups-test
+test-results
+playwright-report
+coverage
+docs/screenshots
+.git
+*.log
+tsconfig.tsbuildinfo

@@ -13,17 +13,21 @@ next-env.d.ts
 .env.*.local
 
 # Local object storage (development documents)
-storage/*
-!storage/.gitkeep
-backups/
+/storage/*
+!/storage/.gitkeep
+/backups/
 
 src/generated/
 .DS_Store
 Thumbs.db
 
 # Integration-test file storage
-storage-test/
+/storage-test/
+/backups-test/
 
 # Playwright output
 test-results/
 playwright-report/
+
+# Bundled server tools (built in the Docker image / CI)
+/dist/

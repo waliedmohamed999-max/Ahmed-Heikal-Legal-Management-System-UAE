@@ -1,0 +1,121 @@
+# CI — every pull request and every push to master/main.
+# Database: MySQL 8.4 only. All services are local containers with throwaway credentials;
+# no production secret is ever used in CI.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_ENV: test
+  NEXT_TELEMETRY_DISABLED: "1"
+  # Throwaway CI-only values (not secrets of any real environment).
+  DATABASE_URL: mysql://ahlegal:ci_only_password@127.0.0.1:3306/ahlegal
+  SESSION_SECRET: ci-session-secret-Zq7Hn2Lx9Vb4Rt6Wm1Kc8Pd3
+  DATA_ENCRYPTION_KEY: AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=
+  FILE_SIGNING_SECRET: ci-signing-secret-Mf5Qw8Zr2Jn7Ty4Hb9Vc1Xs6
+  BACKUP_ENCRYPTION_KEY: HyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4=
+  MYSQL_DOCKER_CONTAINER: ahlegal-mysql
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      mailpit:
+        image: axllent/mailpit:latest
+        ports: ["1025:1025", "8025:8025"]
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Start MySQL 8.4, MinIO and ClamAV
+        run: |
+          docker run -d --name ahlegal-mysql -p 3306:3306 \
+            -e MYSQL_ROOT_PASSWORD=ci_root -e MYSQL_DATABASE=ahlegal -e MYSQL_USER=ahlegal -e MYSQL_PASSWORD=ci_only_password \
+            -v "$PWD/docker/mysql-init:/docker-entrypoint-initdb.d:ro" \
+            mysql:8.4 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-time-zone=+00:00 --log-bin-trust-function-creators=ON
+          docker run -d --name ahlegal-minio -p 9010:9000 \
+            -e MINIO_ROOT_USER=ahlegal-dev -e MINIO_ROOT_PASSWORD=ahlegal_dev_only_minio \
+            -e MINIO_KMS_SECRET_KEY=ci-key:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8= \
+            quay.io/minio/minio:latest server /data
+          docker run -d --name ahlegal-clamav -p 3311:3310 clamav/clamav:stable
+          for i in $(seq 1 60); do docker exec ahlegal-mysql mysqladmin ping -uroot -pci_root --silent && break; sleep 2; done
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Prisma client + migrations from zero (MySQL)
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+          npx prisma migrate status
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint . --max-warnings=5
+
+      - name: Unit tests (incl. config, redaction, CSV, timezone, service-worker checks)
+        run: npm test
+
+      - name: Prepare object storage buckets
+        run: |
+          node -e '
+          const { S3Client, CreateBucketCommand } = require("@aws-sdk/client-s3");
+          const c = new S3Client({ region: "us-east-1", endpoint: "http://127.0.0.1:9010", forcePathStyle: true, credentials: { accessKeyId: "ahlegal-dev", secretAccessKey: "ahlegal_dev_only_minio" } });
+          (async () => { for (const b of ["ahlegal-documents","ahlegal-backups"]) await c.send(new CreateBucketCommand({ Bucket: b })).catch(() => {}); })();'
+
+      - name: Wait for ClamAV signatures
+        run: for i in $(seq 1 90); do (printf 'zPING\0'; sleep 1) | nc -w 3 127.0.0.1 3311 | grep -q PONG && break; sleep 5; done
+
+      - name: Integration + security tests (MySQL, ClamAV, MinIO, Mailpit, backup/restore)
+        run: npm run test:integration
+
+      - name: Production build
+        run: npm run build && npm run build:tools
+
+      - name: Browser E2E (desktop + mobile)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run db:seed:demo
+          npx playwright test
+        env:
+          RUN_WORKER_IN_PROCESS: "false"
+
+      - name: Dependency audit (fails on critical)
+        run: npm audit --omit=dev --audit-level=critical
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results
+          retention-days: 7
+
+  docker:
+    runs-on: ubuntu-24.04
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production image (non-root, standalone)
+        run: docker build --target runtime -t ahlegal:ci .
+      - name: Image runs as non-root
+        run: test "$(docker run --rm --entrypoint id ahlegal:ci -u)" = "10001"

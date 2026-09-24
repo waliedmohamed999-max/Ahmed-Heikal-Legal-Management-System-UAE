@@ -1,20 +1,25 @@
 # Local development services for AH Legal OS.
-# Ports are shifted (5434 / 6380) to avoid clashing with other local projects.
+# Ports are shifted (3307 / 6380) to avoid clashing with other local projects.
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: ahlegal-postgres
+  mysql:
+    image: mysql:8.4
+    container_name: ahlegal-mysql
     restart: unless-stopped
+    # utf8mb4 for Arabic; UTC server clock (the app presents Asia/Dubai). Binary logging is on
+    # (point-in-time recovery), so trigger creation by the non-SUPER app user must be allowed.
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--default-time-zone=+00:00", "--log-bin-trust-function-creators=ON"]
     environment:
-      POSTGRES_USER: ahlegal
-      POSTGRES_PASSWORD: ahlegal_dev_only
-      POSTGRES_DB: ahlegal
+      MYSQL_ROOT_PASSWORD: ahlegal_root_dev_only
+      MYSQL_USER: ahlegal
+      MYSQL_PASSWORD: ahlegal_dev_only
+      MYSQL_DATABASE: ahlegal
     ports:
-      - "5434:5432"
+      - "127.0.0.1:3307:3306"
     volumes:
-      - ahlegal_pg:/var/lib/postgresql/data
+      - ahlegal_mysql:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ahlegal -d ahlegal"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -28,6 +33,93 @@ services:
     volumes:
       - ahlegal_redis:/data
 
+  # S3-compatible object storage for development and storage-adapter tests
+  # (production uses a managed private bucket — see docs/PRODUCTION-READINESS-REPORT.md).
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: ahlegal-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ahlegal-dev
+      MINIO_ROOT_PASSWORD: ahlegal_dev_only_minio
+      # Dev-only static KMS key so server-side encryption (SSE-S3) is really exercised.
+      MINIO_KMS_SECRET_KEY: ahlegal-dev-key:WIc+3QBYMWgBnQ5nvQBD6dkMjx1KnAR9h1zo0Vpwd2g=
+    ports:
+      - "127.0.0.1:9010:9000"
+      - "127.0.0.1:9011:9001"
+    volumes:
+      - ahlegal_minio:/data
+
+  # Malware scanner (clamd). First start downloads signatures (a few minutes).
+  clamav:
+    image: clamav/clamav:stable
+    container_name: ahlegal-clamav
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3311:3310"
+    volumes:
+      - ahlegal_clamav:/var/lib/clamav
+
+  # Local SMTP catcher (development / staging only): no mail leaves the machine.
+  # Web UI on http://127.0.0.1:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: ahlegal-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
+  # ── Staging-style application stack (opt-in):  docker compose --profile stack up --build
+  # Uses the production image. Secrets come from .env.staging (never committed).
+  migrate:
+    profiles: ["stack"]
+    build: { context: ., target: migrate }
+    env_file: .env.staging
+    environment:
+      DATABASE_URL: mysql://ahlegal:ahlegal_dev_only@mysql:3306/ahlegal_staging
+    depends_on:
+      mysql: { condition: service_healthy }
+    restart: "no"
+
+  app:
+    profiles: ["stack"]
+    build: { context: ., target: runtime }
+    container_name: ahlegal-app
+    env_file: .env.staging
+    environment: &stackenv
+      DATABASE_URL: mysql://ahlegal:ahlegal_dev_only@mysql:3306/ahlegal_staging
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: "3310"
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      RUN_WORKER_IN_PROCESS: "false"
+    ports:
+      - "127.0.0.1:3200:3100"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_started }
+      minio: { condition: service_started }
+
+  worker:
+    profiles: ["stack"]
+    build: { context: ., target: runtime }
+    container_name: ahlegal-worker
+    command: ["node", "dist/worker.cjs"]
+    # The image HEALTHCHECK probes the web server; the worker is monitored through its heartbeat
+    # (Settings → System health, and the worker.heartbeat row).
+    healthcheck:
+      disable: true
+    env_file: .env.staging
+    environment: *stackenv
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
 volumes:
-  ahlegal_pg:
+  ahlegal_mysql:
   ahlegal_redis:
+  ahlegal_minio:
+  ahlegal_clamav:
