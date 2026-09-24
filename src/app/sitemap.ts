@@ -1,8 +1,11 @@
 import type { MetadataRoute } from "next";
+import { connection } from "next/server";
 import { db } from "@/server/db";
 import { getPublicOrg } from "@/server/services/site";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Published content requires the runtime database, not a build-time connection.
+  await connection();
   const base = process.env.APP_URL ?? "http://localhost:3100";
   const org = await getPublicOrg();
   if (!org || org.isDemo) return [];
