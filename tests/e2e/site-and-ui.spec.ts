@@ -58,6 +58,8 @@ test.describe("public website", () => {
     await page.getByLabel(/message|details|describe/i).first().fill("Synthetic E2E booking request — please ignore.");
     const consent = page.getByRole("checkbox").first();
     if (await consent.count()) await consent.check();
+    // The form rejects submissions faster than a person can fill it (signed render stamp).
+    await page.waitForTimeout(3_500);
     await page.getByRole("button", { name: /Send request|Request/i }).click();
     // First use in dev compiles the server action, so allow for that before checking the CRM.
     await expect(page.getByText(/request was received/i)).toBeVisible({ timeout: 110_000 });

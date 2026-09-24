@@ -21,10 +21,11 @@ test.describe("authentication", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test("owner logs in and lands on the Command Center with the next-hearing bar", async ({ page }) => {
+  test("owner logs in and lands on the Command Center with the next hearing always visible", async ({ page }) => {
     await login(page, "ahmed@demo.ahlegal.test");
     await expect(page).toHaveURL(/\/app$/);
-    await expect(page.locator("header").getByText(/AH-\d{4}-\d{5}/).first()).toBeVisible();
+    // Shell: sidebar footer (desktop) or top-bar chip (tablet/mobile), both linking to hearing preparation.
+    await expect(page.locator('a[href$="/prepare"][aria-label], aside a[href$="/prepare"]').filter({ visible: true }).first()).toBeVisible();
   });
 
   test("session cookie is httpOnly and not readable from JavaScript", async ({ page }) => {

@@ -6,11 +6,12 @@ export function testDatabaseUrl() {
   const base = process.env.DATABASE_URL;
   if (!base) throw new Error("DATABASE_URL is not set — copy .env.example to .env");
   const url = new URL(base);
+  if (url.protocol !== "mysql:") throw new Error("Integration tests require a MySQL DATABASE_URL");
   const name = `${url.pathname.slice(1) || "ahlegal"}_test`;
   if (!/^[a-z0-9_]+$/i.test(name)) throw new Error("Unexpected database name");
   url.pathname = `/${name}`;
   const admin = new URL(base);
-  admin.pathname = "/postgres";
+  // Connect through the app database; the dev user is granted rights on `<db>_test` only.
   admin.search = "";
   return { url: url.toString(), name, adminUrl: admin.toString() };
 }

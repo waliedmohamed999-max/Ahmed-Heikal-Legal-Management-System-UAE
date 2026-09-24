@@ -138,7 +138,7 @@ describe("connected core flow", () => {
     const chain = await verifyAuditChain(owner.org.id);
     expect(chain.ok).toBe(true);
     // The audit table is append-only at the database level.
-    await expect(db.$executeRawUnsafe(`UPDATE "AuditLog" SET action = 'x' WHERE "matterId" = '${s.matterId}'`)).rejects.toBeTruthy();
-    await expect(db.$executeRawUnsafe(`DELETE FROM "AuditLog" WHERE "matterId" = '${s.matterId}'`)).rejects.toBeTruthy();
+    await expect(db.$executeRawUnsafe(`UPDATE \`AuditLog\` SET action = 'x' WHERE \`matterId\` = '${s.matterId}'`)).rejects.toBeTruthy();
+    await expect(db.$executeRawUnsafe(`DELETE FROM \`AuditLog\` WHERE \`matterId\` = '${s.matterId}'`)).rejects.toBeTruthy();
   });
 });
