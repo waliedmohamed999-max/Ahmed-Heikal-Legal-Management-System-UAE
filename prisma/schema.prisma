@@ -13,88 +13,87 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearchPostgres", "postgresqlExtensions"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  extensions = [pg_trgm, unaccent]
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 // ═══════════════════════════ Tenancy & identity ═════════════════════════════
 
 model Organization {
-  id               String   @id @default(uuid()) @db.Uuid
-  slug             String   @unique
-  name             String
-  nameAr           String?
-  timezone         String   @default("Asia/Dubai")
-  currency         String   @default("AED")
-  defaultLocale    String   @default("ar")
-  vatRate          Decimal  @default(5) @db.Decimal(5, 2)
-  matterPrefix     String   @default("AH")
-  invoicePrefix    String   @default("INV")
-  trn              String? // UAE Tax Registration Number
-  address          String?
-  phone            String?
-  email            String?
+  id            String   @id @default(uuid()) @db.Char(36)
+  slug          String   @unique @db.VarChar(191)
+  name          String   @db.LongText
+  nameAr        String?  @db.LongText
+  timezone      String   @default("Asia/Dubai") @db.VarChar(191)
+  currency      String   @default("AED") @db.VarChar(191)
+  defaultLocale String   @default("ar") @db.VarChar(191)
+  vatRate       Decimal  @default(5) @db.Decimal(5, 2)
+  matterPrefix  String   @default("AH") @db.VarChar(191)
+  invoicePrefix String   @default("INV") @db.VarChar(191)
+  trn           String?  @db.LongText // UAE Tax Registration Number
+  address       String?  @db.LongText
+  phone         String?  @db.LongText
+  email         String?  @db.LongText
   // Alert thresholds, retention, AI & privacy configuration (validated by zod in app code)
-  settings         Json     @default("{}")
-  isDemo           Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  settings      Json     @default("{}")
+  isDemo        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  users            User[]
-  roles            Role[]
-  teams            Team[]
-  clients          Client[]
-  contacts         Contact[]
-  matters          Matter[]
-  jurisdictions    Jurisdiction[]
-  courts           Court[]
-  caseCategories   CaseCategory[]
-  caseTypes        CaseType[]
-  workflows        Workflow[]
+  users              User[]
+  roles              Role[]
+  teams              Team[]
+  clients            Client[]
+  contacts           Contact[]
+  matters            Matter[]
+  jurisdictions      Jurisdiction[]
+  courts             Court[]
+  caseCategories     CaseCategory[]
+  caseTypes          CaseType[]
+  workflows          Workflow[]
   checklistTemplates ChecklistTemplate[]
-  hearings         Hearing[]
-  deadlines        Deadline[]
-  appointments     Appointment[]
-  tasks            Task[]
-  documents        Document[]
-  notifications    Notification[]
-  invoices         Invoice[]
-  payments         Payment[]
-  expenses         Expense[]
-  timeEntries      TimeEntry[]
-  leads            Lead[]
-  pipelineStages   PipelineStage[]
-  communications   Communication[]
-  templates        Template[]
-  knowledgeDocs    KnowledgeDocument[]
-  integrations     Integration[]
-  auditLogs        AuditLog[]
-  accessRequests   AccessRequest[]
-  approvals        Approval[]
-  aiJobs           AIJob[]
-  automations      Automation[]
-  reminderPolicies ReminderPolicy[]
-  reminders        Reminder[]
-  activities       Activity[]
-  counters         Counter[]
-  legalResources   LegalResource[]
-  practiceAreas    PracticeArea[]
-  articles         Article[]
-  faqs             Faq[]
-  testimonials     Testimonial[]
-  bookingRequests  BookingRequest[]
-  savedViews       SavedView[]
-  imports          CourtImport[]
-  backups          BackupRecord[]
-  privacyRequests  PrivacyRequest[]
-  breachLogs       BreachLog[]
-  siteSettings     SiteSetting[]
+  hearings           Hearing[]
+  deadlines          Deadline[]
+  appointments       Appointment[]
+  tasks              Task[]
+  documents          Document[]
+  notifications      Notification[]
+  invoices           Invoice[]
+  payments           Payment[]
+  expenses           Expense[]
+  timeEntries        TimeEntry[]
+  leads              Lead[]
+  pipelineStages     PipelineStage[]
+  communications     Communication[]
+  templates          Template[]
+  knowledgeDocs      KnowledgeDocument[]
+  integrations       Integration[]
+  auditLogs          AuditLog[]
+  accessRequests     AccessRequest[]
+  approvals          Approval[]
+  aiJobs             AIJob[]
+  automations        Automation[]
+  reminderPolicies   ReminderPolicy[]
+  reminders          Reminder[]
+  activities         Activity[]
+  counters           Counter[]
+  legalResources     LegalResource[]
+  practiceAreas      PracticeArea[]
+  articles           Article[]
+  faqs               Faq[]
+  testimonials       Testimonial[]
+  bookingRequests    BookingRequest[]
+  savedViews         SavedView[]
+  imports            CourtImport[]
+  backups            BackupRecord[]
+  privacyRequests    PrivacyRequest[]
+  breachLogs         BreachLog[]
+  siteSettings       SiteSetting[]
+  authTokens         AuthToken[]
 }
 
 enum UserKind {
@@ -109,96 +108,155 @@ enum UserStatus {
 }
 
 model User {
-  id               String     @id @default(uuid()) @db.Uuid
-  organizationId   String     @db.Uuid
-  kind             UserKind   @default(STAFF)
-  email            String     @unique
-  name             String
-  nameAr           String?
-  position         String?
-  positionAr       String?
-  phone            String?
-  photoUrl         String?
-  passwordHash     String
-  status           UserStatus @default(ACTIVE)
-  roleId           String     @db.Uuid
-  locale           String     @default("ar")
+  id                  String     @id @default(uuid()) @db.Char(36)
+  organizationId      String     @db.Char(36)
+  kind                UserKind   @default(STAFF)
+  email               String     @unique @db.VarChar(191)
+  name                String     @db.LongText
+  nameAr              String?    @db.LongText
+  position            String?    @db.LongText
+  positionAr          String?    @db.LongText
+  phone               String?    @db.LongText
+  photoUrl            String?    @db.LongText
+  passwordHash        String     @db.LongText
+  status              UserStatus @default(ACTIVE)
+  roleId              String     @db.Char(36)
+  locale              String     @default("ar") @db.VarChar(191)
   // MFA (TOTP). Secret is AES-GCM encrypted at rest.
-  mfaEnabled       Boolean    @default(false)
-  mfaSecretEnc     String?
-  failedLoginCount Int        @default(0)
-  lockedUntil      DateTime?
-  lastLoginAt      DateTime?
-  passwordChangedAt DateTime?
+  mfaEnabled          Boolean    @default(false)
+  mfaSecretEnc        String?    @db.LongText
+  // Last accepted TOTP time-step: a code can be used once only (replay protection).
+  mfaLastStep         Int?
+  // Secret being enrolled; replaces mfaSecretEnc only after a valid code is confirmed.
+  mfaPendingSecretEnc String?
+  mfaEnrolledAt       DateTime?
+  failedLoginCount    Int        @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  passwordChangedAt   DateTime?
+  // Offboarding: the account is disabled and its work transferred; history is kept.
+  offboardedAt        DateTime?
   // Portal users are bound to exactly one client
-  clientId         String?    @db.Uuid
+  clientId            String?    @db.Char(36)
   // Dashboard widgets, notification channel prefs, etc.
-  preferences      Json       @default("{}")
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
-  deletedAt        DateTime?
+  preferences         Json       @default("{}")
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  deletedAt           DateTime?
 
-  organization     Organization @relation(fields: [organizationId], references: [id])
-  role             Role         @relation(fields: [roleId], references: [id])
-  client           Client?      @relation("PortalUsers", fields: [clientId], references: [id])
-  sessions         Session[]
-  teamMemberships  TeamMember[]
-  matterMemberships MatterMember[] @relation("MemberUser")
-  grantedMemberships MatterMember[] @relation("MemberGrantedBy")
-  ledMatters       Matter[]     @relation("LeadLawyer")
-  ownedMatters     Matter[]     @relation("MatterOwner")
-  assignedTasks    Task[]       @relation("TaskAssignee")
-  createdTasks     Task[]       @relation("TaskCreator")
-  attendingHearings Hearing[]   @relation("HearingLawyer")
-  deadlinesAssigned Deadline[]  @relation("DeadlineAssignee")
-  deadlinesVerified Deadline[]  @relation("DeadlineVerifier")
-  appointments     Appointment[] @relation("AppointmentLawyer")
-  notifications    Notification[]
-  comments         Comment[]
-  notes            Note[]
-  timeEntries      TimeEntry[]
-  auditLogs        AuditLog[]
-  accessRequests   AccessRequest[] @relation("AccessRequester")
-  accessDecisions  AccessRequest[] @relation("AccessDecider")
-  approvalsRequested Approval[]    @relation("ApprovalRequester")
-  approvalsAssigned  Approval[]    @relation("ApprovalAssignee")
-  aiJobs           AIJob[]
-  documentVersions DocumentVersion[]
-  leadsAssigned    Lead[]
-  pushSubscriptions PushSubscription[]
-  reminders        Reminder[]
-  activities       Activity[]
-  savedViews       SavedView[]
+  organization        Organization         @relation(fields: [organizationId], references: [id])
+  role                Role                 @relation(fields: [roleId], references: [id])
+  client              Client?              @relation("PortalUsers", fields: [clientId], references: [id])
+  sessions            Session[]
+  teamMemberships     TeamMember[]
+  matterMemberships   MatterMember[]       @relation("MemberUser")
+  grantedMemberships  MatterMember[]       @relation("MemberGrantedBy")
+  ledMatters          Matter[]             @relation("LeadLawyer")
+  ownedMatters        Matter[]             @relation("MatterOwner")
+  assignedTasks       Task[]               @relation("TaskAssignee")
+  createdTasks        Task[]               @relation("TaskCreator")
+  attendingHearings   Hearing[]            @relation("HearingLawyer")
+  deadlinesAssigned   Deadline[]           @relation("DeadlineAssignee")
+  deadlinesVerified   Deadline[]           @relation("DeadlineVerifier")
+  appointments        Appointment[]        @relation("AppointmentLawyer")
+  notifications       Notification[]
+  comments            Comment[]
+  notes               Note[]
+  timeEntries         TimeEntry[]
+  auditLogs           AuditLog[]
+  accessRequests      AccessRequest[]      @relation("AccessRequester")
+  accessDecisions     AccessRequest[]      @relation("AccessDecider")
+  approvalsRequested  Approval[]           @relation("ApprovalRequester")
+  approvalsAssigned   Approval[]           @relation("ApprovalAssignee")
+  aiJobs              AIJob[]
+  documentVersions    DocumentVersion[]
+  leadsAssigned       Lead[]
+  pushSubscriptions   PushSubscription[]
+  recoveryCodes       MfaRecoveryCode[]
+  authTokens          AuthToken[]          @relation("TokenUser")
+  reminders           Reminder[]
+  activities          Activity[]
+  savedViews          SavedView[]
   documentPermissions DocumentPermission[]
-  articles         Article[]
+  articles            Article[]
 
   @@index([organizationId, kind, status])
 }
 
 model Session {
-  id           String    @id @default(uuid()) @db.Uuid
-  userId       String    @db.Uuid
-  tokenHash    String    @unique
-  realm        UserKind
-  mfaVerified  Boolean   @default(false)
-  ip           String?
-  userAgent    String?
-  createdAt    DateTime  @default(now())
-  lastSeenAt   DateTime  @default(now())
-  expiresAt    DateTime
-  revokedAt    DateTime?
+  id          String    @id @default(uuid()) @db.Char(36)
+  userId      String    @db.Char(36)
+  tokenHash   String    @unique @db.VarChar(191)
+  realm       UserKind
+  mfaVerified Boolean   @default(false)
+  // Last successful re-authentication (password / MFA) for sensitive actions.
+  stepUpAt    DateTime?
+  ip          String?   @db.LongText
+  userAgent   String?   @db.LongText
+  createdAt   DateTime  @default(now())
+  lastSeenAt  DateTime  @default(now())
+  expiresAt   DateTime
+  revokedAt   DateTime?
 
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, revokedAt])
 }
 
+// One-time MFA recovery codes. Only an Argon2 hash is stored; each code works once.
+model MfaRecoveryCode {
+  id        String    @id @default(uuid()) @db.Char(36)
+  userId    String    @db.Char(36)
+  codeHash  String    @db.LongText
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum AuthTokenKind {
+  PASSWORD_RESET
+  INVITATION
+}
+
+// One-time tokens (password reset, invitation). Only the SHA-256 of the token is stored.
+model AuthToken {
+  id             String        @id @default(uuid()) @db.Char(36)
+  organizationId String        @db.Char(36)
+  kind           AuthTokenKind
+  tokenHash      String        @unique @db.VarChar(191)
+  email          String        @db.VarChar(191)
+  userId         String?       @db.Char(36)
+  // Invitation payload
+  roleId         String?       @db.Char(36)
+  name           String?       @db.LongText
+  matterIds      Json          @default("[]")
+  expiresAt      DateTime
+  usedAt         DateTime?
+  revokedAt      DateTime?
+  createdById    String?       @db.Char(36)
+  createdAt      DateTime      @default(now())
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  user           User?         @relation("TokenUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, kind, usedAt])
+  @@index([email, kind])
+}
+
+// Small key/value table for operational state: worker heartbeat, last backup/restore test, integrity sweep.
+model SystemStatus {
+  key       String   @id @db.VarChar(191)
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
 model PushSubscription {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
-  endpoint  String   @unique
-  p256dh    String
-  auth      String
+  id        String   @id @default(uuid()) @db.Char(36)
+  userId    String   @db.Char(36)
+  endpoint  String   @unique @db.VarChar(191)
+  p256dh    String   @db.LongText
+  auth      String   @db.LongText
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -206,43 +264,45 @@ model PushSubscription {
 // ═══════════════════════════ RBAC ═══════════════════════════════════════════
 
 enum MatterScope {
-  ALL       // may see every non-confidential matter
-  ASSIGNED  // only matters where the user is an active member
-  NONE      // no matter access (e.g. Finance-only, Client)
+  ALL // may see every non-confidential matter
+  ASSIGNED // only matters where the user is an active member
+  NONE // no matter access (e.g. Finance-only, Client)
 }
 
 model Role {
-  id             String      @id @default(uuid()) @db.Uuid
-  organizationId String      @db.Uuid
-  key            String
-  name           String
-  nameAr         String?
-  description    String?
+  id             String      @id @default(uuid()) @db.Char(36)
+  organizationId String      @db.Char(36)
+  key            String      @db.VarChar(191)
+  name           String      @db.LongText
+  nameAr         String?     @db.LongText
+  description    String?     @db.LongText
   isSystem       Boolean     @default(false)
   matterScope    MatterScope @default(ASSIGNED)
+  // Users with this role must enrol in MFA before they can use the app.
+  requireMfa     Boolean     @default(false)
   rank           Int         @default(0) // for display ordering only, never for access decisions
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
-  organization   Organization     @relation(fields: [organizationId], references: [id])
-  permissions    RolePermission[]
-  users          User[]
+  organization        Organization         @relation(fields: [organizationId], references: [id])
+  permissions         RolePermission[]
+  users               User[]
   documentPermissions DocumentPermission[]
 
   @@unique([organizationId, key])
 }
 
 model Permission {
-  key         String  @id // e.g. "matters.create", "documents.approve"
-  module      String
-  action      String
-  description String?
+  key         String           @id @db.VarChar(191) // e.g. "matters.create", "documents.approve"
+  module      String           @db.LongText
+  action      String           @db.LongText
+  description String?          @db.LongText
   roles       RolePermission[]
 }
 
 model RolePermission {
-  roleId        String     @db.Uuid
-  permissionKey String
+  roleId        String     @db.Char(36)
+  permissionKey String     @db.VarChar(191)
   role          Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission    Permission @relation(fields: [permissionKey], references: [key], onDelete: Cascade)
 
@@ -250,10 +310,10 @@ model RolePermission {
 }
 
 model Team {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  name           String
-  nameAr         String?
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  name           String       @db.LongText
+  nameAr         String?      @db.LongText
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -261,8 +321,8 @@ model Team {
 }
 
 model TeamMember {
-  teamId String @db.Uuid
-  userId String @db.Uuid
+  teamId String @db.Char(36)
+  userId String @db.Char(36)
   team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -282,13 +342,13 @@ enum JurisdictionKind {
 }
 
 model Jurisdiction {
-  id             String           @id @default(uuid()) @db.Uuid
-  organizationId String           @db.Uuid
-  code           String
-  name           String
-  nameAr         String?
+  id             String           @id @default(uuid()) @db.Char(36)
+  organizationId String           @db.Char(36)
+  code           String           @db.VarChar(191)
+  name           String           @db.LongText
+  nameAr         String?          @db.LongText
   kind           JurisdictionKind
-  emirate        String?
+  emirate        String?          @db.LongText
   active         Boolean          @default(true)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
@@ -301,14 +361,14 @@ model Jurisdiction {
 }
 
 model Court {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  jurisdictionId String       @db.Uuid
-  name           String
-  nameAr         String?
-  level          String? // e.g. First Instance, Appeal, Cassation — admin-defined label
-  emirate        String?
-  address        String?
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  jurisdictionId String       @db.Char(36)
+  name           String       @db.LongText
+  nameAr         String?      @db.LongText
+  level          String?      @db.LongText // e.g. First Instance, Appeal, Cassation — admin-defined label
+  emirate        String?      @db.LongText
+  address        String?      @db.LongText
   active         Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -321,57 +381,57 @@ model Court {
 }
 
 model CaseCategory {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  name           String
-  nameAr         String?
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  name           String       @db.LongText
+  nameAr         String?      @db.LongText
   order          Int          @default(0)
   organization   Organization @relation(fields: [organizationId], references: [id])
   caseTypes      CaseType[]
 }
 
 model CaseType {
-  id                  String       @id @default(uuid()) @db.Uuid
-  organizationId      String       @db.Uuid
-  categoryId          String?      @db.Uuid
-  code                String
-  name                String
-  nameAr              String?
-  active              Boolean      @default(true)
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-  organization        Organization @relation(fields: [organizationId], references: [id])
-  category            CaseCategory? @relation(fields: [categoryId], references: [id])
-  matters             Matter[]
-  workflows           Workflow[]
-  checklistTemplates  ChecklistTemplate[]
+  id                 String              @id @default(uuid()) @db.Char(36)
+  organizationId     String              @db.Char(36)
+  categoryId         String?             @db.Char(36)
+  code               String              @db.VarChar(191)
+  name               String              @db.LongText
+  nameAr             String?             @db.LongText
+  active             Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  organization       Organization        @relation(fields: [organizationId], references: [id])
+  category           CaseCategory?       @relation(fields: [categoryId], references: [id])
+  matters            Matter[]
+  workflows          Workflow[]
+  checklistTemplates ChecklistTemplate[]
 
   @@unique([organizationId, code])
 }
 
 model Workflow {
-  id             String        @id @default(uuid()) @db.Uuid
-  organizationId String        @db.Uuid
-  name           String
-  nameAr         String?
-  jurisdictionId String?       @db.Uuid
-  caseTypeId     String?       @db.Uuid
-  isDefault      Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  organization   Organization  @relation(fields: [organizationId], references: [id])
-  jurisdiction   Jurisdiction? @relation(fields: [jurisdictionId], references: [id])
-  caseType       CaseType?     @relation(fields: [caseTypeId], references: [id])
+  id             String          @id @default(uuid()) @db.Char(36)
+  organizationId String          @db.Char(36)
+  name           String          @db.LongText
+  nameAr         String?         @db.LongText
+  jurisdictionId String?         @db.Char(36)
+  caseTypeId     String?         @db.Char(36)
+  isDefault      Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  jurisdiction   Jurisdiction?   @relation(fields: [jurisdictionId], references: [id])
+  caseType       CaseType?       @relation(fields: [caseTypeId], references: [id])
   stages         WorkflowStage[]
 }
 
 model WorkflowStage {
-  id         String   @id @default(uuid()) @db.Uuid
-  workflowId String   @db.Uuid
+  id         String   @id @default(uuid()) @db.Char(36)
+  workflowId String   @db.Char(36)
   order      Int
-  key        String
-  name       String
-  nameAr     String?
+  key        String   @db.VarChar(191)
+  name       String   @db.LongText
+  nameAr     String?  @db.LongText
   isTerminal Boolean  @default(false)
   workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   matters    Matter[]
@@ -380,25 +440,25 @@ model WorkflowStage {
 }
 
 model ChecklistTemplate {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  caseTypeId     String?      @db.Uuid
-  name           String
-  nameAr         String?
-  active         Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  caseType       CaseType?    @relation(fields: [caseTypeId], references: [id])
+  id             String                  @id @default(uuid()) @db.Char(36)
+  organizationId String                  @db.Char(36)
+  caseTypeId     String?                 @db.Char(36)
+  name           String                  @db.LongText
+  nameAr         String?                 @db.LongText
+  active         Boolean                 @default(true)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  organization   Organization            @relation(fields: [organizationId], references: [id])
+  caseType       CaseType?               @relation(fields: [caseTypeId], references: [id])
   items          ChecklistTemplateItem[]
 }
 
 model ChecklistTemplateItem {
-  id         String            @id @default(uuid()) @db.Uuid
-  templateId String            @db.Uuid
+  id         String            @id @default(uuid()) @db.Char(36)
+  templateId String            @db.Char(36)
   order      Int
-  title      String
-  titleAr    String?
+  title      String            @db.LongText
+  titleAr    String?           @db.LongText
   required   Boolean           @default(false)
   template   ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 }
@@ -417,43 +477,43 @@ enum ClientStatus {
 }
 
 model Client {
-  id                 String       @id @default(uuid()) @db.Uuid
-  organizationId     String       @db.Uuid
-  clientNumber       String
-  type               PartyType
-  nameEn             String
-  nameAr             String?
-  email              String?
-  phone              String?
-  whatsapp           String?
-  address            String?
-  nationality        String?
-  preferredLanguage  String       @default("ar")
-  tradeLicenseNo     String?
-  companyName        String?
+  id                String       @id @default(uuid()) @db.Char(36)
+  organizationId    String       @db.Char(36)
+  clientNumber      String       @db.VarChar(191)
+  type              PartyType
+  nameEn            String       @db.VarChar(191)
+  nameAr            String?      @db.LongText
+  email             String?      @db.LongText
+  phone             String?      @db.LongText
+  whatsapp          String?      @db.LongText
+  address           String?      @db.LongText
+  nationality       String?      @db.LongText
+  preferredLanguage String       @default("ar") @db.VarChar(191)
+  tradeLicenseNo    String?      @db.LongText
+  companyName       String?      @db.LongText
   // Sensitive identifiers — AES-GCM encrypted, shown only with clients.viewSensitive
-  emiratesIdEnc      String?
-  passportEnc        String?
-  status             ClientStatus @default(ACTIVE)
-  source             String?
-  notes              String?
-  leadId             String?      @unique @db.Uuid
-  lastContactAt      DateTime?
-  createdById        String?      @db.Uuid
-  updatedById        String?      @db.Uuid
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  deletedAt          DateTime?
+  emiratesIdEnc     String?      @db.LongText
+  passportEnc       String?      @db.LongText
+  status            ClientStatus @default(ACTIVE)
+  source            String?      @db.LongText
+  notes             String?      @db.LongText
+  leadId            String?      @unique @db.Char(36)
+  lastContactAt     DateTime?
+  createdById       String?      @db.Char(36)
+  updatedById       String?      @db.Char(36)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  deletedAt         DateTime?
 
-  organization       Organization @relation(fields: [organizationId], references: [id])
-  lead               Lead?        @relation("LeadConversion", fields: [leadId], references: [id])
-  contacts           Contact[]
-  matters            Matter[]
-  invoices           Invoice[]
-  appointments       Appointment[]
-  documents          Document[]
-  communications     Communication[]
-  portalUsers        User[]       @relation("PortalUsers")
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  lead           Lead?           @relation("LeadConversion", fields: [leadId], references: [id])
+  contacts       Contact[]
+  matters        Matter[]
+  invoices       Invoice[]
+  appointments   Appointment[]
+  documents      Document[]
+  communications Communication[]
+  portalUsers    User[]          @relation("PortalUsers")
 
   @@unique([organizationId, clientNumber])
   @@index([organizationId, deletedAt])
@@ -473,31 +533,31 @@ enum ContactCategory {
 }
 
 model Contact {
-  id             String          @id @default(uuid()) @db.Uuid
-  organizationId String          @db.Uuid
+  id             String          @id @default(uuid()) @db.Char(36)
+  organizationId String          @db.Char(36)
   type           PartyType       @default(INDIVIDUAL)
   category       ContactCategory
-  nameEn         String
-  nameAr         String?
-  companyName    String?
-  jobTitle       String?
-  email          String?
-  phone          String?
-  whatsapp       String?
-  address        String?
-  nationality    String?
-  notes          String?
-  clientId       String?         @db.Uuid // contact person of a client company
-  createdById    String?         @db.Uuid
+  nameEn         String          @db.VarChar(191)
+  nameAr         String?         @db.LongText
+  companyName    String?         @db.LongText
+  jobTitle       String?         @db.LongText
+  email          String?         @db.LongText
+  phone          String?         @db.LongText
+  whatsapp       String?         @db.LongText
+  address        String?         @db.LongText
+  nationality    String?         @db.LongText
+  notes          String?         @db.LongText
+  clientId       String?         @db.Char(36) // contact person of a client company
+  createdById    String?         @db.Char(36)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   deletedAt      DateTime?
 
-  organization   Organization    @relation(fields: [organizationId], references: [id])
-  client         Client?         @relation(fields: [clientId], references: [id])
-  parties        MatterParty[]
-  relationsFrom  ContactRelation[] @relation("RelFrom")
-  relationsTo    ContactRelation[] @relation("RelTo")
+  organization  Organization      @relation(fields: [organizationId], references: [id])
+  client        Client?           @relation(fields: [clientId], references: [id])
+  parties       MatterParty[]
+  relationsFrom ContactRelation[] @relation("RelFrom")
+  relationsTo   ContactRelation[] @relation("RelTo")
 
   @@index([organizationId, category])
   @@index([nameEn])
@@ -505,13 +565,13 @@ model Contact {
 
 // Entity relationship graph: person ↔ company, subsidiary, director, etc.
 model ContactRelation {
-  id          String   @id @default(uuid()) @db.Uuid
-  fromId      String   @db.Uuid
-  toId        String   @db.Uuid
-  label       String // e.g. "Director of", "Subsidiary of"
-  createdAt   DateTime @default(now())
-  from        Contact  @relation("RelFrom", fields: [fromId], references: [id], onDelete: Cascade)
-  to          Contact  @relation("RelTo", fields: [toId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid()) @db.Char(36)
+  fromId    String   @db.Char(36)
+  toId      String   @db.Char(36)
+  label     String   @db.VarChar(191) // e.g. "Director of", "Subsidiary of"
+  createdAt DateTime @default(now())
+  from      Contact  @relation("RelFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to        Contact  @relation("RelTo", fields: [toId], references: [id], onDelete: Cascade)
 
   @@unique([fromId, toId, label])
 }
@@ -567,80 +627,80 @@ enum ConflictStatus {
 }
 
 model Matter {
-  id                 String          @id @default(uuid()) @db.Uuid
-  organizationId     String          @db.Uuid
+  id                  String          @id @default(uuid()) @db.Char(36)
+  organizationId      String          @db.Char(36)
   // Internal number (AH-2026-00001) is independent of the official court case number.
-  internalNumber     String
-  officialCaseNumber String?
-  title              String
-  titleAr            String?
-  summary            String?
-  kind               MatterKind      @default(COURT_CASE)
-  status             MatterStatus    @default(ACTIVE)
-  priority           Priority        @default(NORMAL)
-  confidentiality    Confidentiality @default(STANDARD)
-  clientId           String          @db.Uuid
-  caseTypeId         String?         @db.Uuid
-  jurisdictionId     String?         @db.Uuid
-  courtId            String?         @db.Uuid
-  stageId            String?         @db.Uuid
-  ownerId            String          @db.Uuid
-  leadLawyerId       String?         @db.Uuid
-  claimAmount        Decimal?        @db.Decimal(16, 2)
-  currency           String          @default("AED")
-  claims             String?
-  internalNotes      String?
-  currentStatusText  String?
-  lastActionText     String?
-  nextActionText     String?
-  riskFlags          String[]        @default([])
-  billingType        BillingType     @default(NONE)
-  feeAmount          Decimal?        @db.Decimal(14, 2)
-  hourlyRate         Decimal?        @db.Decimal(10, 2)
-  feeNotes           String?
-  conflictStatus     ConflictStatus  @default(NOT_RUN)
-  conflictNotes      String?
-  conflictCheckedById String?        @db.Uuid
-  conflictCheckedAt  DateTime?
-  portalEnabled      Boolean         @default(false)
-  portalStatusText   String?
-  openedAt           DateTime        @default(now())
-  closedAt           DateTime?
-  lastActivityAt     DateTime        @default(now())
-  createdById        String?         @db.Uuid
-  updatedById        String?         @db.Uuid
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  deletedAt          DateTime?
+  internalNumber      String          @db.VarChar(191)
+  officialCaseNumber  String?         @db.VarChar(191)
+  title               String          @db.LongText
+  titleAr             String?         @db.LongText
+  summary             String?         @db.LongText
+  kind                MatterKind      @default(COURT_CASE)
+  status              MatterStatus    @default(ACTIVE)
+  priority            Priority        @default(NORMAL)
+  confidentiality     Confidentiality @default(STANDARD)
+  clientId            String          @db.Char(36)
+  caseTypeId          String?         @db.Char(36)
+  jurisdictionId      String?         @db.Char(36)
+  courtId             String?         @db.Char(36)
+  stageId             String?         @db.Char(36)
+  ownerId             String          @db.Char(36)
+  leadLawyerId        String?         @db.Char(36)
+  claimAmount         Decimal?        @db.Decimal(16, 2)
+  currency            String          @default("AED") @db.VarChar(191)
+  claims              String?         @db.LongText
+  internalNotes       String?         @db.LongText
+  currentStatusText   String?         @db.LongText
+  lastActionText      String?         @db.LongText
+  nextActionText      String?         @db.LongText
+  riskFlags           Json            @default("[]")
+  billingType         BillingType     @default(NONE)
+  feeAmount           Decimal?        @db.Decimal(14, 2)
+  hourlyRate          Decimal?        @db.Decimal(10, 2)
+  feeNotes            String?         @db.LongText
+  conflictStatus      ConflictStatus  @default(NOT_RUN)
+  conflictNotes       String?         @db.LongText
+  conflictCheckedById String?         @db.Char(36)
+  conflictCheckedAt   DateTime?
+  portalEnabled       Boolean         @default(false)
+  portalStatusText    String?         @db.LongText
+  openedAt            DateTime        @default(now())
+  closedAt            DateTime?
+  lastActivityAt      DateTime        @default(now())
+  createdById         String?         @db.Char(36)
+  updatedById         String?         @db.Char(36)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  deletedAt           DateTime?
 
-  organization       Organization    @relation(fields: [organizationId], references: [id])
-  client             Client          @relation(fields: [clientId], references: [id])
-  caseType           CaseType?       @relation(fields: [caseTypeId], references: [id])
-  jurisdiction       Jurisdiction?   @relation(fields: [jurisdictionId], references: [id])
-  court              Court?          @relation(fields: [courtId], references: [id])
-  stage              WorkflowStage?  @relation(fields: [stageId], references: [id])
-  owner              User            @relation("MatterOwner", fields: [ownerId], references: [id])
-  leadLawyer         User?           @relation("LeadLawyer", fields: [leadLawyerId], references: [id])
-  members            MatterMember[]
-  parties            MatterParty[]
-  checklist          MatterChecklistItem[]
-  hearings           Hearing[]
-  deadlines          Deadline[]
-  appointments       Appointment[]
-  tasks              Task[]
-  documents          Document[]
-  notes              Note[]
-  comments           Comment[]
-  timeline           TimelineEvent[]
-  activities         Activity[]
-  communications     Communication[]
-  invoices           Invoice[]
-  expenses           Expense[]
-  timeEntries        TimeEntry[]
-  accessRequests     AccessRequest[]
-  approvals          Approval[]
-  aiJobs             AIJob[]
-  auditLogs          AuditLog[]
+  organization   Organization          @relation(fields: [organizationId], references: [id])
+  client         Client                @relation(fields: [clientId], references: [id])
+  caseType       CaseType?             @relation(fields: [caseTypeId], references: [id])
+  jurisdiction   Jurisdiction?         @relation(fields: [jurisdictionId], references: [id])
+  court          Court?                @relation(fields: [courtId], references: [id])
+  stage          WorkflowStage?        @relation(fields: [stageId], references: [id])
+  owner          User                  @relation("MatterOwner", fields: [ownerId], references: [id])
+  leadLawyer     User?                 @relation("LeadLawyer", fields: [leadLawyerId], references: [id])
+  members        MatterMember[]
+  parties        MatterParty[]
+  checklist      MatterChecklistItem[]
+  hearings       Hearing[]
+  deadlines      Deadline[]
+  appointments   Appointment[]
+  tasks          Task[]
+  documents      Document[]
+  notes          Note[]
+  comments       Comment[]
+  timeline       TimelineEvent[]
+  activities     Activity[]
+  communications Communication[]
+  invoices       Invoice[]
+  expenses       Expense[]
+  timeEntries    TimeEntry[]
+  accessRequests AccessRequest[]
+  approvals      Approval[]
+  aiJobs         AIJob[]
+  auditLogs      AuditLog[]
 
   @@unique([organizationId, internalNumber])
   @@index([organizationId, status, deletedAt])
@@ -659,21 +719,21 @@ enum MatterMemberRole {
 }
 
 model MatterMember {
-  id          String           @id @default(uuid()) @db.Uuid
-  matterId    String           @db.Uuid
-  userId      String           @db.Uuid
+  id          String           @id @default(uuid()) @db.Char(36)
+  matterId    String           @db.Char(36)
+  userId      String           @db.Char(36)
   role        MatterMemberRole
   // Per-member overrides on top of the member-role defaults: "+documents.upload", "-finance.view"
-  overrides   String[]         @default([])
+  overrides   Json             @default("[]")
   // Temporary access: revoked automatically after this instant
   expiresAt   DateTime?
-  grantedById String?          @db.Uuid
+  grantedById String?          @db.Char(36)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
-  matter      Matter           @relation(fields: [matterId], references: [id], onDelete: Cascade)
-  user        User             @relation("MemberUser", fields: [userId], references: [id], onDelete: Cascade)
-  grantedBy   User?            @relation("MemberGrantedBy", fields: [grantedById], references: [id])
+  matter    Matter @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  user      User   @relation("MemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy User?  @relation("MemberGrantedBy", fields: [grantedById], references: [id])
 
   @@unique([matterId, userId])
   @@index([userId])
@@ -692,29 +752,29 @@ enum PartyRole {
 }
 
 model MatterParty {
-  id         String    @id @default(uuid()) @db.Uuid
-  matterId   String    @db.Uuid
-  contactId  String    @db.Uuid
-  role       PartyRole
-  notes      String?
-  createdAt  DateTime  @default(now())
-  matter     Matter    @relation(fields: [matterId], references: [id], onDelete: Cascade)
-  contact    Contact   @relation(fields: [contactId], references: [id])
+  id        String    @id @default(uuid()) @db.Char(36)
+  matterId  String    @db.Char(36)
+  contactId String    @db.Char(36)
+  role      PartyRole
+  notes     String?   @db.LongText
+  createdAt DateTime  @default(now())
+  matter    Matter    @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  contact   Contact   @relation(fields: [contactId], references: [id])
 
   @@unique([matterId, contactId, role])
   @@index([contactId])
 }
 
 model MatterChecklistItem {
-  id          String    @id @default(uuid()) @db.Uuid
-  matterId    String    @db.Uuid
-  order       Int
-  title       String
-  titleAr     String?
-  required    Boolean   @default(false)
-  doneAt      DateTime?
-  doneById    String?   @db.Uuid
-  matter      Matter    @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  id       String    @id @default(uuid()) @db.Char(36)
+  matterId String    @db.Char(36)
+  order    Int
+  title    String    @db.LongText
+  titleAr  String?   @db.LongText
+  required Boolean   @default(false)
+  doneAt   DateTime?
+  doneById String?   @db.Char(36)
+  matter   Matter    @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
   @@index([matterId])
 }
@@ -733,23 +793,23 @@ enum ProposalStatus {
 }
 
 model TimelineEvent {
-  id           String         @id @default(uuid()) @db.Uuid
-  matterId     String         @db.Uuid
-  eventType    String // CASE_CREATED, CLAIM_SUBMITTED, HEARING, JUDGMENT, ... (admin-extendable)
-  occurredAt   DateTime
-  title        String
-  description  String?
-  notes        String?
-  documentIds  String[]       @default([])
-  source       TimelineSource @default(MANUAL)
-  status       ProposalStatus @default(CONFIRMED)
+  id          String         @id @default(uuid()) @db.Char(36)
+  matterId    String         @db.Char(36)
+  eventType   String         @db.LongText // CASE_CREATED, CLAIM_SUBMITTED, HEARING, JUDGMENT, ... (admin-extendable)
+  occurredAt  DateTime
+  title       String         @db.LongText
+  description String?        @db.LongText
+  notes       String?        @db.LongText
+  documentIds Json           @default("[]")
+  source      TimelineSource @default(MANUAL)
+  status      ProposalStatus @default(CONFIRMED)
   // For AI proposals: where the fact came from
-  citations    Json?
-  userId       String?        @db.Uuid
-  decidedById  String?        @db.Uuid
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  matter       Matter         @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  citations   Json?
+  userId      String?        @db.Char(36)
+  decidedById String?        @db.Char(36)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  matter      Matter         @relation(fields: [matterId], references: [id], onDelete: Cascade)
 
   @@index([matterId, occurredAt])
 }
@@ -772,45 +832,45 @@ enum Attendance {
 }
 
 model Hearing {
-  id                String        @id @default(uuid()) @db.Uuid
-  organizationId    String        @db.Uuid
-  matterId          String        @db.Uuid
-  courtId           String?       @db.Uuid
-  courtRoom         String?
+  id                String        @id @default(uuid()) @db.Char(36)
+  organizationId    String        @db.Char(36)
+  matterId          String        @db.Char(36)
+  courtId           String?       @db.Char(36)
+  courtRoom         String?       @db.LongText
   isRemote          Boolean       @default(false)
-  remoteUrl         String?
+  remoteUrl         String?       @db.LongText
   startsAt          DateTime
   endsAt            DateTime?
-  judge             String?
-  sessionType       String?
-  attendingLawyerId String?       @db.Uuid
+  judge             String?       @db.LongText
+  sessionType       String?       @db.LongText
+  attendingLawyerId String?       @db.Char(36)
   clientAttendance  Attendance    @default(NOT_REQUIRED)
   status            HearingStatus @default(SCHEDULED)
-  requiredDocuments String?
-  preparationNotes  String?
-  questions         String?
-  arguments         String?
+  requiredDocuments String?       @db.LongText
+  preparationNotes  String?       @db.LongText
+  questions         String?       @db.LongText
+  arguments         String?       @db.LongText
   // Hearing report (filled after the session)
-  outcome           String?
-  decisions         String?
-  requiredActions   String?
+  outcome           String?       @db.LongText
+  decisions         String?       @db.LongText
+  requiredActions   String?       @db.LongText
   reportedAt        DateTime?
-  reportedById      String?       @db.Uuid
-  previousHearingId String?       @unique @db.Uuid
+  reportedById      String?       @db.Char(36)
+  previousHearingId String?       @unique @db.Char(36)
   acknowledgedAt    DateTime? // attending lawyer acknowledged the reminder
-  createdById       String?       @db.Uuid
-  updatedById       String?       @db.Uuid
+  createdById       String?       @db.Char(36)
+  updatedById       String?       @db.Char(36)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   deletedAt         DateTime?
 
-  organization      Organization  @relation(fields: [organizationId], references: [id])
-  matter            Matter        @relation(fields: [matterId], references: [id])
-  court             Court?        @relation(fields: [courtId], references: [id])
-  attendingLawyer   User?         @relation("HearingLawyer", fields: [attendingLawyerId], references: [id])
-  previousHearing   Hearing?      @relation("HearingChain", fields: [previousHearingId], references: [id])
-  nextHearing       Hearing?      @relation("HearingChain")
-  deadlines         Deadline[]
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  matter          Matter       @relation(fields: [matterId], references: [id])
+  court           Court?       @relation(fields: [courtId], references: [id])
+  attendingLawyer User?        @relation("HearingLawyer", fields: [attendingLawyerId], references: [id])
+  previousHearing Hearing?     @relation("HearingChain", fields: [previousHearingId], references: [id])
+  nextHearing     Hearing?     @relation("HearingChain")
+  deadlines       Deadline[]
 
   @@index([organizationId, startsAt])
   @@index([matterId, startsAt])
@@ -850,35 +910,35 @@ enum EventSource {
 }
 
 model Deadline {
-  id             String         @id @default(uuid()) @db.Uuid
-  organizationId String         @db.Uuid
-  matterId       String?        @db.Uuid
-  hearingId      String?        @db.Uuid
+  id             String         @id @default(uuid()) @db.Char(36)
+  organizationId String         @db.Char(36)
+  matterId       String?        @db.Char(36)
+  hearingId      String?        @db.Char(36)
   type           DeadlineType
-  title          String
-  description    String?
+  title          String         @db.LongText
+  description    String?        @db.LongText
   dueAt          DateTime
   isCritical     Boolean        @default(false)
-  assigneeId     String?        @db.Uuid
+  assigneeId     String?        @db.Char(36)
   status         DeadlineStatus @default(OPEN)
   // AI/import-extracted legal deadlines stay NEEDS_VERIFICATION until an authorised lawyer confirms.
   verification   Verification   @default(CONFIRMED)
   source         EventSource    @default(MANUAL)
-  verifiedById   String?        @db.Uuid
+  verifiedById   String?        @db.Char(36)
   verifiedAt     DateTime?
   completedAt    DateTime?
   acknowledgedAt DateTime?
-  createdById    String?        @db.Uuid
-  updatedById    String?        @db.Uuid
+  createdById    String?        @db.Char(36)
+  updatedById    String?        @db.Char(36)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   deletedAt      DateTime?
 
-  organization   Organization   @relation(fields: [organizationId], references: [id])
-  matter         Matter?        @relation(fields: [matterId], references: [id])
-  hearing        Hearing?       @relation(fields: [hearingId], references: [id])
-  assignee       User?          @relation("DeadlineAssignee", fields: [assigneeId], references: [id])
-  verifiedBy     User?          @relation("DeadlineVerifier", fields: [verifiedById], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  matter       Matter?      @relation(fields: [matterId], references: [id])
+  hearing      Hearing?     @relation(fields: [hearingId], references: [id])
+  assignee     User?        @relation("DeadlineAssignee", fields: [assigneeId], references: [id])
+  verifiedBy   User?        @relation("DeadlineVerifier", fields: [verifiedById], references: [id])
 
   @@index([organizationId, status, dueAt])
   @@index([matterId])
@@ -903,54 +963,55 @@ enum AppointmentStatus {
 }
 
 model Appointment {
-  id             String            @id @default(uuid()) @db.Uuid
-  organizationId String            @db.Uuid
+  id             String            @id @default(uuid()) @db.Char(36)
+  organizationId String            @db.Char(36)
   type           AppointmentType
-  title          String
+  title          String            @db.LongText
   startsAt       DateTime
   endsAt         DateTime
-  lawyerId       String?           @db.Uuid
-  clientId       String?           @db.Uuid
-  leadId         String?           @db.Uuid
-  matterId       String?           @db.Uuid
-  location       String?
-  meetingUrl     String?
-  notes          String?
+  lawyerId       String?           @db.Char(36)
+  clientId       String?           @db.Char(36)
+  leadId         String?           @db.Char(36)
+  matterId       String?           @db.Char(36)
+  location       String?           @db.LongText
+  meetingUrl     String?           @db.LongText
+  notes          String?           @db.LongText
   status         AppointmentStatus @default(CONFIRMED)
   portalVisible  Boolean           @default(false)
-  createdById    String?           @db.Uuid
+  createdById    String?           @db.Char(36)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
   deletedAt      DateTime?
 
-  organization   Organization      @relation(fields: [organizationId], references: [id])
-  lawyer         User?             @relation("AppointmentLawyer", fields: [lawyerId], references: [id])
-  client         Client?           @relation(fields: [clientId], references: [id])
-  lead           Lead?             @relation(fields: [leadId], references: [id])
-  matter         Matter?           @relation(fields: [matterId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+  lawyer       User?        @relation("AppointmentLawyer", fields: [lawyerId], references: [id])
+  client       Client?      @relation(fields: [clientId], references: [id])
+  lead         Lead?        @relation(fields: [leadId], references: [id])
+  matter       Matter?      @relation(fields: [matterId], references: [id])
 
   @@index([organizationId, startsAt])
 }
 
 // Reminder rules: which offsets (minutes before) fire for which event type.
 model ReminderPolicy {
-  id                  String       @id @default(uuid()) @db.Uuid
-  organizationId      String       @db.Uuid
-  subjectType         String // HEARING | DEADLINE | APPOINTMENT | TASK
-  offsetsMinutes      Int[]
-  channels            String[]     @default(["IN_APP"])
-  notifyOwner         Boolean      @default(false)
+  id                    String       @id @default(uuid()) @db.Char(36)
+  organizationId        String       @db.Char(36)
+  subjectType           String       @db.VarChar(191) // HEARING | DEADLINE | APPOINTMENT | TASK
+  offsetsMinutes        Json         @default("[]")
+  channels              Json         @default("[\"IN_APP\"]")
+  notifyOwner           Boolean      @default(false)
   // Escalate to matter owner if the assignee has not acknowledged this many minutes before the event
   escalateBeforeMinutes Int?
-  enabled             Boolean      @default(true)
-  updatedAt           DateTime     @updatedAt
-  organization        Organization @relation(fields: [organizationId], references: [id])
+  enabled               Boolean      @default(true)
+  updatedAt             DateTime     @updatedAt
+  organization          Organization @relation(fields: [organizationId], references: [id])
 
   @@unique([organizationId, subjectType])
 }
 
 enum ReminderStatus {
   PENDING
+  PROCESSING
   SENT
   CANCELLED
   FAILED
@@ -958,18 +1019,22 @@ enum ReminderStatus {
 
 // Materialised, schedulable reminders. Regenerated whenever the underlying event changes.
 model Reminder {
-  id             String         @id @default(uuid()) @db.Uuid
-  organizationId String         @db.Uuid
-  subjectType    String
-  subjectId      String         @db.Uuid
-  userId         String         @db.Uuid
+  id             String         @id @default(uuid()) @db.Char(36)
+  organizationId String         @db.Char(36)
+  subjectType    String         @db.VarChar(191)
+  subjectId      String         @db.Char(36)
+  userId         String         @db.Char(36)
   fireAt         DateTime
   offsetMinutes  Int
-  kind           String         @default("REMINDER") // REMINDER | ESCALATION
-  channels       String[]
+  kind           String         @default("REMINDER") @db.VarChar(191) // REMINDER | ESCALATION
+  channels       Json           @default("[]")
   status         ReminderStatus @default(PENDING)
   sentAt         DateTime?
-  error          String?
+  error          String?        @db.LongText
+  // Durable job bookkeeping: a crashed worker's claim expires (lockedUntil) and the job is retried.
+  attempts       Int            @default(0)
+  lastAttemptAt  DateTime?
+  lockedUntil    DateTime?
   createdAt      DateTime       @default(now())
   organization   Organization   @relation(fields: [organizationId], references: [id])
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -989,53 +1054,54 @@ enum TaskStatus {
 }
 
 model Task {
-  id               String       @id @default(uuid()) @db.Uuid
-  organizationId   String       @db.Uuid
-  matterId         String?      @db.Uuid
-  title            String
-  description      String?
-  assigneeId       String?      @db.Uuid
-  createdById      String?      @db.Uuid
-  priority         Priority     @default(NORMAL)
-  status           TaskStatus   @default(TODO)
-  startAt          DateTime?
-  dueAt            DateTime?
-  estimateMinutes  Int?
-  completedAt      DateTime?
+  id              String     @id @default(uuid()) @db.Char(36)
+  organizationId  String     @db.Char(36)
+  matterId        String?    @db.Char(36)
+  title           String     @db.LongText
+  description     String?    @db.LongText
+  assigneeId      String?    @db.Char(36)
+  createdById     String?    @db.Char(36)
+  priority        Priority   @default(NORMAL)
+  status          TaskStatus @default(TODO)
+  startAt         DateTime?
+  dueAt           DateTime?
+  estimateMinutes Int?
+  completedAt     DateTime?
   // Origin, e.g. HEARING:<id>, AUTOMATION:<key>
-  sourceType       String?
-  sourceId         String?      @db.Uuid
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  deletedAt        DateTime?
+  sourceType      String?    @db.VarChar(191)
+  sourceId        String?    @db.Char(36)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
 
-  organization     Organization @relation(fields: [organizationId], references: [id])
-  matter           Matter?      @relation(fields: [matterId], references: [id])
-  assignee         User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  createdBy        User?        @relation("TaskCreator", fields: [createdById], references: [id])
-  checklist        TaskChecklistItem[]
-  comments         Comment[]
-  dependsOn        TaskDependency[] @relation("Dependent")
-  blocks           TaskDependency[] @relation("Blocker")
+  organization Organization        @relation(fields: [organizationId], references: [id])
+  matter       Matter?             @relation(fields: [matterId], references: [id])
+  assignee     User?               @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdBy    User?               @relation("TaskCreator", fields: [createdById], references: [id])
+  checklist    TaskChecklistItem[]
+  comments     Comment[]
+  dependsOn    TaskDependency[]    @relation("Dependent")
+  blocks       TaskDependency[]    @relation("Blocker")
 
   @@index([organizationId, assigneeId, status])
+  @@index([organizationId, deletedAt, status, dueAt])
   @@index([matterId])
   @@index([dueAt])
   @@index([sourceType, sourceId])
 }
 
 model TaskChecklistItem {
-  id      String    @id @default(uuid()) @db.Uuid
-  taskId  String    @db.Uuid
-  order   Int
-  title   String
-  doneAt  DateTime?
-  task    Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  id     String    @id @default(uuid()) @db.Char(36)
+  taskId String    @db.Char(36)
+  order  Int
+  title  String    @db.LongText
+  doneAt DateTime?
+  task   Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model TaskDependency {
-  taskId      String @db.Uuid
-  dependsOnId String @db.Uuid
+  taskId      String @db.Char(36)
+  dependsOnId String @db.Char(36)
   task        Task   @relation("Dependent", fields: [taskId], references: [id], onDelete: Cascade)
   dependsOn   Task   @relation("Blocker", fields: [dependsOnId], references: [id], onDelete: Cascade)
 
@@ -1077,60 +1143,81 @@ enum ProcessingStatus {
 }
 
 model Document {
-  id               String           @id @default(uuid()) @db.Uuid
-  organizationId   String           @db.Uuid
-  matterId         String?          @db.Uuid
-  clientId         String?          @db.Uuid
-  category         DocumentCategory @default(OTHER)
-  title            String
-  description      String?
-  tags             String[]         @default([])
-  confidentiality  Confidentiality  @default(STANDARD)
-  status           DocumentStatus   @default(DRAFT)
-  currentVersion   Int              @default(1)
-  portalShared     Boolean          @default(false)
+  id              String           @id @default(uuid()) @db.Char(36)
+  organizationId  String           @db.Char(36)
+  matterId        String?          @db.Char(36)
+  clientId        String?          @db.Char(36)
+  category        DocumentCategory @default(OTHER)
+  title           String           @db.LongText
+  description     String?          @db.LongText
+  tags            Json             @default("[]")
+  confidentiality Confidentiality  @default(STANDARD)
+  status          DocumentStatus   @default(DRAFT)
+  currentVersion  Int              @default(1)
+  portalShared    Boolean          @default(false)
   // Denormalised searchable text of the current version (OCR / extraction)
-  searchText       String?
-  createdById      String?          @db.Uuid
-  updatedById      String?          @db.Uuid
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  deletedAt        DateTime?
+  searchText      String?          @db.LongText
+  createdById     String?          @db.Char(36)
+  updatedById     String?          @db.Char(36)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
 
-  organization     Organization     @relation(fields: [organizationId], references: [id])
-  matter           Matter?          @relation(fields: [matterId], references: [id])
-  client           Client?          @relation(fields: [clientId], references: [id])
-  versions         DocumentVersion[]
-  permissions      DocumentPermission[]
-  comments         Comment[]
-  expenseReceipts  Expense[]
+  organization    Organization         @relation(fields: [organizationId], references: [id])
+  matter          Matter?              @relation(fields: [matterId], references: [id])
+  client          Client?              @relation(fields: [clientId], references: [id])
+  versions        DocumentVersion[]
+  permissions     DocumentPermission[]
+  comments        Comment[]
+  expenseReceipts Expense[]
 
   @@index([organizationId, matterId, deletedAt])
+  @@index([organizationId, deletedAt, updatedAt])
   @@index([organizationId, status])
+  // MySQL FULLTEXT (InnoDB) for extracted / OCR text and titles; results are permission-filtered afterwards.
+  @@fulltext([searchText])
+  @@fulltext([title])
 }
 
 model DocumentVersion {
-  id               String           @id @default(uuid()) @db.Uuid
-  documentId       String           @db.Uuid
-  version          Int
-  fileName         String
-  storageKey       String           @unique
-  mimeType         String
-  sizeBytes        BigInt
-  checksumSha256   String
-  status           DocumentStatus   @default(DRAFT)
-  comment          String?
-  uploadedById     String?          @db.Uuid
-  extractedText    String?
-  pageTexts        Json? // [{page: 1, text: "..."}] used for AI citations
-  textStatus       ProcessingStatus @default(PENDING)
-  pageCount        Int?
-  createdAt        DateTime         @default(now())
+  id                 String           @id @default(uuid()) @db.Char(36)
+  documentId         String           @db.Char(36)
+  version            Int
+  fileName           String           @db.LongText
+  storageKey         String           @unique @db.VarChar(191)
+  mimeType           String           @db.LongText
+  sizeBytes          BigInt
+  checksumSha256     String           @db.LongText
+  status             DocumentStatus   @default(DRAFT)
+  comment            String?          @db.LongText
+  uploadedById       String?          @db.Char(36)
+  extractedText      String?          @db.LongText
+  pageTexts          Json? // [{page: 1, text: "..."}] used for AI citations
+  textStatus         ProcessingStatus @default(PENDING)
+  pageCount          Int?
+  // Malware scanning lifecycle. Nothing is served until CLEAN (or NOT_SCANNED when no scanner is configured).
+  scanStatus         ScanStatus       @default(PENDING)
+  scannedAt          DateTime?
+  scanDetail         String?          @db.LongText
+  // Integrity sweep: stored object re-hashed and compared with checksumSha256.
+  integrityStatus    String?          @db.LongText // OK | MISMATCH | MISSING
+  integrityCheckedAt DateTime?
+  createdAt          DateTime         @default(now())
 
-  document         Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  uploadedBy       User?            @relation(fields: [uploadedById], references: [id])
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  uploadedBy User?    @relation(fields: [uploadedById], references: [id])
 
   @@unique([documentId, version])
+  @@index([scanStatus])
+}
+
+enum ScanStatus {
+  PENDING
+  SCANNING
+  CLEAN
+  INFECTED
+  ERROR
+  NOT_SCANNED
 }
 
 enum DocumentAccess {
@@ -1140,15 +1227,15 @@ enum DocumentAccess {
 }
 
 model DocumentPermission {
-  id          String         @id @default(uuid()) @db.Uuid
-  documentId  String         @db.Uuid
-  userId      String?        @db.Uuid
-  roleId      String?        @db.Uuid
-  access      DocumentAccess
-  createdAt   DateTime       @default(now())
-  document    Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  user        User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role        Role?          @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  id         String         @id @default(uuid()) @db.Char(36)
+  documentId String         @db.Char(36)
+  userId     String?        @db.Char(36)
+  roleId     String?        @db.Char(36)
+  access     DocumentAccess
+  createdAt  DateTime       @default(now())
+  document   Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role?          @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@index([documentId])
 }
@@ -1156,20 +1243,20 @@ model DocumentPermission {
 // ═══════════════════════════ Collaboration ══════════════════════════════════
 
 model Comment {
-  id          String    @id @default(uuid()) @db.Uuid
-  authorId    String    @db.Uuid
-  matterId    String?   @db.Uuid
-  documentId  String?   @db.Uuid
-  taskId      String?   @db.Uuid
-  body        String
-  mentions    String[]  @default([]) // user ids
-  createdAt   DateTime  @default(now())
-  editedAt    DateTime?
-  deletedAt   DateTime?
-  author      User      @relation(fields: [authorId], references: [id])
-  matter      Matter?   @relation(fields: [matterId], references: [id], onDelete: Cascade)
-  document    Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  task        Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid()) @db.Char(36)
+  authorId   String    @db.Char(36)
+  matterId   String?   @db.Char(36)
+  documentId String?   @db.Char(36)
+  taskId     String?   @db.Char(36)
+  body       String    @db.LongText
+  mentions   Json      @default("[]") // user ids
+  createdAt  DateTime  @default(now())
+  editedAt   DateTime?
+  deletedAt  DateTime?
+  author     User      @relation(fields: [authorId], references: [id])
+  matter     Matter?   @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  task       Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([matterId])
   @@index([documentId])
@@ -1178,36 +1265,36 @@ model Comment {
 
 enum NoteVisibility {
   PRIVATE // author only
-  TEAM    // matter members
-  CLIENT  // explicitly shared with the client portal
+  TEAM // matter members
+  CLIENT // explicitly shared with the client portal
 }
 
 model Note {
-  id          String         @id @default(uuid()) @db.Uuid
-  matterId    String         @db.Uuid
-  authorId    String         @db.Uuid
-  visibility  NoteVisibility @default(TEAM)
-  body        String
-  pinned      Boolean        @default(false)
-  sharedAt    DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  deletedAt   DateTime?
-  matter      Matter         @relation(fields: [matterId], references: [id], onDelete: Cascade)
-  author      User           @relation(fields: [authorId], references: [id])
+  id         String         @id @default(uuid()) @db.Char(36)
+  matterId   String         @db.Char(36)
+  authorId   String         @db.Char(36)
+  visibility NoteVisibility @default(TEAM)
+  body       String         @db.LongText
+  pinned     Boolean        @default(false)
+  sharedAt   DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  deletedAt  DateTime?
+  matter     Matter         @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  author     User           @relation(fields: [authorId], references: [id])
 
   @@index([matterId, visibility])
 }
 
 // Operational activity feed (distinct from the curated case timeline and the audit log)
 model Activity {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  matterId       String?      @db.Uuid
-  actorId        String?      @db.Uuid
-  type           String // e.g. hearing.rescheduled, document.uploaded
-  entityType     String
-  entityId       String?      @db.Uuid
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  matterId       String?      @db.Char(36)
+  actorId        String?      @db.Char(36)
+  type           String       @db.LongText // e.g. hearing.rescheduled, document.uploaded
+  entityType     String       @db.LongText
+  entityId       String?      @db.Char(36)
   // i18n-able payload: { title, params }
   data           Json         @default("{}")
   createdAt      DateTime     @default(now())
@@ -1231,23 +1318,23 @@ enum NotificationCategory {
 }
 
 model Notification {
-  id             String               @id @default(uuid()) @db.Uuid
-  organizationId String               @db.Uuid
-  userId         String               @db.Uuid
+  id             String                 @id @default(uuid()) @db.Char(36)
+  organizationId String                 @db.Char(36)
+  userId         String                 @db.Char(36)
   category       NotificationCategory
-  title          String
-  body           String?
-  link           String?
-  entityType     String?
-  entityId       String?              @db.Uuid
-  dedupeKey      String?
+  title          String                 @db.LongText
+  body           String?                @db.LongText
+  link           String?                @db.LongText
+  entityType     String?                @db.LongText
+  entityId       String?                @db.Char(36)
+  dedupeKey      String?                @db.VarChar(191)
   readAt         DateTime?
   snoozedUntil   DateTime?
-  requiresAck    Boolean              @default(false)
+  requiresAck    Boolean                @default(false)
   acknowledgedAt DateTime?
-  createdAt      DateTime             @default(now())
-  organization   Organization         @relation(fields: [organizationId], references: [id])
-  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime               @default(now())
+  organization   Organization           @relation(fields: [organizationId], references: [id])
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   deliveries     NotificationDelivery[]
 
   @@unique([userId, dedupeKey])
@@ -1255,27 +1342,36 @@ model Notification {
 }
 
 model NotificationDelivery {
-  id             String       @id @default(uuid()) @db.Uuid
-  notificationId String       @db.Uuid
-  channel        String // IN_APP | EMAIL | SMS | WHATSAPP | PUSH
-  status         String // SENT | SKIPPED_NOT_CONNECTED | FAILED
-  error          String?
+  id             String       @id @default(uuid()) @db.Char(36)
+  notificationId String       @db.Char(36)
+  channel        String       @db.LongText // IN_APP | EMAIL | SMS | WHATSAPP | PUSH
+  status         String       @db.VarChar(191) // PENDING | SENDING | SENT | SKIPPED_NOT_CONNECTED | FAILED
+  error          String?      @db.LongText
+  // Idempotency: exactly one delivery row per notification and channel.
+  deliveryKey    String?      @unique @db.VarChar(191)
+  provider       String?      @db.LongText
+  attempts       Int          @default(0)
+  lastAttemptAt  DateTime?
+  nextAttemptAt  DateTime?
+  lockedUntil    DateTime?
   createdAt      DateTime     @default(now())
   notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
 }
 
 model Communication {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  matterId       String?      @db.Uuid
-  clientId       String?      @db.Uuid
-  channel        String // EMAIL | CALL | MEETING | WHATSAPP | LETTER | NOTE
-  direction      String       @default("OUTBOUND") // INBOUND | OUTBOUND | INTERNAL
-  subject        String?
-  body           String?
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  matterId       String?      @db.Char(36)
+  clientId       String?      @db.Char(36)
+  channel        String       @db.LongText // EMAIL | CALL | MEETING | WHATSAPP | LETTER | NOTE
+  direction      String       @default("OUTBOUND") @db.VarChar(191) // INBOUND | OUTBOUND | INTERNAL
+  subject        String?      @db.LongText
+  body           String?      @db.LongText
   occurredAt     DateTime
-  userId         String?      @db.Uuid
-  externalRef    String?
+  userId         String?      @db.Char(36)
+  externalRef    String?      @db.LongText
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id])
   matter         Matter?      @relation(fields: [matterId], references: [id])
@@ -1296,66 +1392,68 @@ enum InvoiceStatus {
 }
 
 model Invoice {
-  id             String        @id @default(uuid()) @db.Uuid
-  organizationId String        @db.Uuid
-  number         String
-  clientId       String        @db.Uuid
-  matterId       String?       @db.Uuid
+  id             String        @id @default(uuid()) @db.Char(36)
+  organizationId String        @db.Char(36)
+  number         String        @db.VarChar(191)
+  clientId       String        @db.Char(36)
+  matterId       String?       @db.Char(36)
   issueDate      DateTime
   dueDate        DateTime
   status         InvoiceStatus @default(DRAFT)
-  currency       String        @default("AED")
+  currency       String        @default("AED") @db.VarChar(191)
   subtotal       Decimal       @default(0) @db.Decimal(14, 2)
   discount       Decimal       @default(0) @db.Decimal(14, 2)
   vatRate        Decimal       @default(5) @db.Decimal(5, 2)
   vatAmount      Decimal       @default(0) @db.Decimal(14, 2)
   total          Decimal       @default(0) @db.Decimal(14, 2)
   amountPaid     Decimal       @default(0) @db.Decimal(14, 2)
-  notes          String?
+  notes          String?       @db.LongText
   portalVisible  Boolean       @default(false)
-  createdById    String?       @db.Uuid
-  updatedById    String?       @db.Uuid
+  createdById    String?       @db.Char(36)
+  updatedById    String?       @db.Char(36)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   deletedAt      DateTime?
 
-  organization   Organization  @relation(fields: [organizationId], references: [id])
-  client         Client        @relation(fields: [clientId], references: [id])
-  matter         Matter?       @relation(fields: [matterId], references: [id])
-  items          InvoiceItem[]
-  payments       Payment[]
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  client       Client        @relation(fields: [clientId], references: [id])
+  matter       Matter?       @relation(fields: [matterId], references: [id])
+  items        InvoiceItem[]
+  payments     Payment[]
 
   @@unique([organizationId, number])
   @@index([organizationId, status, dueDate])
 }
 
 model InvoiceItem {
-  id           String     @id @default(uuid()) @db.Uuid
-  invoiceId    String     @db.Uuid
-  kind         String     @default("FEE") // FEE | TIME | EXPENSE | DISBURSEMENT | COURT_FEE
-  description  String
-  quantity     Decimal    @default(1) @db.Decimal(10, 2)
-  unitPrice    Decimal    @db.Decimal(14, 2)
-  amount       Decimal    @db.Decimal(14, 2)
-  timeEntryId  String?    @unique @db.Uuid
-  expenseId    String?    @unique @db.Uuid
-  order        Int        @default(0)
-  invoice      Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  timeEntry    TimeEntry? @relation(fields: [timeEntryId], references: [id])
-  expense      Expense?   @relation(fields: [expenseId], references: [id])
+  id          String     @id @default(uuid()) @db.Char(36)
+  invoiceId   String     @db.Char(36)
+  kind        String     @default("FEE") @db.VarChar(191) // FEE | TIME | EXPENSE | DISBURSEMENT | COURT_FEE
+  description String     @db.LongText
+  quantity    Decimal    @default(1) @db.Decimal(10, 2)
+  unitPrice   Decimal    @db.Decimal(14, 2)
+  amount      Decimal    @db.Decimal(14, 2)
+  timeEntryId String?    @unique @db.Char(36)
+  expenseId   String?    @unique @db.Char(36)
+  order       Int        @default(0)
+  invoice     Invoice    @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  timeEntry   TimeEntry? @relation(fields: [timeEntryId], references: [id])
+  expense     Expense?   @relation(fields: [expenseId], references: [id])
 }
 
 model Payment {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  invoiceId      String       @db.Uuid
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  invoiceId      String       @db.Char(36)
   amount         Decimal      @db.Decimal(14, 2) // negative for refunds
-  method         String // BANK_TRANSFER | CARD | CASH | CHEQUE | OTHER
+  method         String       @db.LongText // BANK_TRANSFER | CARD | CASH | CHEQUE | OTHER
   receivedAt     DateTime
-  reference      String?
-  notes          String?
+  reference      String?      @db.LongText
+  notes          String?      @db.LongText
   isRefund       Boolean      @default(false)
-  recordedById   String?      @db.Uuid
+  recordedById   String?      @db.Char(36)
+  // Client-generated key per payment form: a double submission records the payment once.
+  idempotencyKey String?      @unique @db.VarChar(64)
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id])
   invoice        Invoice      @relation(fields: [invoiceId], references: [id])
@@ -1364,16 +1462,16 @@ model Payment {
 }
 
 model Expense {
-  id                String       @id @default(uuid()) @db.Uuid
-  organizationId    String       @db.Uuid
-  matterId          String?      @db.Uuid
-  category          String // COURT_FEE | TRANSLATION | EXPERT_FEE | COURIER | TRAVEL | GOVERNMENT_FEE | OTHER
-  description       String
+  id                String       @id @default(uuid()) @db.Char(36)
+  organizationId    String       @db.Char(36)
+  matterId          String?      @db.Char(36)
+  category          String       @db.LongText // COURT_FEE | TRANSLATION | EXPERT_FEE | COURIER | TRAVEL | GOVERNMENT_FEE | OTHER
+  description       String       @db.LongText
   amount            Decimal      @db.Decimal(14, 2)
   incurredAt        DateTime
   billable          Boolean      @default(true)
-  receiptDocumentId String?      @db.Uuid
-  createdById       String?      @db.Uuid
+  receiptDocumentId String?      @db.Char(36)
+  createdById       String?      @db.Char(36)
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   deletedAt         DateTime?
@@ -1386,17 +1484,17 @@ model Expense {
 }
 
 model TimeEntry {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  matterId       String       @db.Uuid
-  userId         String       @db.Uuid
-  activity       String // RESEARCH | DRAFTING | MEETING | COURT | CALL | REVIEW | OTHER
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  matterId       String       @db.Char(36)
+  userId         String       @db.Char(36)
+  activity       String       @db.LongText // RESEARCH | DRAFTING | MEETING | COURT | CALL | REVIEW | OTHER
   startedAt      DateTime
   endedAt        DateTime?
   minutes        Int          @default(0)
   billable       Boolean      @default(true)
   rate           Decimal?     @db.Decimal(10, 2)
-  notes          String?
+  notes          String?      @db.LongText
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   deletedAt      DateTime?
@@ -1412,37 +1510,37 @@ model TimeEntry {
 // ═══════════════════════════ CRM ════════════════════════════════════════════
 
 model PipelineStage {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  name           String
-  nameAr         String?
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  name           String       @db.LongText
+  nameAr         String?      @db.LongText
   order          Int
-  kind           String       @default("OPEN") // OPEN | WON | LOST
+  kind           String       @default("OPEN") @db.VarChar(191) // OPEN | WON | LOST
   organization   Organization @relation(fields: [organizationId], references: [id])
   leads          Lead[]
 }
 
 model Lead {
-  id              String        @id @default(uuid()) @db.Uuid
-  organizationId  String        @db.Uuid
-  name            String
-  email           String?
-  phone           String?
-  source          String? // WEBSITE | REFERRAL | PHONE | WALK_IN | SOCIAL | OTHER
-  inquiry         String?
-  service         String?
-  estimatedValue  Decimal?      @db.Decimal(14, 2)
-  assignedToId    String?       @db.Uuid
-  stageId         String        @db.Uuid
+  id              String          @id @default(uuid()) @db.Char(36)
+  organizationId  String          @db.Char(36)
+  name            String          @db.LongText
+  email           String?         @db.LongText
+  phone           String?         @db.LongText
+  source          String?         @db.LongText // WEBSITE | REFERRAL | PHONE | WALK_IN | SOCIAL | OTHER
+  inquiry         String?         @db.LongText
+  service         String?         @db.LongText
+  estimatedValue  Decimal?        @db.Decimal(14, 2)
+  assignedToId    String?         @db.Char(36)
+  stageId         String          @db.Char(36)
   nextFollowUpAt  DateTime?
-  lostReason      String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  lostReason      String?         @db.LongText
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
   deletedAt       DateTime?
-  organization    Organization  @relation(fields: [organizationId], references: [id])
-  assignedTo      User?         @relation(fields: [assignedToId], references: [id])
-  stage           PipelineStage @relation(fields: [stageId], references: [id])
-  convertedClient Client?       @relation("LeadConversion")
+  organization    Organization    @relation(fields: [organizationId], references: [id])
+  assignedTo      User?           @relation(fields: [assignedToId], references: [id])
+  stage           PipelineStage   @relation(fields: [stageId], references: [id])
+  convertedClient Client?         @relation("LeadConversion")
   appointments    Appointment[]
   bookingRequest  BookingRequest?
 
@@ -1452,29 +1550,29 @@ model Lead {
 // ═══════════════════════════ Knowledge & templates ══════════════════════════
 
 model Template {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  kind           String // ENGAGEMENT_LETTER | LEGAL_NOTICE | CLIENT_UPDATE | INTERNAL_MEMO | ...
-  name           String
-  locale         String       @default("en")
-  body           String // supports {{client.name}}, {{matter.internalNumber}} …
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  kind           String       @db.LongText // ENGAGEMENT_LETTER | LEGAL_NOTICE | CLIENT_UPDATE | INTERNAL_MEMO | ...
+  name           String       @db.LongText
+  locale         String       @default("en") @db.VarChar(191)
+  body           String       @db.LongText // supports {{client.name}}, {{matter.internalNumber}} …
   active         Boolean      @default(true)
-  createdById    String?      @db.Uuid
+  createdById    String?      @db.Char(36)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id])
 }
 
 model KnowledgeDocument {
-  id              String          @id @default(uuid()) @db.Uuid
-  organizationId  String          @db.Uuid
-  kind            String // PRECEDENT | RESEARCH | COURT_DECISION | LEGAL_NOTE | POLICY | CHECKLIST | CLAUSE | TEMPLATE
-  title           String
-  body            String
-  tags            String[]        @default([])
-  locale          String          @default("en")
+  id              String          @id @default(uuid()) @db.Char(36)
+  organizationId  String          @db.Char(36)
+  kind            String          @db.LongText // PRECEDENT | RESEARCH | COURT_DECISION | LEGAL_NOTE | POLICY | CHECKLIST | CLAUSE | TEMPLATE
+  title           String          @db.LongText
+  body            String          @db.LongText
+  tags            Json            @default("[]")
+  locale          String          @default("en") @db.VarChar(191)
   confidentiality Confidentiality @default(STANDARD)
-  authorId        String?         @db.Uuid
+  authorId        String?         @db.Char(36)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   deletedAt       DateTime?
@@ -1482,13 +1580,13 @@ model KnowledgeDocument {
 }
 
 model LegalResource {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  title          String
-  titleAr        String?
-  url            String
-  category       String // FEDERAL | LOCAL_COURT | LEGISLATION | FREE_ZONE | OTHER
-  description    String?
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  title          String       @db.LongText
+  titleAr        String?      @db.LongText
+  url            String       @db.LongText
+  category       String       @db.LongText // FEDERAL | LOCAL_COURT | LEGISLATION | FREE_ZONE | OTHER
+  description    String?      @db.LongText
   order          Int          @default(0)
   organization   Organization @relation(fields: [organizationId], references: [id])
 }
@@ -1504,14 +1602,14 @@ enum IntegrationStatus {
 }
 
 model Integration {
-  id             String            @id @default(uuid()) @db.Uuid
-  organizationId String            @db.Uuid
-  provider       String // MICROSOFT_365 | GOOGLE_WORKSPACE | SMTP | SMS | WHATSAPP_BUSINESS | S3 | ACCOUNTING | COURT_<X>
-  category       String // FEDERAL | LOCAL_COURTS | EMAIL | CALENDAR | STORAGE | SMS | WHATSAPP | ACCOUNTING | AI | OCR
+  id             String            @id @default(uuid()) @db.Char(36)
+  organizationId String            @db.Char(36)
+  provider       String            @db.VarChar(191) // MICROSOFT_365 | GOOGLE_WORKSPACE | SMTP | SMS | WHATSAPP_BUSINESS | S3 | ACCOUNTING | COURT_<X>
+  category       String            @db.LongText // FEDERAL | LOCAL_COURTS | EMAIL | CALENDAR | STORAGE | SMS | WHATSAPP | ACCOUNTING | AI | OCR
   // Non-secret configuration only. Secrets live in environment / secret manager.
   config         Json              @default("{}")
   status         IntegrationStatus @default(NOT_CONNECTED)
-  statusDetail   String?
+  statusDetail   String?           @db.LongText
   lastCheckedAt  DateTime?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
@@ -1522,15 +1620,15 @@ model Integration {
 
 // Court data import (manual workflow when no official API exists)
 model CourtImport {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  matterId       String?      @db.Uuid
-  documentId     String?      @db.Uuid
-  sourceType     String // PDF | EXCEL | CSV | EMAIL | IMAGE | MANUAL
-  status         String       @default("PENDING_REVIEW") // PENDING_REVIEW | APPLIED | DISCARDED
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  matterId       String?      @db.Char(36)
+  documentId     String?      @db.Char(36)
+  sourceType     String       @db.LongText // PDF | EXCEL | CSV | EMAIL | IMAGE | MANUAL
+  status         String       @default("PENDING_REVIEW") @db.VarChar(191) // PENDING_REVIEW | APPLIED | DISCARDED
   suggestions    Json         @default("[]")
-  createdById    String?      @db.Uuid
-  reviewedById   String?      @db.Uuid
+  createdById    String?      @db.Char(36)
+  reviewedById   String?      @db.Char(36)
   reviewedAt     DateTime?
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -1541,22 +1639,22 @@ model CourtImport {
 // Append-only. UPDATE/DELETE are blocked by a database trigger (see migration),
 // and each row is hash-chained to the previous one for tamper evidence.
 model AuditLog {
-  id             String       @id @default(uuid()) @db.Uuid
+  id             String       @id @default(uuid()) @db.Char(36)
   seq            BigInt       @default(autoincrement())
-  organizationId String       @db.Uuid
-  actorId        String?      @db.Uuid
-  action         String // auth.login, matter.viewed, document.downloaded, permission.changed …
-  entityType     String?
-  entityId       String?
-  matterId       String?      @db.Uuid
-  ip             String?
-  userAgent      String?
-  sessionId      String?      @db.Uuid
+  organizationId String       @db.Char(36)
+  actorId        String?      @db.Char(36)
+  action         String       @db.VarChar(191) // auth.login, matter.viewed, document.downloaded, permission.changed …
+  entityType     String?      @db.VarChar(191)
+  entityId       String?      @db.VarChar(191)
+  matterId       String?      @db.Char(36)
+  ip             String?      @db.LongText
+  userAgent      String?      @db.LongText
+  sessionId      String?      @db.Char(36)
   before         Json?
   after          Json?
   metadata       Json?
-  prevHash       String?
-  hash           String
+  prevHash       String?      @db.LongText
+  hash           String       @db.LongText
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id])
   actor          User?        @relation(fields: [actorId], references: [id])
@@ -1577,69 +1675,69 @@ enum RequestStatus {
 }
 
 model AccessRequest {
-  id           String        @id @default(uuid()) @db.Uuid
-  organizationId String      @db.Uuid
-  matterId     String        @db.Uuid
-  requesterId  String        @db.Uuid
-  reason       String?
-  status       RequestStatus @default(PENDING)
-  grantedRole  MatterMemberRole?
-  expiresAt    DateTime?
-  decidedById  String?       @db.Uuid
-  decidedAt    DateTime?
-  decisionNote String?
-  createdAt    DateTime      @default(now())
-  organization Organization  @relation(fields: [organizationId], references: [id])
-  matter       Matter        @relation(fields: [matterId], references: [id])
-  requester    User          @relation("AccessRequester", fields: [requesterId], references: [id])
-  decidedBy    User?         @relation("AccessDecider", fields: [decidedById], references: [id])
+  id             String            @id @default(uuid()) @db.Char(36)
+  organizationId String            @db.Char(36)
+  matterId       String            @db.Char(36)
+  requesterId    String            @db.Char(36)
+  reason         String?           @db.LongText
+  status         RequestStatus     @default(PENDING)
+  grantedRole    MatterMemberRole?
+  expiresAt      DateTime?
+  decidedById    String?           @db.Char(36)
+  decidedAt      DateTime?
+  decisionNote   String?           @db.LongText
+  createdAt      DateTime          @default(now())
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  matter         Matter            @relation(fields: [matterId], references: [id])
+  requester      User              @relation("AccessRequester", fields: [requesterId], references: [id])
+  decidedBy      User?             @relation("AccessDecider", fields: [decidedById], references: [id])
 
   @@index([organizationId, status])
 }
 
 model Approval {
-  id             String        @id @default(uuid()) @db.Uuid
-  organizationId String        @db.Uuid
-  kind           String // DOCUMENT | CASE_CHANGE | FINANCIAL | CLIENT_COMMUNICATION | DEADLINE_VERIFICATION | AI_TIMELINE
-  entityType     String
-  entityId       String        @db.Uuid
-  matterId       String?       @db.Uuid
-  title          String
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  kind           String       @db.LongText // DOCUMENT | CASE_CHANGE | FINANCIAL | CLIENT_COMMUNICATION | DEADLINE_VERIFICATION | AI_TIMELINE
+  entityType     String       @db.VarChar(191)
+  entityId       String       @db.Char(36)
+  matterId       String?      @db.Char(36)
+  title          String       @db.LongText
   payload        Json?
-  requestedById  String?       @db.Uuid
-  assignedToId   String?       @db.Uuid
-  status         String        @default("PENDING") // PENDING | APPROVED | REJECTED | CHANGES_REQUESTED
-  comment        String?
+  requestedById  String?      @db.Char(36)
+  assignedToId   String?      @db.Char(36)
+  status         String       @default("PENDING") @db.VarChar(191) // PENDING | APPROVED | REJECTED | CHANGES_REQUESTED
+  comment        String?      @db.LongText
   decidedAt      DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  organization   Organization  @relation(fields: [organizationId], references: [id])
-  matter         Matter?       @relation(fields: [matterId], references: [id])
-  requestedBy    User?         @relation("ApprovalRequester", fields: [requestedById], references: [id])
-  assignedTo     User?         @relation("ApprovalAssignee", fields: [assignedToId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  matter         Matter?      @relation(fields: [matterId], references: [id])
+  requestedBy    User?        @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  assignedTo     User?        @relation("ApprovalAssignee", fields: [assignedToId], references: [id])
 
   @@index([organizationId, status])
   @@index([entityType, entityId])
 }
 
 model AIJob {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  userId         String       @db.Uuid
-  matterId       String?      @db.Uuid
-  kind           String // CASE_BRIEF | DOCUMENT_SUMMARY | EXTRACT_DATES | TIMELINE_DRAFT | HEARING_BRIEF | DRAFT | TRANSLATE | ASK
-  status         String       @default("QUEUED") // QUEUED | RUNNING | SUCCEEDED | FAILED
-  documentIds    String[]     @default([])
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  userId         String       @db.Char(36)
+  matterId       String?      @db.Char(36)
+  kind           String       @db.LongText // CASE_BRIEF | DOCUMENT_SUMMARY | EXTRACT_DATES | TIMELINE_DRAFT | HEARING_BRIEF | DRAFT | TRANSLATE | ASK
+  status         String       @default("QUEUED") @db.VarChar(191) // QUEUED | RUNNING | SUCCEEDED | FAILED
+  documentIds    Json         @default("[]")
   input          Json?
-  output         String?
+  output         String?      @db.LongText
   structured     Json?
   citations      Json?
-  provider       String?
-  model          String?
+  provider       String?      @db.LongText
+  model          String?      @db.LongText
   inputTokens    Int?
   outputTokens   Int?
-  error          String?
-  reviewStatus   String       @default("REVIEW_REQUIRED") // REVIEW_REQUIRED | ACCEPTED | DISCARDED
+  error          String?      @db.LongText
+  reviewStatus   String       @default("REVIEW_REQUIRED") @db.VarChar(191) // REVIEW_REQUIRED | ACCEPTED | DISCARDED
   createdAt      DateTime     @default(now())
   completedAt    DateTime?
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -1650,28 +1748,28 @@ model AIJob {
 }
 
 model Automation {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  key            String
-  name           String
-  nameAr         String?
-  trigger        String // hearing.created | document.uploaded | matter.closed | …
-  conditions     Json         @default("[]")
-  actions        Json         @default("[]")
-  enabled        Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  id             String          @id @default(uuid()) @db.Char(36)
+  organizationId String          @db.Char(36)
+  key            String          @db.VarChar(191)
+  name           String          @db.LongText
+  nameAr         String?         @db.LongText
+  trigger        String          @db.LongText // hearing.created | document.uploaded | matter.closed | …
+  conditions     Json            @default("[]")
+  actions        Json            @default("[]")
+  enabled        Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  organization   Organization    @relation(fields: [organizationId], references: [id])
   runs           AutomationRun[]
 
   @@unique([organizationId, key])
 }
 
 model AutomationRun {
-  id           String     @id @default(uuid()) @db.Uuid
-  automationId String     @db.Uuid
-  entityId     String?
-  status       String // SUCCEEDED | FAILED | SKIPPED
+  id           String     @id @default(uuid()) @db.Char(36)
+  automationId String     @db.Char(36)
+  entityId     String?    @db.LongText
+  status       String     @db.LongText // SUCCEEDED | FAILED | SKIPPED
   detail       Json?
   createdAt    DateTime   @default(now())
   automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
@@ -1680,8 +1778,8 @@ model AutomationRun {
 }
 
 model Counter {
-  organizationId String       @db.Uuid
-  key            String // e.g. matter:2026, invoice:2026, client
+  organizationId String       @db.Char(36)
+  key            String       @db.VarChar(191) // e.g. matter:2026, invoice:2026, client
   value          Int          @default(0)
   organization   Organization @relation(fields: [organizationId], references: [id])
 
@@ -1689,72 +1787,72 @@ model Counter {
 }
 
 model SavedView {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  userId         String       @db.Uuid
-  module         String
-  name           String
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  userId         String       @db.Char(36)
+  module         String       @db.LongText
+  name           String       @db.LongText
   filters        Json         @default("{}")
-  columns        String[]     @default([])
+  columns        Json         @default("[]")
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id])
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model BackupRecord {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  kind           String // DATABASE | DOCUMENTS
-  status         String // RUNNING | SUCCEEDED | FAILED
-  location       String?
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  kind           String       @db.LongText // DATABASE | DOCUMENTS
+  status         String       @db.LongText // RUNNING | SUCCEEDED | FAILED
+  location       String?      @db.LongText
   sizeBytes      BigInt?
-  checksum       String?
-  error          String?
+  checksum       String?      @db.LongText
+  error          String?      @db.LongText
   startedAt      DateTime     @default(now())
   finishedAt     DateTime?
   organization   Organization @relation(fields: [organizationId], references: [id])
 }
 
 model PrivacyRequest {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  kind           String // EXPORT | DELETION | RECTIFICATION
-  subjectType    String // CLIENT | CONTACT | LEAD
-  subjectId      String       @db.Uuid
-  status         String       @default("OPEN") // OPEN | ON_LEGAL_HOLD | COMPLETED | REJECTED
-  notes          String?
-  requestedById  String?      @db.Uuid
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  kind           String       @db.LongText // EXPORT | DELETION | RECTIFICATION
+  subjectType    String       @db.LongText // CLIENT | CONTACT | LEAD
+  subjectId      String       @db.Char(36)
+  status         String       @default("OPEN") @db.VarChar(191) // OPEN | ON_LEGAL_HOLD | COMPLETED | REJECTED
+  notes          String?      @db.LongText
+  requestedById  String?      @db.Char(36)
   completedAt    DateTime?
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id])
 }
 
 model BreachLog {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  detectedAt     DateTime
-  description    String
-  severity       String
-  affectedData   String?
-  actionsTaken   String?
+  id                    String       @id @default(uuid()) @db.Char(36)
+  organizationId        String       @db.Char(36)
+  detectedAt            DateTime
+  description           String       @db.LongText
+  severity              String       @db.LongText
+  affectedData          String?      @db.LongText
+  actionsTaken          String?      @db.LongText
   reportedToAuthorityAt DateTime?
-  recordedById   String?      @db.Uuid
-  createdAt      DateTime     @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  recordedById          String?      @db.Char(36)
+  createdAt             DateTime     @default(now())
+  organization          Organization @relation(fields: [organizationId], references: [id])
 }
 
 // ═══════════════════════════ Public website CMS ═════════════════════════════
 
 model PracticeArea {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  slug           String
-  titleEn        String
-  titleAr        String
-  summaryEn      String?
-  summaryAr      String?
-  bodyEn         String?
-  bodyAr         String?
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  slug           String       @db.VarChar(191)
+  titleEn        String       @db.LongText
+  titleAr        String       @db.LongText
+  summaryEn      String?      @db.LongText
+  summaryAr      String?      @db.LongText
+  bodyEn         String?      @db.LongText
+  bodyAr         String?      @db.LongText
   order          Int          @default(0)
   published      Boolean      @default(false)
   bookable       Boolean      @default(true)
@@ -1766,19 +1864,19 @@ model PracticeArea {
 }
 
 model Article {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  slug           String
-  locale         String // en | ar
-  title          String
-  excerpt        String?
-  body           String
-  category       String?
-  authorId       String?      @db.Uuid
-  status         String       @default("DRAFT") // DRAFT | PUBLISHED
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  slug           String       @db.VarChar(191)
+  locale         String       @db.VarChar(191) // en | ar
+  title          String       @db.LongText
+  excerpt        String?      @db.LongText
+  body           String       @db.LongText
+  category       String?      @db.LongText
+  authorId       String?      @db.Char(36)
+  status         String       @default("DRAFT") @db.VarChar(191) // DRAFT | PUBLISHED
   publishedAt    DateTime?
-  seoTitle       String?
-  seoDescription String?
+  seoTitle       String?      @db.LongText
+  seoDescription String?      @db.LongText
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -1788,31 +1886,31 @@ model Article {
 }
 
 model Faq {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  questionEn     String
-  questionAr     String
-  answerEn       String
-  answerAr       String
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  questionEn     String       @db.LongText
+  questionAr     String       @db.LongText
+  answerEn       String       @db.LongText
+  answerAr       String       @db.LongText
   order          Int          @default(0)
   published      Boolean      @default(true)
   organization   Organization @relation(fields: [organizationId], references: [id])
 }
 
 model Testimonial {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  authorName     String
-  quoteEn        String?
-  quoteAr        String?
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  authorName     String       @db.LongText
+  quoteEn        String?      @db.LongText
+  quoteAr        String?      @db.LongText
   published      Boolean      @default(false)
   order          Int          @default(0)
   organization   Organization @relation(fields: [organizationId], references: [id])
 }
 
 model SiteSetting {
-  organizationId String       @db.Uuid
-  key            String // contact, hero, seo, about, team
+  organizationId String       @db.Char(36)
+  key            String       @db.VarChar(191) // contact, hero, seo, about, team
   value          Json
   updatedAt      DateTime     @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -1821,21 +1919,21 @@ model SiteSetting {
 }
 
 model BookingRequest {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  practiceAreaId String?      @db.Uuid
-  serviceLabel   String?
+  id             String       @id @default(uuid()) @db.Char(36)
+  organizationId String       @db.Char(36)
+  practiceAreaId String?      @db.Char(36)
+  serviceLabel   String?      @db.LongText
   preferredAt    DateTime
-  mode           String // ONLINE | OFFICE
-  name           String
-  phone          String
-  email          String
-  description    String?
-  locale         String       @default("ar")
-  status         String       @default("NEW") // NEW | SCHEDULED | DECLINED
-  leadId         String?      @unique @db.Uuid
+  mode           String       @db.LongText // ONLINE | OFFICE
+  name           String       @db.LongText
+  phone          String       @db.LongText
+  email          String       @db.LongText
+  description    String?      @db.LongText
+  locale         String       @default("ar") @db.VarChar(191)
+  status         String       @default("NEW") @db.VarChar(191) // NEW | SCHEDULED | DECLINED
+  leadId         String?      @unique @db.Char(36)
   consentAt      DateTime
-  ip             String?
+  ip             String?      @db.LongText
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id])
   lead           Lead?        @relation(fields: [leadId], references: [id])

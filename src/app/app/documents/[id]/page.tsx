@@ -1,3 +1,4 @@
+import { stringList } from "@/lib/json-lists";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, ChevronRight, Download, History, ShieldCheck, Lock, MessageSquare } from "lucide-react";
@@ -79,7 +80,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
 
         <div className="space-y-5 xl:col-span-4">
           <DocumentActions
-            doc={{ id: doc.id, title: doc.title, description: doc.description, category: doc.category, tags: doc.tags, confidentiality: doc.confidentiality, portalShared: doc.portalShared, matterId: doc.matterId }}
+            doc={{ id: doc.id, title: doc.title, description: doc.description, category: doc.category, tags: stringList(doc.tags), confidentiality: doc.confidentiality, portalShared: doc.portalShared, matterId: doc.matterId }}
             transitions={d.transitions}
             caps={d.caps}
             canEdit={d.access.edit}

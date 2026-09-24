@@ -21,7 +21,7 @@ export async function listKnowledge(ctx: StaffContext, q?: string, kind?: string
   assertPermission(ctx, "knowledge.view");
   const and: Prisma.KnowledgeDocumentWhereInput[] = [knowledgeScope(ctx)];
   if (kind) and.push({ kind });
-  if (q) and.push({ OR: [{ title: { contains: q, mode: "insensitive" } }, { body: { contains: q, mode: "insensitive" } }, { tags: { has: q } }] });
+  if (q) and.push({ OR: [{ title: { contains: q } }, { body: { contains: q } }, { tags: { array_contains: q } }] });
   return db.knowledgeDocument.findMany({ where: { AND: and }, orderBy: { updatedAt: "desc" }, take: 200 });
 }
 

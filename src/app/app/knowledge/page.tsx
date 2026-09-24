@@ -1,3 +1,4 @@
+import { stringList } from "@/lib/json-lists";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/server/auth/session";
 import { getT } from "@/i18n/server";
@@ -25,7 +26,7 @@ export default async function KnowledgePage({ searchParams }: { searchParams: Pr
         kind={kind ?? null}
         counts={counts}
         canManage={ctx.can("knowledge.manage")}
-        rows={rows.map((r) => ({ id: r.id, kind: r.kind as (typeof KNOWLEDGE_KINDS)[number], title: r.title, body: r.body, tags: r.tags.join(", "), locale: r.locale as "ar" | "en", confidentiality: r.confidentiality as "STANDARD" | "CONFIDENTIAL", updatedAt: r.updatedAt.toISOString() }))}
+        rows={rows.map((r) => ({ id: r.id, kind: r.kind as (typeof KNOWLEDGE_KINDS)[number], title: r.title, body: r.body, tags: stringList(r.tags).join(", "), locale: r.locale as "ar" | "en", confidentiality: r.confidentiality as "STANDARD" | "CONFIDENTIAL", updatedAt: r.updatedAt.toISOString() }))}
       />
     </Page>
   );

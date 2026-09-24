@@ -10,7 +10,7 @@ export function auditWhere(orgId: string, sp: Record<string, string | undefined>
     organizationId: orgId,
     ...(sp.user && /^[0-9a-f-]{36}$/i.test(sp.user) ? { actorId: sp.user } : {}),
     ...(sp.action ? { action: { startsWith: sp.action } } : {}),
-    ...(sp.q ? { OR: [{ action: { contains: sp.q, mode: "insensitive" as const } }, { entityId: sp.q }, { ip: { contains: sp.q } }, { matter: { internalNumber: { contains: sp.q, mode: "insensitive" as const } } }] } : {}),
+    ...(sp.q ? { OR: [{ action: { contains: sp.q } }, { entityId: sp.q }, { ip: { contains: sp.q } }, { matter: { internalNumber: { contains: sp.q } } }] } : {}),
     ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lt: new Date(to.getTime() + 86400_000) } : {}) } } : {}),
   };
 }

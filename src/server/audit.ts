@@ -24,7 +24,7 @@ const json = (v: unknown) =>
   v === undefined || v === null ? Prisma.JsonNull : (redact(v) as Prisma.InputJsonValue);
 
 /**
- * Append a hash-chained audit record. A transaction-scoped advisory lock keeps the
+ * Append a hash-chained audit record. A transaction-scoped row lock keeps the
  * chain linear under concurrency. Pass `tx` to join the caller's transaction so the
  * audit row commits (or rolls back) together with the change it describes.
  */
@@ -32,12 +32,10 @@ export async function audit(input: AuditInput, tx?: Tx) {
   const meta = await requestMeta().catch(() => ({ ip: null, userAgent: null }));
   const run = async (t: Tx) => {
     // One chain per organisation, serialised per organisation.
-    await t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${input.organizationId}))`;
-    const last = await t.auditLog.findFirst({
-      where: { organizationId: input.organizationId },
-      orderBy: { seq: "desc" },
-      select: { hash: true },
-    });
+    await t.$queryRaw`SELECT id FROM \`Organization\` WHERE id = ${input.organizationId} FOR UPDATE`;
+    const [last] = await t.$queryRaw<{ hash: string }[]>`
+      SELECT hash FROM \`AuditLog\` WHERE \`organizationId\` = ${input.organizationId}
+      ORDER BY seq DESC LIMIT 1 FOR UPDATE`;
     const createdAt = new Date();
     const hash = sha256(
       (last?.hash ?? "GENESIS") +
@@ -78,12 +76,12 @@ export async function audit(input: AuditInput, tx?: Tx) {
 }
 
 /** Recompute the chain and report the first broken link (Settings → Audit → Verify integrity). */
-export async function verifyAuditChain(organizationId: string) {
+export async function verifyAuditChain(organizationId: string, client: Pick<typeof db, "auditLog"> = db) {
   let prev: string | null = null;
   let checked = 0;
   let cursor: bigint | undefined;
   for (;;) {
-    const rows: Awaited<ReturnType<typeof db.auditLog.findMany>> = await db.auditLog.findMany({
+    const rows: Awaited<ReturnType<typeof db.auditLog.findMany>> = await client.auditLog.findMany({
       where: { organizationId, ...(cursor ? { seq: { gt: cursor } } : {}) },
       orderBy: { seq: "asc" },
       take: 1000,

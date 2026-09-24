@@ -1,3 +1,4 @@
+import { stringList } from "@/lib/json-lists";
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "../db";
@@ -50,7 +51,7 @@ async function loadAccessInput(ctx: StaffContext, matterId: string) {
     },
   });
   if (!m) return null;
-  const membership = m.members[0] ? { role: m.members[0].role as MemberRole, overrides: m.members[0].overrides, expiresAt: m.members[0].expiresAt } : null;
+  const membership = m.members[0] ? { role: m.members[0].role as MemberRole, overrides: stringList(m.members[0].overrides), expiresAt: m.members[0].expiresAt } : null;
   const input: MatterAccessInput = { confidentiality: m.confidentiality, deletedAt: m.deletedAt, membership };
   return { m, input, membership };
 }

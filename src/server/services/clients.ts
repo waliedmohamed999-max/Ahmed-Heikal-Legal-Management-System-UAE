@@ -1,7 +1,7 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { db } from "../db";
+import { db, withTxRetry } from "../db";
 import type { StaffContext } from "../auth/session";
 import { notFound } from "../errors";
 import { audit, diff } from "../audit";
@@ -19,7 +19,7 @@ export const clientListQuery = z.object({
 
 export async function listClients(ctx: StaffContext, q: z.infer<typeof clientListQuery>) {
   assertPermission(ctx, "clients.view");
-  const ci = q.q ? { contains: q.q, mode: "insensitive" as const } : undefined;
+  const ci = q.q ? { contains: q.q } : undefined;
   const where: Prisma.ClientWhereInput = {
     organizationId: ctx.org.id, deletedAt: null, type: q.type, status: q.status,
     ...(ci ? { OR: [{ nameEn: ci }, { nameAr: ci }, { clientNumber: ci }, { email: ci }, { phone: ci }, { companyName: ci }] } : {}),
@@ -95,7 +95,7 @@ export async function createClient(ctx: StaffContext, input: z.output<typeof cli
   assertPermission(ctx, "clients.create");
   const { emiratesId, passportNo, ...rest } = input;
   const canSensitive = ctx.can("clients.viewSensitive");
-  return db.$transaction(async (tx) => {
+  return withTxRetry(() => db.$transaction(async (tx) => {
     const c = await tx.client.create({
       data: {
         ...rest, organizationId: ctx.org.id, clientNumber: await nextClientNumber(tx, ctx.org.id), createdById: ctx.user.id, updatedById: ctx.user.id,
@@ -104,7 +104,7 @@ export async function createClient(ctx: StaffContext, input: z.output<typeof cli
     });
     await audit({ organizationId: ctx.org.id, actorId: ctx.user.id, sessionId: ctx.sessionId, action: "client.created", entityType: "Client", entityId: c.id, after: { ...rest, emiratesId: emiratesId ? "[set]" : null } }, tx);
     return { id: c.id };
-  });
+  }));
 }
 
 export async function updateClient(ctx: StaffContext, id: string, input: z.output<typeof clientSchema>) {
@@ -139,7 +139,7 @@ export async function deleteClient(ctx: StaffContext, id: string) {
 // ─────────────────────────── Contacts ───────────────────────────
 export async function listContacts(ctx: StaffContext, q: { q?: string; category?: string; page: number }) {
   assertPermission(ctx, "contacts.view");
-  const ci = q.q ? { contains: q.q, mode: "insensitive" as const } : undefined;
+  const ci = q.q ? { contains: q.q } : undefined;
   const where: Prisma.ContactWhereInput = {
     organizationId: ctx.org.id, deletedAt: null,
     ...(q.category ? { category: q.category as never } : {}),

@@ -8,7 +8,7 @@ export const GET = staffRoute(async (req, ctx) => {
   const sp = new URL(req.url).searchParams;
   const type = sp.get("type");
   const q = (sp.get("q") ?? "").trim().slice(0, 100);
-  const ci = { contains: q, mode: "insensitive" as const };
+  const ci = { contains: q };
   const take = 15;
   switch (type) {
     case "clients": {
