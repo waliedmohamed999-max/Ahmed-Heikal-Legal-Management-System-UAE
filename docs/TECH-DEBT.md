@@ -17,7 +17,7 @@ Items are open until they are done **and** verified. Owner and target date are s
 |---|---|---|---|
 | `deepmerge-ts` | 7.1.5 | [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx): stack exhaustion when merging recursive object graphs (affects `< 8.0.0`) | `prisma@6.19.3 → @prisma/config@6.19.3 → deepmerge-ts@7.1.5` |
 | `@prisma/config` | 6.19.3 | same advisory (via `deepmerge-ts`) | `prisma@6.19.3 → @prisma/config` |
-| `prisma` | 6.19.3 | same advisory (via `@prisma/config`) | direct **devDependency** |
+| `prisma` | 6.19.3 | same advisory (via `@prisma/config`) | direct dependency (moved from devDependencies for hosts that install without them) |
 
 It is one vulnerability counted three times, not three separate vulnerabilities.
 
@@ -30,9 +30,10 @@ that is the Prisma 7 line.
 
 | Question | Answer | Evidence |
 |---|---|---|
-| Runtime production dependency? | **No.** `prisma` (the CLI) is in `devDependencies`. The runtime uses `@prisma/client`, which does not depend on `deepmerge-ts`. | `package.json`; `npm ls deepmerge-ts` |
+| Runtime production dependency? | **Installed, not loaded.** Since the Hostinger fix, `prisma` (the CLI) is in `dependencies`, because hosts that install without devDependencies must still run `prisma generate`, `migrate deploy`, the seed and `create-owner`. The running app uses `@prisma/client` only, which does not load `@prisma/config` or `deepmerge-ts`. | `package.json`; `npm ls deepmerge-ts` |
 | Build- or CLI-time only? | **Yes.** It is loaded by the Prisma CLI when it reads `prisma.config.ts` (`generate`, `migrate deploy`, `migrate diff`, seeding). | dependency path above |
-| Present in the web/worker/backup image (`runtime` target)? | **No.** The standalone output ships only `node_modules/@prisma/client` and the generated `.prisma` client. The worker, backup and create-owner tools are esbuild bundles that do not include the CLI. | Checked in the rebuilt image (see the readiness report, *Finalisation*) |
+| Present on a Hostinger (non-Docker) deployment? | **Yes, on disk** in `node_modules`, and loaded only when the CLI runs (build, migrations, seed). | `package.json` |
+| Present in the web/worker/backup image (`runtime` target)? | **No.** The standalone output ships only `node_modules/@prisma/client` and the generated `.prisma` client. The worker, backup and create-owner tools are esbuild bundles that do not include the CLI. | Standalone trace output (`.next/standalone/node_modules/@prisma` contains only `client`). Inspecting the rebuilt image itself is **pending** (Docker unavailable during finalisation). |
 | Present in the `migrate` image? | **Yes.** The `migrate` target runs `npx prisma migrate deploy` with full `node_modules`. | `Dockerfile` |
 | Reachable by an attacker? | Not from HTTP. The merged input is the project's own `prisma.config.ts` and the CLI defaults, both trusted and repository-controlled. Exploiting it needs control over the config or build inputs, which already means a compromised repository or pipeline. | code reading |
 

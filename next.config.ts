@@ -17,6 +17,10 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Production builds type-check the application only; tests need dev-only packages (vitest, Playwright)
+  // that hosts installing without devDependencies (e.g. Hostinger) do not have. `npm run typecheck`
+  // and CI still check everything through tsconfig.json.
+  typescript: { tsconfigPath: "tsconfig.build.json" },
   // Minimal self-contained server bundle for the production Docker image.
   output: "standalone",
   // Next 16.3's standalone trace omits the route-handler runtime; without it every `app/api/**` route
