@@ -1,6 +1,9 @@
 import "server-only";
 import { db } from "../db";
 import { storage } from "../storage";
+import { errMsg, logger } from "../log";
+
+const log = logger("documents");
 
 /**
  * Text extraction / OCR pipeline (background). The original file is never modified.
@@ -53,10 +56,12 @@ async function ocr(_mime: string, _buf: Buffer): Promise<{ status: "UNAVAILABLE"
 }
 
 export async function processPendingDocuments(limit = 5) {
-  const pending = await db.documentVersion.findMany({ where: { textStatus: "PENDING" }, orderBy: { createdAt: "asc" }, take: limit, select: { id: true } });
+  // Pipeline order: upload → malware scan → text extraction / OCR → index. Only files that
+  // passed scanning (or were uploaded with no scanner configured) are ever parsed.
+  const pending = await db.documentVersion.findMany({ where: { textStatus: "PENDING", scanStatus: { in: ["CLEAN", "NOT_SCANNED"] } }, orderBy: { createdAt: "asc" }, take: limit, select: { id: true } });
   let done = 0;
   for (const { id } of pending) {
-    const claimed = await db.documentVersion.updateMany({ where: { id, textStatus: "PENDING" }, data: { textStatus: "PROCESSING" } });
+    const claimed = await db.documentVersion.updateMany({ where: { id, textStatus: "PENDING", scanStatus: { in: ["CLEAN", "NOT_SCANNED"] } }, data: { textStatus: "PROCESSING" } });
     if (!claimed.count) continue;
     const v = await db.documentVersion.findUniqueOrThrow({ where: { id }, include: { document: { select: { id: true, currentVersion: true } } } });
     try {
@@ -67,7 +72,7 @@ export async function processPendingDocuments(limit = 5) {
       if (v.version === v.document.currentVersion) await db.document.update({ where: { id: v.document.id }, data: { searchText: text } });
       done++;
     } catch (e) {
-      console.error("[documents] extraction failed", id, e instanceof Error ? e.message : e);
+      log.error("text extraction failed", { versionId: id, error: errMsg(e) });
       await db.documentVersion.update({ where: { id }, data: { textStatus: "FAILED" } });
     }
   }

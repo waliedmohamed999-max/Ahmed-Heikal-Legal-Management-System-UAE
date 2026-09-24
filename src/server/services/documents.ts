@@ -1,3 +1,4 @@
+import { stringList } from "@/lib/json-lists";
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -13,8 +14,10 @@ import type { MatterAction } from "@/lib/permissions";
 import { logActivity, timelineEvent } from "./activity";
 import { notify } from "./notifications";
 import { runAutomations } from "./automation";
+import { initialScanStatus, isServable, scanVersion } from "./malware";
+import { fulltextDocumentIds } from "./fulltext";
 
-export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB || 100) * 1024 * 1024;
 export const ALLOWED = {
   pdf: "application/pdf",
   doc: "application/msword",
@@ -35,21 +38,61 @@ export const ALLOWED = {
 } as const;
 type Ext = keyof typeof ALLOWED;
 
-/** Extension allow-list plus magic-byte checks for the formats that have signatures. */
+/** Executable / script signatures rejected regardless of the claimed extension. */
+function looksExecutable(buf: Buffer) {
+  const h = buf.subarray(0, 4);
+  return (
+    (h[0] === 0x4d && h[1] === 0x5a) || // MZ — Windows PE / DOS
+    (h[0] === 0x7f && h[1] === 0x45 && h[2] === 0x4c && h[3] === 0x46) || // ELF
+    [0xfeedface, 0xfeedfacf, 0xcefaedfe, 0xcffaedfe, 0xcafebabe].includes(h.readUInt32BE(0)) || // Mach-O / fat / Java class
+    (h[0] === 0x23 && h[1] === 0x21) // "#!" script
+  );
+}
+
+/**
+ * Extension allow-list + content checks:
+ *  • executables and scripts are refused whatever the extension;
+ *  • formats with a signature must match it (PDF, OOXML/ZIP, PNG, JPEG, OLE, WebP, TIFF);
+ *  • text formats must not contain NUL bytes (binary disguised as .txt/.csv/.eml).
+ */
 export function sniff(fileName: string, buf: Buffer): { ext: Ext; mime: string } {
   const ext = (fileName.split(".").pop() ?? "").toLowerCase() as Ext;
-  if (!(ext in ALLOWED)) throw new AppError("fileType", 400);
-  const head = buf.subarray(0, 8);
-  const is = (sig: number[]) => sig.every((b, i) => head[i] === b);
+  if (!(ext in ALLOWED) || buf.length < 4) throw new AppError("fileType", 400);
+  if (looksExecutable(buf)) throw new AppError("fileType", 400);
+  const head = buf.subarray(0, 12);
+  const is = (sig: number[], at = 0) => sig.every((b, i) => head[at + i] === b);
   const ok =
     ext === "pdf" ? is([0x25, 0x50, 0x44, 0x46]) :
-    ["docx", "xlsx", "zip"].includes(ext) ? is([0x50, 0x4b]) :
+    ["docx", "xlsx", "zip"].includes(ext) ? is([0x50, 0x4b, 0x03, 0x04]) || is([0x50, 0x4b, 0x05, 0x06]) :
     ext === "png" ? is([0x89, 0x50, 0x4e, 0x47]) :
     ["jpg", "jpeg"].includes(ext) ? is([0xff, 0xd8, 0xff]) :
     ["doc", "xls", "msg"].includes(ext) ? is([0xd0, 0xcf, 0x11, 0xe0]) :
-    true;
+    ext === "webp" ? is([0x52, 0x49, 0x46, 0x46]) && is([0x57, 0x45, 0x42, 0x50], 8) :
+    ["tif", "tiff"].includes(ext) ? is([0x49, 0x49, 0x2a, 0x00]) || is([0x4d, 0x4d, 0x00, 0x2a]) :
+    ["txt", "csv", "eml"].includes(ext) ? !buf.subarray(0, 8192).includes(0) :
+    false;
   if (!ok) throw new AppError("fileType", 400);
   return { ext, mime: ALLOWED[ext] };
+}
+
+/**
+ * Display file name from client input: no path parts, control or bidi-override
+ * characters (which can disguise "evil‮fdp.exe"), bounded length. Never used as a
+ * storage path — objects are keyed by random UUIDs.
+ */
+export function sanitizeFileName(raw: string): string {
+  const base = raw.split(/[\\/]/).pop() ?? "";
+  const cleaned = base
+    .normalize("NFC")
+    .replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩﻿]/g, "")
+    .replace(/[<>:"|?*]/g, "_")
+    .replace(/^\.+/, "")
+    .trim();
+  if (!cleaned) return "file";
+  if (cleaned.length <= 180) return cleaned;
+  const dot = cleaned.lastIndexOf(".");
+  const ext = dot > 0 ? cleaned.slice(dot) : "";
+  return cleaned.slice(0, 180 - ext.length) + ext;
 }
 
 // ─────────────────────────── Access ───────────────────────────
@@ -102,18 +145,19 @@ export const docListQuery = z.object({
 });
 
 export async function listDocuments(ctx: StaffContext, q: z.infer<typeof docListQuery>, matterId?: string) {
-  const ci = q.q ? { contains: q.q, mode: "insensitive" as const } : undefined;
-  let ftsIds: string[] = [];
-  if (q.q && q.q.length >= 2) {
-    ftsIds = (await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Document" WHERE "organizationId" = ${ctx.org.id}::uuid AND to_tsvector('simple', coalesce("searchText", '')) @@ plainto_tsquery('simple', ${q.q}) LIMIT 200`).map((r) => r.id);
-  }
+  const ci = q.q ? { contains: q.q } : undefined;
+  // FULLTEXT candidates (ids only) — intersected with documentScope(ctx) in the same query.
+  const ftIds = q.q ? await fulltextDocumentIds(ctx.org.id, q.q, 1000) : null;
+  const textMatch: Prisma.DocumentWhereInput | undefined = ci
+    ? { OR: [...(ftIds ? [{ id: { in: ftIds } }] : [{ title: ci }]), { description: ci }, { tags: { array_contains: q.q } }, { matter: { internalNumber: ci } }] }
+    : undefined;
   const where: Prisma.DocumentWhereInput = {
     AND: [
       documentScope(ctx),
       matterId ? { matterId } : {},
       q.category ? { category: q.category as never } : {},
       q.status ? { status: q.status as never } : {},
-      ci ? { OR: [{ title: ci }, { description: ci }, { tags: { has: q.q } }, { id: { in: ftsIds } }, { matter: { internalNumber: ci } }] } : {},
+      textMatch ?? {},
     ],
   };
   const [total, rows] = await Promise.all([
@@ -129,10 +173,10 @@ export async function listDocuments(ctx: StaffContext, q: z.infer<typeof docList
   return {
     total,
     rows: rows.map((d) => ({
-      id: d.id, title: d.title, category: d.category, status: d.status, confidentiality: d.confidentiality, tags: d.tags, currentVersion: d.currentVersion, portalShared: d.portalShared,
+      id: d.id, title: d.title, category: d.category, status: d.status, confidentiality: d.confidentiality, tags: stringList(d.tags), currentVersion: d.currentVersion, portalShared: d.portalShared,
       updatedAt: d.updatedAt.toISOString(), matter: d.matter,
       latest: d.versions[0] ? { ...d.versions[0], sizeBytes: Number(d.versions[0].sizeBytes), createdAt: d.versions[0].createdAt.toISOString() } : null,
-      snippet: q.q && ftsIds.includes(d.id) && !d.title.toLowerCase().includes(q.q.toLowerCase()) ? excerpt(d.searchText, q.q) : null,
+      snippet: q.q && d.searchText && !d.title.toLowerCase().includes(q.q.toLowerCase()) ? excerpt(d.searchText, q.q) : null,
     })),
   };
 }
@@ -163,7 +207,18 @@ export function suggestFileName(parts: { number?: string | null; client?: string
   return [parts.number ?? "AH", parts.client ? slug(parts.client) : null, parts.category, parts.date.toISOString().slice(0, 10)].filter(Boolean).join("_") + "." + parts.ext;
 }
 
+/**
+ * Store an upload. The version starts quarantined (scanStatus PENDING) when a scanner is
+ * configured and is scanned inline right after commit; the worker retries if clamd is
+ * unavailable. Nothing can be previewed, downloaded, shared, OCR'd or sent to AI until CLEAN.
+ */
 export async function storeUpload(ctx: StaffContext, file: { name: string; buffer: Buffer }, meta: z.output<typeof uploadMetaSchema>) {
+  const r = await storeUploadRaw(ctx, { name: sanitizeFileName(file.name), buffer: file.buffer }, { ...meta, fileName: meta.fileName ? sanitizeFileName(meta.fileName) : meta.fileName });
+  await scanVersion(r.versionId).catch(() => null);
+  return { id: r.id, version: r.version };
+}
+
+async function storeUploadRaw(ctx: StaffContext, file: { name: string; buffer: Buffer }, meta: z.output<typeof uploadMetaSchema>) {
   if (file.buffer.length === 0) throw new AppError("validation", 400, { file: "required" });
   if (file.buffer.length > MAX_UPLOAD_BYTES) throw new AppError("fileTooLarge", 413);
   const { ext, mime } = sniff(file.name, file.buffer);
@@ -179,18 +234,18 @@ export async function storeUpload(ctx: StaffContext, file: { name: string; buffe
     try {
       return await db.$transaction(async (tx) => {
         // Serialise version numbering per document
-        await tx.$executeRaw`SELECT 1 FROM "Document" WHERE id = ${doc.id}::uuid FOR UPDATE`;
+        await tx.$queryRaw`SELECT id FROM \`Document\` WHERE id = ${doc.id} FOR UPDATE`;
         const last = await tx.documentVersion.aggregate({ where: { documentId: doc.id }, _max: { version: true } });
         const version = (last._max.version ?? 0) + 1;
         await tx.documentVersion.create({
-          data: { id: versionId, documentId: doc.id, version, fileName: meta.fileName || file.name, storageKey: key, mimeType: mime, sizeBytes: BigInt(file.buffer.length), checksumSha256: checksum, uploadedById: ctx.user.id, comment: meta.comment, status: "DRAFT", textStatus: "PENDING" },
+          data: { id: versionId, documentId: doc.id, version, fileName: meta.fileName || file.name, storageKey: key, mimeType: mime, sizeBytes: BigInt(file.buffer.length), checksumSha256: checksum, uploadedById: ctx.user.id, comment: meta.comment, status: "DRAFT", textStatus: "PENDING", scanStatus: initialScanStatus() },
         });
         // A new version always restarts the approval workflow — approvals never carry over silently.
         await tx.document.update({ where: { id: doc.id }, data: { currentVersion: version, status: "DRAFT", updatedById: ctx.user.id } });
         await tx.approval.updateMany({ where: { entityType: "Document", entityId: doc.id, status: "PENDING" }, data: { status: "CANCELLED" as never } }).catch(() => undefined);
         if (doc.matterId) await logActivity({ organizationId: ctx.org.id, matterId: doc.matterId, actorId: ctx.user.id, type: "document.version_uploaded", entityType: "Document", entityId: doc.id, data: { title: doc.title, version: String(version) } }, tx);
         await audit({ organizationId: ctx.org.id, actorId: ctx.user.id, sessionId: ctx.sessionId, action: "document.version_uploaded", entityType: "Document", entityId: doc.id, matterId: doc.matterId, after: { version, checksum, size: file.buffer.length } }, tx);
-        return { id: doc.id, version };
+        return { id: doc.id, version, versionId };
       });
     } catch (e) {
       await storage().remove(key);
@@ -226,7 +281,7 @@ export async function storeUpload(ctx: StaffContext, file: { name: string; buffe
           id: docId, organizationId: ctx.org.id, matterId: meta.matterId ?? null, clientId: meta.clientId ?? null, title, description: meta.description, category: meta.category,
           tags: meta.tags, confidentiality: meta.confidentiality, status: "DRAFT", currentVersion: 1, createdById: ctx.user.id, updatedById: ctx.user.id,
           versions: {
-            create: { id: versionId, version: 1, fileName: meta.fileName || file.name, storageKey: key, mimeType: mime, sizeBytes: BigInt(file.buffer.length), checksumSha256: checksum, uploadedById: ctx.user.id, comment: meta.comment, textStatus: "PENDING" },
+            create: { id: versionId, version: 1, fileName: meta.fileName || file.name, storageKey: key, mimeType: mime, sizeBytes: BigInt(file.buffer.length), checksumSha256: checksum, uploadedById: ctx.user.id, comment: meta.comment, textStatus: "PENDING", scanStatus: initialScanStatus() },
           },
         },
       });
@@ -235,7 +290,7 @@ export async function storeUpload(ctx: StaffContext, file: { name: string; buffe
         await runAutomations(tx, "document.uploaded", { organizationId: ctx.org.id, actorId: ctx.user.id, entityId: docId, matter, label: title, fields: { category: meta.category } });
       }
       await audit({ organizationId: ctx.org.id, actorId: ctx.user.id, sessionId: ctx.sessionId, action: "document.uploaded", entityType: "Document", entityId: docId, matterId: meta.matterId, after: { title, category: meta.category, checksum, size: file.buffer.length, confidentiality: meta.confidentiality } }, tx);
-      return { id: docId, version: 1 };
+      return { id: docId, version: 1, versionId };
     });
   } catch (e) {
     await storage().remove(key);
@@ -257,6 +312,13 @@ export const docMetaSchema = z.object({
 export async function updateDocumentMeta(ctx: StaffContext, input: z.output<typeof docMetaSchema>) {
   const { doc, caps } = await loadDocumentForUser(ctx, input.id, "edit");
   if (input.portalShared !== doc.portalShared && !caps.has("documents.share")) throw forbidden();
+  if (input.portalShared && !doc.portalShared) {
+    // Sharing model: documents are Internal Only by default. Highly confidential material and
+    // files that have not passed malware scanning can never be shared to the client portal.
+    if (input.confidentiality === "HIGHLY_CONFIDENTIAL") throw new AppError("shareRestricted", 400);
+    const current = await db.documentVersion.findFirst({ where: { documentId: doc.id, version: doc.currentVersion }, select: { scanStatus: true, integrityStatus: true } });
+    if (!current || !isServable(current)) throw new AppError("fileQuarantined", 409);
+  }
   if (input.confidentiality !== doc.confidentiality && !caps.has("documents.approve") && !caps.has("matters.manageMembers")) throw forbidden();
   const { id, ...data } = input;
   const d = diff(doc as unknown as Record<string, unknown>, data as unknown as Record<string, unknown>);

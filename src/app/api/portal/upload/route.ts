@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getClientContext } from "@/server/auth/session";
+import { loadClientContext } from "@/server/auth/session";
 import { portalUpload } from "@/server/services/portal";
 import { AppError } from "@/server/errors";
 import { rateLimit } from "@/server/rate-limit";
@@ -7,7 +7,7 @@ import { rateLimit } from "@/server/rate-limit";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const ctx = await getClientContext();
+  const ctx = await loadClientContext();
   if (!ctx || !ctx.user.clientId || !ctx.can("portal.access")) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!(await rateLimit(`portal-upload:${ctx.user.id}`, 20, 3600)).ok) return NextResponse.json({ error: "rateLimited" }, { status: 429 });
   try {

@@ -6,7 +6,8 @@ import { AppError, notFound } from "../errors";
 import { audit } from "../audit";
 import { storage } from "../storage";
 import { notify } from "./notifications";
-import { MAX_UPLOAD_BYTES, sniff } from "./documents";
+import { MAX_UPLOAD_BYTES, sanitizeFileName, sniff } from "./documents";
+import { initialScanStatus, isServable, scanVersion } from "./malware";
 
 type ClientCtx = StaffContext & { user: { clientId: string } };
 
@@ -54,6 +55,7 @@ export async function portalUpload(ctx: ClientCtx, matterId: string, file: { nam
   const m = await db.matter.findFirst({ where: { ...portalMatterWhere(ctx), id: matterId }, select: { id: true, leadLawyerId: true } });
   if (!m) throw notFound();
   if (file.buffer.length === 0 || file.buffer.length > MAX_UPLOAD_BYTES) throw new AppError("fileTooLarge", 413);
+  file = { ...file, name: sanitizeFileName(file.name) };
   const { ext, mime } = sniff(file.name, file.buffer);
   const docId = randomUUID(), versionId = randomUUID();
   const key = `${ctx.org.id}/${docId}/${versionId}.${ext}`;
@@ -63,12 +65,13 @@ export async function portalUpload(ctx: ClientCtx, matterId: string, file: { nam
       data: {
         id: docId, organizationId: ctx.org.id, matterId, clientId: ctx.user.clientId, title: file.name.replace(/\.[^.]+$/, ""), category: "CLIENT", status: "DRAFT", portalShared: true,
         tags: ["client-upload"], createdById: ctx.user.id,
-        versions: { create: { id: versionId, version: 1, fileName: file.name, storageKey: key, mimeType: mime, sizeBytes: BigInt(file.buffer.length), checksumSha256: createHash("sha256").update(file.buffer).digest("hex"), uploadedById: ctx.user.id, textStatus: "PENDING" } },
+        versions: { create: { id: versionId, version: 1, fileName: file.name, storageKey: key, mimeType: mime, sizeBytes: BigInt(file.buffer.length), checksumSha256: createHash("sha256").update(file.buffer).digest("hex"), uploadedById: ctx.user.id, textStatus: "PENDING", scanStatus: initialScanStatus() } },
       },
     });
     await audit({ organizationId: ctx.org.id, actorId: ctx.user.id, sessionId: ctx.sessionId, action: "portal.document_uploaded", entityType: "Document", entityId: docId, matterId }, tx);
     await notify({ organizationId: ctx.org.id, userIds: [m.leadLawyerId], category: "DOCUMENT", titleKey: "notif.documentReview", params: { title: file.name }, link: `/app/documents/${docId}` }, tx);
   });
+  await scanVersion(versionId).catch(() => null);
   return { id: docId };
 }
 
@@ -79,5 +82,6 @@ export async function portalVersion(ctx: ClientCtx, versionId: string) {
     include: { document: { select: { id: true, matterId: true, currentVersion: true } } },
   });
   if (!v || v.version !== v.document.currentVersion) throw notFound();
+  if (!isServable(v)) throw new AppError("fileQuarantined", 409);
   return v;
 }
