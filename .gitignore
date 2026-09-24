@@ -31,3 +31,7 @@ playwright-report/
 
 # Bundled server tools (built in the Docker image / CI)
 /dist/
+
+# Per-environment secret files (templates stay tracked)
+.env.*
+!.env.example
