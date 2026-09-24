@@ -1,5 +1,9 @@
 # AH Legal OS — Delivery Report
 
+> **Superseded in part (Phase 11).** This report describes phases 1–10, built on PostgreSQL. The project now runs on
+> **MySQL 8.4** only; mentions of PostgreSQL, `pg_dump`, `pg_trgm` or full-text search below are historical.
+> Current state: `docs/PRODUCTION-READINESS-REPORT.md`.
+
 Status: all ten phases are built in one architecture on one connected core
 (Client → Case → Hearing → Deadline → Task → Document → Invoice → Activity → Notification → Audit).
 The unit, integration and browser suites all pass, and typecheck, lint and the production build are clean (see *Verification*).

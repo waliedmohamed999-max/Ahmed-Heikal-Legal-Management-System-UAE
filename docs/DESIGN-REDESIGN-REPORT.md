@@ -52,7 +52,7 @@ All tokens live in `src/app/globals.css`. No page defines its own colours.
 
 ## 3. Navigation changes
 
-- **Sidebar, light, 232 px.** Collapses to a 64 px icon rail. It is also an automatic icon rail on tablet.
+- **Sidebar, light, 232 px.** Collapses to a 64 px icon rail. Below 1280 px (tablet and small laptops such as 1024) it is always the icon rail, so content keeps its width.
   - **Workspace:** Home, Cases, Clients, Calendar, Documents, Tasks, Finance.
   - **Intelligence:** AI, Reports.
   - **More:** an inline disclosure containing Team, Approvals (with count), Knowledge, Templates, Leads, Contacts, Today, Planner, Appointments, Court import, Resources, Integrations, Website, Audit and Settings.
@@ -92,7 +92,8 @@ Every other page inherits the new tokens and components: agenda, planner, contac
 ## 5. Responsive changes
 
 - **Phones (390/430):** bottom nav, record lists instead of scrolling tables (cases, documents, team), a reduced dashboard, stacked case header with icon-only actions, horizontally scrolling sub-nav, 40 px controls.
-- **Tablet (768):** icon-rail sidebar (not a hamburger), two-column layouts where they fit.
+- **Tablet and small laptop (768–1279):** icon-rail sidebar (not a hamburger), two-column layouts where they fit.
+- **Cases table:** columns are shown by width. Case, client, next event and status are always shown. Type, lawyer, stage and priority are shown from 1280 px, and court from 1536 px. The document table hides Owner below 1536 px.
 - **Overflow fixes:**
   - The audit found **13 mobile views** overflowing by up to 268 px. The cause was CSS grids without an explicit mobile column, so wide children (scrolling tables, the day grid, the booking date strip) stretched the implicit track.
   - All such grids now declare `grid-cols-1`, and the day grid no longer forces a minimum width.
@@ -129,8 +130,16 @@ Every other page inherits the new tokens and components: agenda, planner, contac
 ## 8. Verification
 
 - `tsc --noEmit`: 0 errors. `eslint`: 0 errors, 1 informational notice (react-hook-form `watch()` cannot be memoised by the React Compiler).
-- Unit tests: 49/49 passing. The booking E2E test was updated for the two-step flow.
-- Visual QA: captured at 1440 desktop, 768 tablet and 390 mobile in Arabic and English for every main view, plus spot checks at 1920, 1366, 1024 and 430. See the screenshot list.
+- Unit tests: 49/49. Integration (real database): 9/9. E2E (Playwright, desktop and mobile): 18/18, and passing again on an immediate re-run.
+- E2E changes caused by the redesign:
+  - The booking test now clicks **Continue** (two-step form).
+  - The login test checks the next hearing in its new place: the sidebar footer, or the top-bar chip on smaller screens.
+  - Tests now reuse one session per account instead of logging in through the form for every test. The login rate limit (10 per account per 15 minutes) was tripping on repeated runs; the limit itself was not changed.
+- Bugs found and fixed during verification:
+  - Case tabs rendered while the layout was showing "Restricted matter" and threw a server error. Nothing was disclosed. Every tab now returns early unless the workspace is accessible.
+  - A missing React `key` on the Documents toolbar.
+  - A hydration mismatch on relative session times.
+- Visual QA: captured at 1440 desktop, 768 tablet and 390 mobile in Arabic and English for every main view, plus spot checks at 1920, 1366, 1024 and 430. 222 final screenshots (37 views × 3 devices × 2 languages) plus 12 spot checks, and 233 "before" screenshots in `docs/screenshots/before/`.
 
 ## 9. Remaining visual issues (honest list)
 
