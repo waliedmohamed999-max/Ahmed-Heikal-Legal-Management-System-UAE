@@ -27,5 +27,7 @@ export const bookingSchema = z.object({
   description: z.string().trim().max(3000).optional().or(z.literal("")),
   consent: z.literal(true, { message: "required" }),
   website: z.string().max(0).optional(), // honeypot — must stay empty
+  formStamp: z.string().max(200).optional(), // server-signed render time (min fill time / replay)
+  botToken: z.string().max(4096).optional(), // optional challenge provider token
 });
 

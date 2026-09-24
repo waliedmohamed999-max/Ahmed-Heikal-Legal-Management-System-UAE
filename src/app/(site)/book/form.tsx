@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Video, Building2 } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { Field, Input, Select, Textarea, Checkbox } from "@/components/ui/form";
@@ -24,7 +24,7 @@ function bookableDays(s: Slots) {
   return out;
 }
 
-export function BookingForm({ services, slots, preset }: { services: { id: string; label: string }[]; slots: Slots; preset: string }) {
+export function BookingForm({ services, slots, preset, formStamp, botSiteKey, nonce }: { services: { id: string; label: string }[]; slots: Slots; preset: string; formStamp: string; botSiteKey?: string | null; nonce?: string }) {
   const { t, locale } = useI18n();
   const [done, setDone] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
@@ -37,7 +37,7 @@ export function BookingForm({ services, slots, preset }: { services: { id: strin
   }, [slots]);
   const { form, submit, pending, err } = useServerForm({
     schema: bookingSchema,
-    defaultValues: { practiceAreaId: preset, date: days[0] ?? "", time: times[0] ?? "10:00", mode: "OFFICE", name: "", phone: "", email: "", description: "", consent: false as never, website: "" },
+    defaultValues: { practiceAreaId: preset, date: days[0] ?? "", time: times[0] ?? "10:00", mode: "OFFICE", name: "", phone: "", email: "", description: "", consent: false as never, website: "", formStamp, botToken: "" },
     action: bookAction,
     onSuccess: () => setDone(true),
   });
@@ -107,6 +107,7 @@ export function BookingForm({ services, slots, preset }: { services: { id: strin
         <Field label={t("site.email")} error={err("email")} required>{(a) => <Input {...a} type="email" autoComplete="email" dir="ltr" {...r("email")} />}</Field>
       </div>
       <Field label={t("site.description")} hint={t("site.descriptionHint")}>{(a) => <Textarea {...a} rows={4} {...r("description")} />}</Field>
+      {botSiteKey && <Turnstile siteKey={botSiteKey} nonce={nonce} onToken={(tok) => form.setValue("botToken", tok)} />}
       {/* Honeypot: hidden from people, tempting for bots */}
       <input type="text" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -start-[9999px] h-0 w-0 opacity-0" {...r("website")} />
       <div>
@@ -120,4 +121,23 @@ export function BookingForm({ services, slots, preset }: { services: { id: strin
       </>)}
     </form>
   );
+}
+
+type TurnstileApi = { render: (el: HTMLElement, opts: { sitekey: string; callback: (token: string) => void }) => string };
+
+/** Optional challenge widget (BOT_PROTECTION=turnstile). Loaded only when configured. */
+function Turnstile({ siteKey, nonce, onToken }: { siteKey: string; nonce?: string; onToken: (token: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const w = window as unknown as { turnstile?: TurnstileApi };
+    const mount = () => ref.current && w.turnstile?.render(ref.current, { sitekey: siteKey, callback: onToken });
+    if (w.turnstile) return void mount();
+    const s = document.createElement("script");
+    s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    s.async = true;
+    if (nonce) s.nonce = nonce;
+    s.onload = mount;
+    document.head.appendChild(s);
+  }, [siteKey, nonce, onToken]);
+  return <div ref={ref} className="min-h-[65px]" />;
 }

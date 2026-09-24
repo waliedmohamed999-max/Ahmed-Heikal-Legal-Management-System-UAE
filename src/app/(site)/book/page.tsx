@@ -1,6 +1,8 @@
 import { getT } from "@/i18n/server";
 import { db } from "@/server/db";
 import { getPublicOrg, getSiteSettings } from "@/server/services/site";
+import { headers } from "next/headers";
+import { issueFormStamp, botSiteKey } from "@/server/bot";
 import { BookingForm } from "./form";
 
 export const metadata = { title: "Book Consultation" };
@@ -16,6 +18,9 @@ export default async function BookPage({ searchParams }: { searchParams: Promise
       <p className="mt-2 text-heading text-ink-muted">{t("site.bookIntro")}</p>
       <BookingForm
         preset={service ?? ""}
+        formStamp={issueFormStamp()}
+        botSiteKey={botSiteKey()}
+        nonce={(await headers()).get("x-nonce") ?? undefined}
         slots={s?.booking ?? { slotMinutes: 60, days: [1, 2, 3, 4, 5], startHour: 9, endHour: 17 }}
         services={areas.map((a) => ({ id: a.id, label: locale === "ar" ? a.titleAr : a.titleEn }))}
       />
