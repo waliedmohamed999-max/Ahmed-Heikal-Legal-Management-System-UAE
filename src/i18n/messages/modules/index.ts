@@ -9,6 +9,7 @@ import platform from "./platform";
 import finance from "./finance";
 import growth from "./growth";
 import ui from "./ui";
+import security from "./security";
 
 // Register module dictionaries here. Each module keeps `en` and `ar` side by side (ar: typeof en).
-export const MODULES: { en: object; ar: object }[] = [hearings, cases, clients, events, documents, ai, admin, platform, finance, growth, ui];
+export const MODULES: { en: object; ar: object }[] = [hearings, cases, clients, events, documents, ai, admin, platform, finance, growth, ui, security];

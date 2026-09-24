@@ -13,6 +13,7 @@ import { useServerForm } from "@/components/forms";
 import { userSchema } from "@/lib/admin-schemas";
 import { relativeTime } from "@/lib/time";
 import { saveUserAction } from "../actions";
+import { AccountActions, InviteButton } from "./account-actions";
 
 type U = { id: string; email: string; name: string; nameAr: string; position: string; positionAr: string; phone: string; roleId: string; roleName: string; status: string; lastLoginAt: string | null; mfaEnabled: boolean; photoUrl: string | null };
 
@@ -21,7 +22,7 @@ export function UsersView({ users, roles, meId }: { users: U[]; roles: { id: str
   const router = useRouter();
   const [edit, setEdit] = useState<U | "new" | null>(null);
   return (
-    <Panel title={t("settings.users.title")} actions={<Button size="sm" variant="primary" onClick={() => setEdit("new")}><UserPlus /> {t("settings.users.new")}</Button>} footer={<p className="text-meta text-ink-subtle">{t("settings.users.sessionsNote")}</p>}>
+    <Panel title={t("settings.users.title")} actions={<div className="flex gap-2"><InviteButton roles={roles} /><Button size="sm" variant="primary" onClick={() => setEdit("new")}><UserPlus /> {t("settings.users.new")}</Button></div>} footer={<p className="text-meta text-ink-subtle">{t("settings.users.sessionsNote")}</p>}>
       <ul className="divide-y divide-line">
         {users.map((u) => (
           <li key={u.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -35,6 +36,11 @@ export function UsersView({ users, roles, meId }: { users: U[]; roles: { id: str
             <Badge tone={u.status === "ACTIVE" ? "success" : "outline"}>{t(`settings.users.statuses.${u.status}`)}</Badge>
             <span className="hidden w-28 text-end text-meta text-ink-subtle sm:block">{u.lastLoginAt ? relativeTime(u.lastLoginAt, locale) : "—"}</span>
             <Button size="icon-xs" variant="ghost" aria-label={t("common.edit")} onClick={() => setEdit(u)}><Pencil /></Button>
+            <AccountActions
+              user={{ id: u.id, name: locale === "ar" ? u.nameAr || u.name : u.name, mfaEnabled: u.mfaEnabled, status: u.status }}
+              colleagues={users.filter((x) => x.status === "ACTIVE").map((x) => ({ id: x.id, name: locale === "ar" ? x.nameAr || x.name : x.name }))}
+              isMe={u.id === meId}
+            />
           </li>
         ))}
       </ul>

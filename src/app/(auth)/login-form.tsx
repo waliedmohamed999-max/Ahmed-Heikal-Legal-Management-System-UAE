@@ -34,7 +34,7 @@ export function LoginForm({ action, labels, next }: { action: (s: FormState, f: 
   );
 }
 
-export function MfaForm({ action, labels }: { action: (s: FormState, f: FormData) => Promise<FormState>; labels: { code: string; submit: string; error: string } }) {
+export function MfaForm({ action, labels }: { action: (s: FormState, f: FormData) => Promise<FormState>; labels: { code: string; submit: string; error: string; hint?: string } }) {
   const [state, formAction, pending] = useActionState(action, undefined);
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -48,15 +48,14 @@ export function MfaForm({ action, labels }: { action: (s: FormState, f: FormData
         <Input
           id="code"
           name="code"
-          inputMode="numeric"
           autoComplete="one-time-code"
-          pattern="\d{6}"
-          maxLength={7}
+          maxLength={11}
           required
           dir="ltr"
-          className="h-11 text-center font-mono text-lg tracking-[0.4em]"
+          className="h-11 text-center font-mono text-lg tracking-[0.3em]"
           autoFocus
         />
+        {labels.hint && <p className="text-meta text-ink-subtle">{labels.hint}</p>}
       </div>
       <Button type="submit" variant="primary" size="lg" loading={pending} className="w-full">
         {labels.submit}

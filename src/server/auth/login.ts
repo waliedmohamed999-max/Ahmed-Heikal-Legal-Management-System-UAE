@@ -1,13 +1,13 @@
 import "server-only";
-import { verify as verifyTotp, generateSecret, generateURI } from "otplib";
 import type { UserKind } from "@prisma/client";
 import { db } from "../db";
 import { audit } from "../audit";
 import { rateLimit } from "../rate-limit";
 import { requestMeta } from "../request";
-import { decryptField, encryptField } from "../crypto";
+import { AppError } from "../errors";
 import { hashPassword, verifyPassword } from "./password";
-import { createSession, destroySession, getClientContext, getStaffContext } from "./session";
+import { createSession, destroySession, getClientContext, getStaffContext, rotateSession } from "./session";
+import { consumeRecoveryCode, verifyAndConsumeTotp } from "./mfa";
 
 const MAX_FAILURES = 8;
 const LOCK_MINUTES = 15;
@@ -63,37 +63,40 @@ export async function login(emailRaw: string, password: string, realm: UserKind)
   return { ok: true, mfa: user.mfaEnabled };
 }
 
+/**
+ * Second factor after password login: a TOTP code (replay-protected) or a one-time
+ * recovery code. On success the session token is rotated.
+ */
 export async function verifyMfa(code: string): Promise<boolean> {
   const ctx = await getStaffContext();
   if (!ctx) return false;
   const rl = await rateLimit(`mfa:${ctx.user.id}`, 6, 10 * 60);
   if (!rl.ok) return false;
-  const user = await db.user.findUniqueOrThrow({ where: { id: ctx.user.id } });
-  const secret = decryptField(user.mfaSecretEnc);
-  if (!secret) return false;
-  const result = await verifyTotp({ secret, token: code.replace(/\s/g, "") });
-  await audit({ organizationId: ctx.org.id, actorId: ctx.user.id, sessionId: ctx.sessionId, action: result.valid ? "auth.mfa_verified" : "auth.mfa_failed" });
-  if (!result.valid) return false;
-  await db.session.update({ where: { id: ctx.sessionId }, data: { mfaVerified: true } });
-  return true;
-}
-
-/** Begin MFA enrolment: store an encrypted pending secret and return the otpauth URI. */
-export async function beginMfaEnrolment(userId: string, email: string) {
-  const secret = generateSecret();
-  await db.user.update({ where: { id: userId }, data: { mfaSecretEnc: encryptField(secret), mfaEnabled: false } });
-  return { secret, uri: generateURI({ issuer: "AH Legal OS", label: email, secret }) };
-}
-
-export async function confirmMfaEnrolment(userId: string, code: string) {
-  const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
-  const secret = decryptField(user.mfaSecretEnc);
-  if (!secret) return false;
-  const { valid } = await verifyTotp({ secret, token: code });
+  const raw = code.trim();
+  const viaRecovery = !/^\d{3}\s?\d{3}$/.test(raw);
+  const valid = viaRecovery ? await consumeRecoveryCode(ctx.user.id, raw) : await verifyAndConsumeTotp(ctx.user.id, raw);
+  await audit({
+    organizationId: ctx.org.id, actorId: ctx.user.id, sessionId: ctx.sessionId,
+    action: valid ? (viaRecovery ? "auth.mfa_recovery_code_used" : "auth.mfa_verified") : "auth.mfa_failed",
+  });
   if (!valid) return false;
-  await db.user.update({ where: { id: userId }, data: { mfaEnabled: true } });
-  await audit({ organizationId: user.organizationId, actorId: userId, action: "auth.mfa_enabled", entityType: "User", entityId: userId });
+  await rotateSession(ctx.sessionId, "STAFF", { mfaVerified: true, stepUpAt: new Date() });
   return true;
+}
+
+/**
+ * Step-up re-authentication for sensitive actions (MFA changes, office export,
+ * admin MFA reset, offboarding…): the current password, plus a TOTP code when MFA is on.
+ * Throws AppError("reauthRequired") on failure. Audited either way.
+ */
+export async function confirmIdentity(ctx: { user: { id: string; mfaEnabled: boolean }; org: { id: string }; sessionId: string }, password: string, totp?: string | null) {
+  const rl = await rateLimit(`stepup:${ctx.user.id}`, 8, 10 * 60);
+  if (!rl.ok) throw new AppError("rateLimited", 429);
+  const user = await db.user.findUniqueOrThrow({ where: { id: ctx.user.id }, select: { passwordHash: true, mfaEnabled: true } });
+  const ok = (await verifyPassword(user.passwordHash, password)) && (!user.mfaEnabled || (!!totp && (await verifyAndConsumeTotp(ctx.user.id, totp))));
+  await audit({ organizationId: ctx.org.id, actorId: ctx.user.id, sessionId: ctx.sessionId, action: ok ? "auth.step_up" : "auth.step_up_failed" });
+  if (!ok) throw new AppError("reauthRequired", 403, { password: "invalid" });
+  await db.session.update({ where: { id: ctx.sessionId }, data: { stepUpAt: new Date() } });
 }
 
 export async function logout(realm: UserKind) {

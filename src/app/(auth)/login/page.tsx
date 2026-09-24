@@ -26,6 +26,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           errors: { invalid: t("auth.invalid"), locked: t("auth.locked"), rateLimited: t("errors.rateLimited") },
         }}
       />
+      <p className="mt-4 text-center text-body"><Link href="/login/forgot" className="text-accent hover:underline">{t("sec.forgotLink")}</Link></p>
       <p className="mt-8 text-center text-body text-ink-subtle">
         <Link href="/portal/login" className="hover:text-ink hover:underline">
           {t("auth.clientLogin")}

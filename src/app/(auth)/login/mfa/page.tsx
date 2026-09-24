@@ -14,7 +14,7 @@ export default async function MfaPage() {
   const { t } = await getT();
   return (
     <AuthFrame title={t("auth.mfaTitle")} subtitle={t("auth.mfaSubtitle")}>
-      <MfaForm action={mfaAction} labels={{ code: t("auth.mfaCode"), submit: t("auth.verify"), error: t("auth.mfaInvalid") }} />
+      <MfaForm action={mfaAction} labels={{ code: t("auth.mfaCode"), submit: t("auth.verify"), error: t("auth.mfaInvalid"), hint: t("sec.recoveryHint") }} />
     </AuthFrame>
   );
 }

@@ -41,6 +41,34 @@ export async function createSession(userId: string, realm: UserKind, mfaVerified
   return session;
 }
 
+/**
+ * Replace the current session with a fresh token (after MFA or step-up), so a token
+ * captured before the privilege change is useless. The old row is revoked.
+ */
+export async function rotateSession(oldSessionId: string, realm: UserKind, patch: { mfaVerified?: boolean; stepUpAt?: Date }) {
+  const old = await db.session.findUniqueOrThrow({ where: { id: oldSessionId } });
+  const token = randomToken(32);
+  const { ip, userAgent } = await requestMeta();
+  const fresh = await db.$transaction(async (tx) => {
+    await tx.session.update({ where: { id: old.id }, data: { revokedAt: new Date() } });
+    return tx.session.create({
+      data: {
+        userId: old.userId, realm, ip, userAgent, tokenHash: sha256(token), expiresAt: old.expiresAt,
+        mfaVerified: patch.mfaVerified ?? old.mfaVerified, stepUpAt: patch.stepUpAt ?? old.stepUpAt,
+      },
+    });
+  });
+  const jar = await cookies();
+  jar.set(COOKIE[realm], token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: Math.max(60, Math.floor((old.expiresAt.getTime() - Date.now()) / 1000)),
+  });
+  return fresh;
+}
+
 export async function destroySession(realm: UserKind) {
   const jar = await cookies();
   const token = jar.get(COOKIE[realm])?.value;
@@ -88,65 +116,20 @@ async function loadContext(realm: UserKind) {
   return contextFromSession(session);
 }
 
-type LoadedSession = {
-  id: string;
-  mfaVerified: boolean;
-  user: Prisma.UserGetPayload<{ include: { role: { include: { permissions: { select: { permissionKey: true } } } }; organization: true } }>;
-};
-
-/** Map a validated session row to the request context. Exported for DB-backed integration tests. */
-export function contextFromSession(session: LoadedSession) {
-  const { user } = session;
-  const permissions = new Set<string>(user.role.permissions.map((p) => p.permissionKey));
-  const principal: Principal = {
-    userId: user.id,
-    kind: user.kind,
-    scope: user.role.matterScope as Scope,
-    permissions,
-  };
-
-  return {
-    sessionId: session.id,
-    mfaVerified: session.mfaVerified,
-    mfaRequired: user.mfaEnabled,
-    user: {
-      id: user.id,
-      name: user.name,
-      nameAr: user.nameAr,
-      email: user.email,
-      locale: user.locale,
-      position: user.position,
-      positionAr: user.positionAr,
-      photoUrl: user.photoUrl,
-      clientId: user.clientId,
-      preferences: user.preferences as Record<string, unknown>,
-      mfaEnabled: user.mfaEnabled,
-    },
-    role: {
-      id: user.role.id,
-      key: user.role.key,
-      name: user.role.name,
-      nameAr: user.role.nameAr,
-      scope: user.role.matterScope,
-    },
-    org: {
-      id: user.organization.id,
-      name: user.organization.name,
-      nameAr: user.organization.nameAr,
-      timezone: user.organization.timezone,
-      currency: user.organization.currency,
-      vatRate: Number(user.organization.vatRate),
-      settings: user.organization.settings as Record<string, unknown>,
-      isDemo: user.organization.isDemo,
-    },
-    principal,
-    can: (key: PermissionKey) => permissions.has(key),
-  };
-}
-
-/** Per-request memoised session lookups. */
+export { contextFromSession, type LoadedSession } from "./context";
+import { contextFromSession } from "./context";
+/** Per-request memoised session lookups — for Server Components and Server Actions. */
 export const getStaffContext = cache(() => loadContext("STAFF"));
 export const getClientContext = cache(() => loadContext("CLIENT"));
+
+/**
+ * Uncached lookups for Route Handlers (`app/api/**`). React `cache()` is a rendering primitive: in a
+ * production build a cached call inside a route handler runs outside Next.js's request scope and
+ * `cookies()` throws (found by the Phase 11 production-build load test — every authenticated API
+ * route returned 500). Route handlers therefore never go through `cache()`.
+ */
+export const loadStaffContext = () => loadContext("STAFF");
+export const loadClientContext = () => loadContext("CLIENT");
 
 export type StaffContext = NonNullable<Awaited<ReturnType<typeof loadContext>>>;
 
@@ -155,6 +138,7 @@ export async function requireStaff(): Promise<StaffContext> {
   const ctx = await getStaffContext();
   if (!ctx) redirect("/login");
   if (ctx.mfaRequired && !ctx.mfaVerified) redirect("/login/mfa");
+  if (ctx.mfaEnrollmentRequired) redirect("/login/mfa-setup");
   return ctx;
 }
 

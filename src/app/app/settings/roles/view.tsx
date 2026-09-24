@@ -10,16 +10,16 @@ import { Badge } from "@/components/ui/badge";
 import { Field, Input, Select } from "@/components/ui/form";
 import { useAction } from "@/components/forms";
 import { cn } from "@/lib/utils";
-import { saveRoleAction, deleteRoleAction } from "../actions";
+import { saveRoleAction, deleteRoleAction, setRoleMfaAction } from "../actions";
 
-type Role = { id: string; key: string; name: string; nameAr: string; label: string; description: string; isSystem: boolean; matterScope: string; permissions: string[]; users: number };
+type Role = { id: string; key: string; name: string; nameAr: string; label: string; description: string; isSystem: boolean; matterScope: string; permissions: string[]; users: number; requireMfa: boolean };
 
 export function RolesView({ roles, catalog }: { roles: Role[]; catalog: { key: string; description: string }[] }) {
   const { t } = useI18n();
   const router = useRouter();
   const { run, pending } = useAction();
   const [selId, setSelId] = useState(roles[0]?.id ?? "new");
-  const blank: Role = { id: "", key: "", name: "", nameAr: "", label: "", description: "", isSystem: false, matterScope: "ASSIGNED", permissions: [], users: 0 };
+  const blank: Role = { id: "", key: "", name: "", nameAr: "", label: "", description: "", isSystem: false, matterScope: "ASSIGNED", permissions: [], users: 0, requireMfa: false };
   const sel = roles.find((r) => r.id === selId) ?? blank;
   const [draft, setDraft] = useState<Role>(sel);
   const pick = (id: string) => { setSelId(id); setDraft(roles.find((r) => r.id === id) ?? blank); };
@@ -50,6 +50,18 @@ export function RolesView({ roles, catalog }: { roles: Role[]; catalog: { key: s
             <Field label={t("clients.fields.nameAr")}>{(a) => <Input {...a} value={draft.nameAr} onChange={(e) => setDraft({ ...draft, nameAr: e.target.value })} dir="rtl" />}</Field>
             <Field label={t("settings.roles.scope")}>{(a) => <Select {...a} value={draft.matterScope} disabled={owner} onChange={(e) => setDraft({ ...draft, matterScope: e.target.value })}>{["ALL", "ASSIGNED", "NONE"].map((s) => <option key={s} value={s}>{t(`settings.roles.scopes.${s}`)}</option>)}</Select>}</Field>
           </div>
+          {draft.id && (
+            // Saved immediately and audited; applies at each user's next request.
+            <label className="flex items-start gap-2.5 rounded-md border border-line px-3 py-2.5">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 accent-[var(--brand)]"
+                checked={draft.requireMfa}
+                onChange={(e) => { const v = e.target.checked; setDraft({ ...draft, requireMfa: v }); run(() => setRoleMfaAction({ roleId: draft.id, requireMfa: v }), { success: t("settings.saved"), onSuccess: () => router.refresh() }); }}
+              />
+              <span><span className="block text-body font-medium text-ink">{t("sec.requireMfa")}</span><span className="block text-meta text-ink-subtle">{t("sec.requireMfaHint")}</span></span>
+            </label>
+          )}
           <p className="flex items-start gap-2 rounded-md bg-info-soft px-3 py-2 text-meta text-info"><Info className="mt-0.5 size-4 shrink-0" /> {t("settings.roles.confidentialNote")} {owner && t("settings.roles.ownerLocked")}</p>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {modules.map(([mod, perms]) => (

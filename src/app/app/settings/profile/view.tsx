@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Field, Input } from "@/components/ui/form";
 import { useAction } from "@/components/forms";
 import { relativeTime } from "@/lib/time";
-import { changePasswordAction, beginMfaAction, confirmMfaAction, revokeSessionAction } from "../actions";
+import { changePasswordAction, beginMfaAction, confirmMfaAction, cancelMfaAction, revokeSessionAction, revokeOtherSessionsAction } from "../actions";
+import { RecoveryCodes } from "@/app/(auth)/account-forms";
 
 export function ProfileView({ mfaEnabled, currentSession, user, sessions }: {
   mfaEnabled: boolean; currentSession: string; user: { name: string; email: string; role: string };
@@ -24,6 +25,8 @@ export function ProfileView({ mfaEnabled, currentSession, user, sessions }: {
   const [pw, setPw] = useState({ current: "", next: "" });
   const [mfa, setMfa] = useState<{ secret: string; uri: string } | null>(null);
   const [code, setCode] = useState("");
+  const [codes, setCodes] = useState<string[] | null>(null);
+  const [reauth, setReauth] = useState<{ password: string; totp: string } | null>(null);
   return (
     <div className="space-y-5">
       <Panel title={user.name}>
@@ -43,26 +46,53 @@ export function ProfileView({ mfaEnabled, currentSession, user, sessions }: {
 
       <Panel title={t("settings.profile.mfa")} icon={<ShieldCheck />} actions={<Badge tone={mfaEnabled ? "success" : "warning"}>{mfaEnabled ? t("settings.profile.mfaOn") : t("settings.profile.mfaOff")}</Badge>}>
         <div className="space-y-3 p-4">
-          {!mfa ? (
-            <Button variant="secondary" loading={pending} onClick={() => run(() => beginMfaAction({}), { onSuccess: setMfa })}>{t("settings.profile.mfaSetup")}</Button>
+          {codes ? (
+            <RecoveryCodes codes={codes} onDone={() => { setCodes(null); router.refresh(); }} />
+          ) : !mfa ? (
+            reauth ? (
+              // Changing an existing authenticator is a sensitive action: step-up first.
+              <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); run(() => beginMfaAction({ password: reauth.password, totp: reauth.totp }), { onSuccess: (d) => { setReauth(null); setMfa(d); } }); }}>
+                <p className="text-body text-ink-muted">{t("sec.reauthBody")}</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label={t("auth.password")}>{(a) => <Input {...a} type="password" autoComplete="current-password" dir="ltr" value={reauth.password} onChange={(e) => setReauth({ ...reauth, password: e.target.value })} />}</Field>
+                  <Field label={t("sec.reauthTotp")}>{(a) => <Input {...a} inputMode="numeric" maxLength={6} dir="ltr" className="font-mono tracking-widest" value={reauth.totp} onChange={(e) => setReauth({ ...reauth, totp: e.target.value })} />}</Field>
+                </div>
+                <p className="text-meta text-ink-subtle">{t("sec.mfaKeepsActive")}</p>
+                <div className="flex gap-2">
+                  <Button type="submit" variant="primary" loading={pending} disabled={!reauth.password}>{t("sec.confirm")}</Button>
+                  <Button type="button" variant="ghost" onClick={() => setReauth(null)}>{t("sec.cancelSetup")}</Button>
+                </div>
+              </form>
+            ) : mfaEnabled ? (
+              <Button variant="secondary" onClick={() => setReauth({ password: "", totp: "" })}>{t("sec.changeMfa")}</Button>
+            ) : (
+              <Button variant="secondary" loading={pending} onClick={() => run(() => beginMfaAction({}), { onSuccess: setMfa })}>{t("settings.profile.mfaSetup")}</Button>
+            )
           ) : (
             <div className="space-y-3">
               <p className="text-body text-ink-muted">{t("settings.profile.mfaScan")}</p>
+              {mfaEnabled && <p className="text-meta text-ink-subtle">{t("sec.mfaKeepsActive")}</p>}
               <div className="rounded-md border border-line bg-surface-muted p-3">
                 <p className="text-meta text-ink-subtle">{t("settings.profile.mfaSecret")}</p>
                 <p className="ltr-nums select-all break-all font-mono text-ui tracking-wider text-ink">{mfa.secret}</p>
                 <p className="ltr-nums mt-2 break-all font-mono text-caption text-ink-subtle">{mfa.uri}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" maxLength={6} placeholder="123456" className="w-36 font-mono tracking-widest" dir="ltr" aria-label={t("auth.mfaCode")} />
-                <Button variant="primary" loading={pending} onClick={() => run(() => confirmMfaAction({ code }), { onSuccess: (d) => { if ((d as { ok: boolean }).ok) { setMfa(null); router.refresh(); } } })}>{t("settings.profile.mfaConfirm")}</Button>
+                <Button variant="primary" loading={pending} onClick={() => run(() => confirmMfaAction({ code }), { onSuccess: (d) => { if (d.ok) { setMfa(null); setCode(""); setCodes(d.codes); } } })}>{t("settings.profile.mfaConfirm")}</Button>
+                <Button variant="ghost" onClick={() => run(() => cancelMfaAction({}), { onSuccess: () => { setMfa(null); setCode(""); } })}>{t("sec.cancelSetup")}</Button>
               </div>
             </div>
           )}
         </div>
       </Panel>
 
-      <Panel title={t("settings.profile.sessions")} icon={<Monitor />}>
+      <Panel
+        title={t("settings.profile.sessions")}
+        icon={<Monitor />}
+        actions={sessions.length > 1 ? <Button size="xs" variant="ghost" onClick={() => run(() => revokeOtherSessionsAction({}), { success: t("sec.revokedOthers"), onSuccess: () => router.refresh() })}><LogOut /> {t("sec.revokeOthers")}</Button> : undefined}
+        footer={<p className="text-meta text-ink-subtle">{t("sec.location")}</p>}
+      >
         <ul className="divide-y divide-line/80">
           {(showAll ? sessions : sessions.slice(0, 5)).map((s) => {
             const ua = describeUserAgent(s.userAgent);
