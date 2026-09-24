@@ -1,15 +1,20 @@
-/**
- * In development the scheduler runs inside the Next.js server so reminders work
- * without a second process. In production run `npm run worker` and set
- * RUN_WORKER_IN_PROCESS=false on web instances.
- */
+import type { Instrumentation } from "next";
+
+/** Server boot hook: Node-only checks live in instrumentation-node.ts (see there). */
 export async function register() {
-  if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  if (process.env.RUN_WORKER_IN_PROCESS === "false") return;
-  if (process.env.NODE_ENV === "production" && process.env.RUN_WORKER_IN_PROCESS !== "true") return;
-  const g = globalThis as unknown as { __ahlWorker?: NodeJS.Timeout };
-  if (g.__ahlWorker) return;
-  const { tick } = await import("./worker/jobs");
-  g.__ahlWorker = setInterval(tick, 60_000);
-  setTimeout(tick, 5_000);
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { registerNode } = await import("./instrumentation-node");
+    await registerNode();
+  }
 }
+
+/** Server-side errors → structured log (+ optional monitoring). Only route and digest, never request data. */
+export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
+  const { logger } = await import("./server/log");
+  logger("request").error(err instanceof Error ? err.message : String(err), {
+    digest: typeof err === "object" && err && "digest" in err ? String((err as { digest: unknown }).digest) : undefined,
+    method: request.method,
+    route: context.routePath,
+    routeType: context.routeType,
+  });
+};

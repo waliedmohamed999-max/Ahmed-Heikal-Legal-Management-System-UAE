@@ -4,6 +4,9 @@ import { Prisma } from "@prisma/client";
 import { AppError } from "./errors";
 import { requireStaff, type StaffContext } from "./auth/session";
 import { rateLimit } from "./rate-limit";
+import { errMsg, logger } from "./log";
+
+const log = logger("action");
 
 export type ActionResult<T = unknown> =
   | { ok: true; data: T }
@@ -45,7 +48,7 @@ export function handleError(e: unknown): ActionResult<never> {
   // Redirects thrown by next/navigation must propagate
   if (e && typeof e === "object" && "digest" in e && String((e as { digest: unknown }).digest).startsWith("NEXT_")) throw e;
   // Log server-side only; the client receives a generic code (no stack traces / SQL).
-  console.error("[action]", e instanceof Error ? e.message : e);
+  log.error("unexpected action error", { error: errMsg(e) });
   return { ok: false, error: "unexpected" };
 }
 

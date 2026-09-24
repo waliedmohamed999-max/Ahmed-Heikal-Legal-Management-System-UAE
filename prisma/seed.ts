@@ -1,8 +1,12 @@
+import { numberList } from "../src/lib/json-lists";
 /**
  * Seed for AH Legal OS.
  *
- *   npm run db:seed                 → foundation + demo dataset (development)
- *   SEED_DEMO=false npm run db:seed → foundation only (safe for production bootstrap)
+ *   npm run db:seed                → foundation only (roles, permissions, reference data)
+ *   SEED_DEMO=true npm run db:seed → foundation + synthetic demo dataset (development / test only)
+ *
+ * Demo data is opt-in and refused when NODE_ENV=production. The first real owner
+ * is created with `npm run create-owner` (see docs/PRODUCTION-CHECKLIST.md).
  *
  * All demo people, companies, cases and documents are synthetic. The demo
  * organisation is flagged `isDemo`, which shows a banner across the product.
@@ -19,7 +23,11 @@ import { DEFAULT_REMINDER_OFFSETS, reminderSchedule } from "../src/lib/deadline"
 
 const db = new PrismaClient();
 const TZ = "Asia/Dubai";
-const SEED_DEMO = process.env.SEED_DEMO !== "false";
+const SEED_DEMO = process.env.SEED_DEMO === "true" || process.argv.includes("--demo");
+if (SEED_DEMO && process.env.NODE_ENV === "production") {
+  console.error("Refusing to seed demo data with NODE_ENV=production.");
+  process.exit(1);
+}
 const DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD ?? "Demo-Password-2026";
 const STORAGE_DIR = path.resolve(process.env.STORAGE_LOCAL_DIR ?? "./storage");
 
@@ -499,7 +507,7 @@ async function seedDemo(orgId: string, roles: Record<string, string>) {
 
   // Materialise reminders (same rule as the live engine)
   const policies = await db.reminderPolicy.findMany({ where: { organizationId: orgId } });
-  const offsetsFor = (t: string) => policies.find((p) => p.subjectType === t)?.offsetsMinutes ?? DEFAULT_REMINDER_OFFSETS[t];
+  const offsetsFor = (t: string) => numberList(policies.find((p) => p.subjectType === t)?.offsetsMinutes ?? DEFAULT_REMINDER_OFFSETS[t]);
   for (const h of hearings) {
     for (const r of reminderSchedule(h.when, offsetsFor("HEARING"))) {
       await db.reminder.create({ data: { organizationId: orgId, subjectType: "HEARING", subjectId: h.id, userId: h.lawyer, fireAt: r.fireAt, offsetMinutes: r.offsetMinutes, channels: ["IN_APP", "EMAIL"] } });
@@ -567,6 +575,7 @@ async function seedDemo(orgId: string, roles: Record<string, string>) {
         data: {
           id: vid, documentId: doc.id, version: v, fileName: `${matters[m ?? 1]?.internalNumber ?? "AH"}_${title.replace(/[^A-Za-z0-9]+/g, "-")}_v${v}.pdf`,
           storageKey: key, mimeType: "application/pdf", sizeBytes: BigInt(buf.length), checksumSha256: createHash("sha256").update(buf).digest("hex"),
+          scanStatus: "NOT_SCANNED", // synthetic files; no scanner in development
           status: v === versions ? status! : "DRAFT", uploadedById: by, extractedText: pages.flat().join("\n"), pageTexts: pages.map((p, i) => ({ page: i + 1, text: p.join("\n") })),
           textStatus: "DONE", pageCount: pages.length, createdAt: at(-30 + v * 5),
         },
