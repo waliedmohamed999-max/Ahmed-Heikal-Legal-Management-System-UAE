@@ -162,25 +162,31 @@ export async function listTasks(ctx: StaffContext, q: z.infer<typeof taskListQue
       q.assignee ? { assigneeId: q.assignee } : {},
       q.priority ? { priority: q.priority } : {},
       q.matter ? { matterId: q.matter } : {},
-      q.q ? { title: { contains: q.q, mode: "insensitive" } } : {},
+      q.q ? { title: { contains: q.q } } : {},
     ],
   };
-  const rows = await db.task.findMany({
-    where,
-    orderBy: q.bucket === "completed" ? [{ completedAt: "desc" }] : [{ dueAt: { sort: "asc", nulls: "last" } }, { priority: "asc" }],
+  const fetchRows = (dated: boolean) => db.task.findMany({
+    where: q.bucket === "completed" ? where : { AND: [where, { dueAt: dated ? { not: null } : null }] },
+    orderBy: q.bucket === "completed" ? [{ completedAt: "desc" }] : [{ dueAt: "asc" }, { priority: "asc" }],
     take: 200,
     include: {
       matter: { select: { id: true, internalNumber: true, title: true, titleAr: true } },
       assignee: { select: { id: true, name: true, nameAr: true, photoUrl: true } },
-      _count: { select: { checklist: true, comments: true } },
-      checklist: { where: { doneAt: { not: null } }, select: { id: true } },
+      checklist: { select: { doneAt: true } },
       dependsOn: { where: { dependsOn: { status: { notIn: ["DONE", "CANCELLED"] } } }, select: { dependsOnId: true } },
     },
   });
+  const dated = await fetchRows(true);
+  const rows = q.bucket === "completed" || dated.length === 200 ? dated : [...dated, ...await fetchRows(false)].slice(0, 200);
+  // Comment counts for the page only. (Prisma's `_count` include compiles on MySQL to a GROUP BY over the
+  // whole Comment / checklist tables — 1.4 s at 100k tasks; this is two indexed queries instead.)
+  const commentCounts = rows.length
+    ? new Map((await db.comment.groupBy({ by: ["taskId"], where: { taskId: { in: rows.map((r) => r.id) } }, _count: { _all: true } })).map((c) => [c.taskId, c._count._all]))
+    : new Map<string | null, number>();
   return rows.map((t) => ({
     id: t.id, title: t.title, status: t.status, priority: t.priority, dueAt: t.dueAt?.toISOString() ?? null, completedAt: t.completedAt?.toISOString() ?? null,
     matter: t.matter, assignee: t.assignee, overdue: !!t.dueAt && t.dueAt < now && !["DONE", "CANCELLED"].includes(t.status),
-    checklist: { total: t._count.checklist, done: t.checklist.length }, comments: t._count.comments, blocked: t.dependsOn.length > 0, estimateMinutes: t.estimateMinutes,
+    checklist: { total: t.checklist.length, done: t.checklist.filter((c) => c.doneAt).length }, comments: commentCounts.get(t.id) ?? 0, blocked: t.dependsOn.length > 0, estimateMinutes: t.estimateMinutes,
   }));
 }
 

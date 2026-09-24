@@ -83,8 +83,8 @@ export function CountdownInline({ target, thresholds, className, showLevel }: { 
       {/* Each number+unit is its own isolated run so Arabic/Latin bidi never scrambles it */}
       {parts.map(([n, u], i) => (
         <span key={i} suppressHydrationWarning className="inline-flex items-baseline gap-px [unicode-bidi:isolate]">
-          <span>{n}</span>
-          <span className="text-[0.92em] opacity-80">{u}</span>
+          <span suppressHydrationWarning>{n}</span>
+          <span suppressHydrationWarning className="text-[0.92em] opacity-80">{u}</span>
         </span>
       ))}
       {showLevel && <span className="font-normal opacity-80">· {t(`enums.alertLevel.${level}`)}</span>}

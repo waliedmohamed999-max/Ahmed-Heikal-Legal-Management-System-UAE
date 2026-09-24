@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Receipt, Clock3, Wallet, Scale, Plus } from "lucide-react";
 import { requireStaff } from "@/server/auth/session";
 import { getT } from "@/i18n/server";
-import { loadWorkspace, type Workspace } from "@/server/services/workspace";
+import { loadWorkspace } from "@/server/services/workspace";
 import { db } from "@/server/db";
 import { Panel, EmptyState } from "@/components/ui/layout";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,8 @@ export default async function CaseFinancePage({ params }: { params: Promise<{ id
   const ctx = await requireStaff();
   const { id } = await params;
   const { t, locale } = await getT();
-  const ws = (await loadWorkspace(ctx, id)) as Workspace;
+  const ws = await loadWorkspace(ctx, id);
+  if (ws.state !== "ok") return null; // the layout renders the restricted / missing state
   if (!ws.caps.includes("finance.view")) notFound();
   const m = ws.matter;
   const [invoices, expenses, time, running] = await Promise.all([

@@ -1,4 +1,5 @@
 import "server-only";
+import type { TaskStatus } from "@prisma/client";
 import { db } from "../db";
 import type { StaffContext } from "../auth/session";
 import { matterScopeWhere } from "./access";
@@ -91,7 +92,7 @@ export async function commandCenter(ctx: StaffContext) {
     db.matter.groupBy({ by: ["status"], where: scope, _count: true }),
     db.matter.count({ where: { AND: [scope, { status: "ACTIVE", lastActivityAt: { lt: new Date(now.getTime() - 30 * 86400_000) } }] } }),
     db.matter.findMany({
-      where: { AND: [scope, { status: { in: ["ACTIVE", "PENDING"] } }, { OR: [{ priority: "CRITICAL" }, { riskFlags: { isEmpty: false } }] }] },
+      where: { AND: [scope, { status: { in: ["ACTIVE", "PENDING"] } }, { OR: [{ priority: "CRITICAL" }, { riskFlags: { not: [] } }] }] },
       select: { id: true, internalNumber: true, title: true, titleAr: true, priority: true, riskFlags: true, leadLawyer: { select: { name: true, nameAr: true } } },
       orderBy: [{ priority: "asc" }, { lastActivityAt: "asc" }],
       take: 6,
@@ -147,28 +148,29 @@ export async function teamWorkload(ctx: StaffContext) {
   const in7d = new Date(now.getTime() + 7 * 86400_000);
   const users = await db.user.findMany({
     where: { organizationId: ctx.org.id, kind: "STAFF", status: "ACTIVE", deletedAt: null, matterMemberships: { some: {} } },
-    select: {
-      id: true, name: true, nameAr: true, photoUrl: true, position: true, positionAr: true,
-      _count: {
-        select: {
-          matterMemberships: { where: { matter: { status: "ACTIVE", deletedAt: null }, role: { in: ["OWNER", "LEAD", "ASSIGNED"] } } },
-          assignedTasks: { where: { status: { in: ["TODO", "IN_PROGRESS", "WAITING"] }, deletedAt: null } },
-          attendingHearings: { where: { startsAt: { gte: now, lt: in7d }, deletedAt: null, status: { not: "CANCELLED" } } },
-        },
-      },
-    },
+    select: { id: true, name: true, nameAr: true, photoUrl: true, position: true, positionAr: true },
     orderBy: { name: "asc" },
   });
-  const urgent = await db.task.groupBy({
-    by: ["assigneeId"],
-    where: { organizationId: ctx.org.id, deletedAt: null, status: { in: ["TODO", "IN_PROGRESS", "WAITING"] }, OR: [{ priority: { in: ["CRITICAL", "HIGH"] } }, { dueAt: { lt: now } }] },
-    _count: true,
-  });
-  const urgentMap = new Map(urgent.map((u) => [u.assigneeId, u._count]));
+  const ids = users.map((u) => u.id);
+  const open = { in: ["TODO", "IN_PROGRESS", "WAITING"] as TaskStatus[] };
+  // Grouped counts for these users only. (Prisma's `_count` with filters compiles on MySQL to
+  // aggregates over the whole tables — 0.5 s at 100k tasks; found by the Phase 11 load test.)
+  const [members, tasks, urgent, hearings] = ids.length
+    ? await Promise.all([
+        db.matterMember.groupBy({ by: ["userId"], where: { userId: { in: ids }, role: { in: ["OWNER", "LEAD", "ASSIGNED"] }, matter: { status: "ACTIVE", deletedAt: null } }, _count: { _all: true } }),
+        db.task.groupBy({ by: ["assigneeId"], where: { organizationId: ctx.org.id, assigneeId: { in: ids }, deletedAt: null, status: open }, _count: { _all: true } }),
+        db.task.groupBy({ by: ["assigneeId"], where: { organizationId: ctx.org.id, assigneeId: { in: ids }, deletedAt: null, status: open, OR: [{ priority: { in: ["CRITICAL", "HIGH"] } }, { dueAt: { lt: now } }] }, _count: { _all: true } }),
+        db.hearing.groupBy({ by: ["attendingLawyerId"], where: { attendingLawyerId: { in: ids }, startsAt: { gte: now, lt: in7d }, deletedAt: null, status: { not: "CANCELLED" } }, _count: { _all: true } }),
+      ])
+    : [[], [], [], []];
+  const m = new Map(members.map((x) => [x.userId, x._count._all]));
+  const t = new Map(tasks.map((x) => [x.assigneeId, x._count._all]));
+  const urgentMap = new Map(urgent.map((x) => [x.assigneeId, x._count._all]));
+  const h = new Map(hearings.map((x) => [x.attendingLawyerId, x._count._all]));
   // Descriptive workload only — deliberately no composite "performance score".
   return users.map((u) => ({
     id: u.id, name: u.name, nameAr: u.nameAr, photoUrl: u.photoUrl, position: u.position, positionAr: u.positionAr,
-    activeMatters: u._count.matterMemberships, openTasks: u._count.assignedTasks, urgentTasks: urgentMap.get(u.id) ?? 0, hearings7d: u._count.attendingHearings,
+    activeMatters: m.get(u.id) ?? 0, openTasks: t.get(u.id) ?? 0, urgentTasks: urgentMap.get(u.id) ?? 0, hearings7d: h.get(u.id) ?? 0,
   }));
 }
 

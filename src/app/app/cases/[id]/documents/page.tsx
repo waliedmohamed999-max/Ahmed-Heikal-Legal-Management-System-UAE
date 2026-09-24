@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/server/auth/session";
 import { getT } from "@/i18n/server";
-import { loadWorkspace, type Workspace } from "@/server/services/workspace";
+import { loadWorkspace } from "@/server/services/workspace";
 import { docListQuery, listDocuments } from "@/server/services/documents";
 import { ListSearch } from "@/components/list-search";
 import { DocumentTable } from "@/components/document-table";
@@ -11,7 +11,8 @@ export default async function CaseDocumentsPage({ params, searchParams }: { para
   const { id } = await params;
   const sp = await searchParams;
   const { t, locale } = await getT();
-  const ws = (await loadWorkspace(ctx, id)) as Workspace;
+  const ws = await loadWorkspace(ctx, id);
+  if (ws.state !== "ok") return null; // the layout renders the restricted / missing state
   if (!ws.caps.includes("documents.view")) notFound();
   const q = docListQuery.parse(sp);
   const data = await listDocuments(ctx, { ...q, page: 1 }, id);

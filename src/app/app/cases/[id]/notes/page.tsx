@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/server/auth/session";
 import { getT } from "@/i18n/server";
-import { loadWorkspace, type Workspace } from "@/server/services/workspace";
+import { loadWorkspace } from "@/server/services/workspace";
 import { listComments, listNotes } from "@/server/services/collab";
 import { NotesView } from "./view";
 
@@ -9,7 +9,8 @@ export default async function NotesPage({ params }: { params: Promise<{ id: stri
   const ctx = await requireStaff();
   const { id } = await params;
   const { locale } = await getT();
-  const ws = (await loadWorkspace(ctx, id)) as Workspace;
+  const ws = await loadWorkspace(ctx, id);
+  if (ws.state !== "ok") return null; // the layout renders the restricted / missing state
   if (!ws.caps.includes("notes.view")) notFound();
   const [notes, comments] = await Promise.all([listNotes(ctx, id), listComments(ctx, { matterId: id })]);
   const L = (en: string, ar: string | null) => (locale === "ar" ? ar || en : en);

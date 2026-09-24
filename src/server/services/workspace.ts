@@ -33,18 +33,19 @@ export const loadWorkspace = cache(async (ctx: StaffContext, id: string) => {
       parties: { include: { contact: { select: { id: true, nameEn: true, nameAr: true, type: true, category: true } } } },
       hearings: { where: { deletedAt: null, startsAt: { gte: new Date(now.getTime() - 2 * 3600_000) }, status: { in: ["SCHEDULED", "PREPARING", "READY"] } }, orderBy: { startsAt: "asc" }, take: 1, select: { id: true, startsAt: true, sessionType: true, status: true } },
       deadlines: { where: { deletedAt: null, status: "OPEN" }, orderBy: { dueAt: "asc" }, take: 1, select: { id: true, dueAt: true, title: true, verification: true } },
-      _count: {
-        select: {
-          hearings: { where: { deletedAt: null } },
-          deadlines: { where: { deletedAt: null, status: "OPEN" } },
-          tasks: { where: { deletedAt: null, status: { in: ["TODO", "IN_PROGRESS", "WAITING"] } } },
-          documents: { where: { deletedAt: null } },
-          notes: { where: { deletedAt: null } },
-          communications: true,
-        },
-      },
     },
   });
+  // Per-case counts as indexed COUNT queries. (Prisma's `_count` with filters compiles on MySQL to
+  // aggregates over the whole tables — the main cost of the case page at 100k rows.)
+  const [hearings, deadlines, tasks, documents, notes, communications] = await Promise.all([
+    db.hearing.count({ where: { matterId: id, deletedAt: null } }),
+    db.deadline.count({ where: { matterId: id, deletedAt: null, status: "OPEN" } }),
+    db.task.count({ where: { matterId: id, deletedAt: null, status: { in: ["TODO", "IN_PROGRESS", "WAITING"] } } }),
+    db.document.count({ where: { matterId: id, deletedAt: null } }),
+    db.note.count({ where: { matterId: id, deletedAt: null } }),
+    db.communication.count({ where: { matterId: id } }),
+  ]);
+  const _count = { hearings, deadlines, tasks, documents, notes, communications };
   await recordMatterView(ctx, id);
   const activeMembers = m.members.filter((mm) => !mm.expiresAt || mm.expiresAt > now);
   return {
@@ -53,6 +54,7 @@ export const loadWorkspace = cache(async (ctx: StaffContext, id: string) => {
     memberRole: acc.memberRole,
     matter: {
       ...m,
+      _count,
       claimAmount: m.claimAmount == null ? null : Number(m.claimAmount),
       feeAmount: m.feeAmount == null ? null : Number(m.feeAmount),
       hourlyRate: m.hourlyRate == null ? null : Number(m.hourlyRate),

@@ -1,6 +1,6 @@
 import { requireStaff } from "@/server/auth/session";
 import { getT } from "@/i18n/server";
-import { loadWorkspace, type Workspace } from "@/server/services/workspace";
+import { loadWorkspace } from "@/server/services/workspace";
 import { db } from "@/server/db";
 import { HearingsView } from "./view";
 
@@ -9,7 +9,8 @@ export default async function CaseHearingsPage({ params, searchParams }: { param
   const { id } = await params;
   const { h } = await searchParams;
   const { locale } = await getT();
-  const ws = (await loadWorkspace(ctx, id)) as Workspace;
+  const ws = await loadWorkspace(ctx, id);
+  if (ws.state !== "ok") return null; // the layout renders the restricted / missing state
   const rows = await db.hearing.findMany({
     where: { matterId: id, deletedAt: null },
     orderBy: { startsAt: "desc" },

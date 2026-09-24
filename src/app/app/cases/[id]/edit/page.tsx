@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/server/auth/session";
 import { getT } from "@/i18n/server";
-import { loadWorkspace, type Workspace } from "@/server/services/workspace";
+import { loadWorkspace } from "@/server/services/workspace";
 import { getReference } from "@/server/services/reference";
 import { Panel } from "@/components/ui/layout";
 import { EditCaseForm } from "./form";
@@ -10,7 +10,8 @@ export default async function EditCasePage({ params }: { params: Promise<{ id: s
   const ctx = await requireStaff();
   const { id } = await params;
   const { t, locale } = await getT();
-  const ws = (await loadWorkspace(ctx, id)) as Workspace;
+  const ws = await loadWorkspace(ctx, id);
+  if (ws.state !== "ok") return null; // the layout renders the restricted / missing state
   if (!ws.caps.includes("matters.edit")) notFound();
   const ref = await getReference(ctx.org.id);
   const m = ws.matter;

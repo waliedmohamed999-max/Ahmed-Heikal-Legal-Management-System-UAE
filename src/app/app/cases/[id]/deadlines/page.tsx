@@ -1,6 +1,6 @@
 import { requireStaff } from "@/server/auth/session";
 import { getT } from "@/i18n/server";
-import { loadWorkspace, type Workspace } from "@/server/services/workspace";
+import { loadWorkspace } from "@/server/services/workspace";
 import { db } from "@/server/db";
 import { orgThresholds } from "@/server/services/dashboard";
 import { DeadlinesView } from "@/components/deadlines-view";
@@ -9,7 +9,8 @@ export default async function CaseDeadlinesPage({ params }: { params: Promise<{ 
   const ctx = await requireStaff();
   const { id } = await params;
   const { locale } = await getT();
-  const ws = (await loadWorkspace(ctx, id)) as Workspace;
+  const ws = await loadWorkspace(ctx, id);
+  if (ws.state !== "ok") return null; // the layout renders the restricted / missing state
   const rows = await db.deadline.findMany({
     where: { matterId: id, deletedAt: null },
     orderBy: { dueAt: "asc" },

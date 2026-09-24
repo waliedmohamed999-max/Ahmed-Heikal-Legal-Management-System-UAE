@@ -1,8 +1,9 @@
+import { stringList } from "@/lib/json-lists";
 import Link from "next/link";
 import { FileText, Gavel, CalendarClock, Circle, Globe, Flag, Lock } from "lucide-react";
 import { requireStaff } from "@/server/auth/session";
 import { getT } from "@/i18n/server";
-import { loadWorkspace, type Workspace } from "@/server/services/workspace";
+import { loadWorkspace } from "@/server/services/workspace";
 import { matterHealth } from "@/server/services/health";
 import { documentScope } from "@/server/services/documents";
 import { db } from "@/server/db";
@@ -17,7 +18,8 @@ export default async function CaseOverviewPage({ params }: { params: Promise<{ i
   const ctx = await requireStaff();
   const { id } = await params;
   const { t, locale } = await getT();
-  const ws = (await loadWorkspace(ctx, id)) as Workspace;
+  const ws = await loadWorkspace(ctx, id);
+  if (ws.state !== "ok") return null; // the layout renders the restricted / missing state
   const m = ws.matter;
   const caps = new Set(ws.caps);
   const L = (en: string, ar: string | null | undefined) => (locale === "ar" ? ar || en : en);
@@ -254,10 +256,10 @@ export default async function CaseOverviewPage({ params }: { params: Promise<{ i
         )}
 
         <Panel plain title={t("ws.health")} footer={<p className="px-3 text-caption text-ink-subtle">{t("workspace.healthNote")}</p>}>
-          {m.riskFlags.length > 0 && (
+          {stringList(m.riskFlags).length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2 pt-1">
               <Flag className="size-3.5 text-warning" aria-hidden />
-              {m.riskFlags.map((f) => <Badge key={f} tone="warning">{t(`enums.riskFlag.${f}`)}</Badge>)}
+              {stringList(m.riskFlags).map((f) => <Badge key={f} tone="warning">{t(`enums.riskFlag.${f}`)}</Badge>)}
             </div>
           )}
           <dl>
