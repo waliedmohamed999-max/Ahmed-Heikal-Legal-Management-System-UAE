@@ -19,7 +19,7 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
   ]);
   const L = (en: string, ar: string | null | undefined) => (locale === "ar" ? ar || en : en);
   return (
-    <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-[1600px] px-4 pb-10 pt-5 sm:px-6 lg:px-8 lg:pt-6">
       <PageHeader title={t("crm.title")} subtitle={t("crm.subtitle")} />
       <PipelineBoard
         focus={lead ?? null}

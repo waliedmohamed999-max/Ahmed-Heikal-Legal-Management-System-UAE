@@ -7,7 +7,6 @@ import { Plus, X, Check, Building2, User } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/form";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/layout";
 import { useAction } from "@/components/forms";
 import { cn } from "@/lib/utils";
@@ -42,16 +41,17 @@ export function PartiesPanel({
 
   return (
     <div>
-      <ul className="divide-y divide-line">
-        <li className="flex items-center gap-3 px-4 py-2.5">
-          <Badge tone="brand" className="w-28 justify-center">{t("enums.partyRole.CLIENT")}</Badge>
-          <Link href={`/app/clients/${client.id}`} className="text-[13px] font-medium text-ink hover:underline">{client.name}</Link>
+      <ul>
+        <li className="flex items-center gap-3 px-3 py-1.5">
+          <Building2 className="size-4 shrink-0 text-ink-subtle" aria-hidden />
+          <Link href={`/app/clients/${client.id}`} className="min-w-0 flex-1 truncate text-body font-medium text-ink hover:underline">{client.name}</Link>
+          <span className="shrink-0 text-meta text-accent">{t("enums.partyRole.CLIENT")}</span>
         </li>
         {parties.map((p) => (
-          <li key={p.id} className="group flex items-center gap-3 px-4 py-2.5">
-            <Badge tone={p.role === "OPPONENT" ? "danger" : "neutral"} className="w-28 justify-center">{t(`enums.partyRole.${p.role}`)}</Badge>
-            {p.type === "COMPANY" ? <Building2 className="size-4 text-ink-subtle" /> : <User className="size-4 text-ink-subtle" />}
-            <Link href={`/app/contacts?focus=${p.contactId}`} className="min-w-0 flex-1 truncate text-[13px] text-ink hover:underline">{p.name}</Link>
+          <li key={p.id} className="group flex items-center gap-3 px-3 py-1.5">
+            {p.type === "COMPANY" ? <Building2 className="size-4 shrink-0 text-ink-subtle" aria-hidden /> : <User className="size-4 shrink-0 text-ink-subtle" aria-hidden />}
+            <Link href={`/app/contacts?focus=${p.contactId}`} className="bidi-plain min-w-0 flex-1 truncate text-body text-ink hover:underline">{p.name}</Link>
+            <span className={cn("shrink-0 text-meta", p.role === "OPPONENT" ? "text-danger" : "text-ink-subtle")}>{t(`enums.partyRole.${p.role}`)}</span>
             {canEdit && (
               <Button variant="ghost" size="icon-xs" aria-label={t("common.remove")} className="opacity-0 group-hover:opacity-100 focus:opacity-100"
                 onClick={() => run(() => removePartyAction({ id: p.id, matterId }), { onSuccess: () => router.refresh() })}>
@@ -62,9 +62,9 @@ export function PartiesPanel({
         ))}
       </ul>
       {canEdit && (
-        <div className="border-t border-line px-4 py-3">
+        <div className="px-3 pt-2">
           {adding ? (
-            <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto_auto]">
+            <div className="grid gap-2">
               <Input placeholder={t("intake.partyName")} value={form.nameEn} onChange={(e) => setForm({ ...form, nameEn: e.target.value })} dir="ltr" aria-label={t("intake.partyName")} />
               <Input placeholder={t("intake.partyNameAr")} value={form.nameAr} onChange={(e) => setForm({ ...form, nameAr: e.target.value })} dir="rtl" aria-label={t("intake.partyNameAr")} />
               <Select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} aria-label={t("common.type")}>
@@ -75,12 +75,12 @@ export function PartiesPanel({
                 {PARTY_ROLES.map((r) => <option key={r} value={r}>{t(`enums.partyRole.${r}`)}</option>)}
               </Select>
               <div className="flex gap-1">
-                <Button variant="primary" size="md" disabled={!form.nameEn.trim()} loading={pending} onClick={add}><Check /></Button>
-                <Button variant="ghost" size="md" onClick={() => setAdding(false)} aria-label={t("common.cancel")}><X /></Button>
+                <Button variant="primary" size="sm" disabled={!form.nameEn.trim()} loading={pending} onClick={add}><Check /> {t("common.save")}</Button>
+                <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>{t("common.cancel")}</Button>
               </div>
             </div>
           ) : (
-            <Button variant="ghost" size="sm" onClick={() => setAdding(true)}><Plus /> {t("workspace.addParty")}</Button>
+            <Button variant="ghost" size="xs" className="-ms-2" onClick={() => setAdding(true)}><Plus /> {t("workspace.addParty")}</Button>
           )}
         </div>
       )}
@@ -108,7 +108,7 @@ export function ChecklistPanel({ matterId, canEdit, items }: { matterId: string;
       <ul className="grid sm:grid-cols-2">
         {local.map((i) => (
           <li key={i.id}>
-            <label className={cn("flex cursor-pointer items-start gap-2.5 px-4 py-2 text-[13px] hover:bg-surface-muted/60", !canEdit && "cursor-default")}>
+            <label className={cn("flex cursor-pointer items-start gap-2.5 rounded-md px-3 py-1.5 text-body hover:bg-surface-muted", !canEdit && "cursor-default")}>
               <input type="checkbox" checked={i.done} disabled={!canEdit} onChange={(e) => toggle(i.id, e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[var(--success)]" />
               <span className={cn("text-ink", i.done && "text-ink-subtle line-through")}>
                 {i.title}
@@ -120,14 +120,14 @@ export function ChecklistPanel({ matterId, canEdit, items }: { matterId: string;
       </ul>
       {canEdit && (
         <form
-          className="flex gap-2 border-t border-line px-4 py-3"
+          className="mt-1 flex gap-2 px-3 pt-2"
           onSubmit={(e) => {
             e.preventDefault();
             if (!title.trim()) return;
             run(() => addChecklistAction({ matterId, title }), { onSuccess: () => { setTitle(""); router.refresh(); } });
           }}
         >
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("workspace.addChecklistItem")} className="h-8" aria-label={t("workspace.addChecklistItem")} />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("workspace.addChecklistItem")} aria-label={t("workspace.addChecklistItem")} />
           <Button type="submit" size="sm" variant="secondary" disabled={!title.trim()}><Plus /></Button>
         </form>
       )}

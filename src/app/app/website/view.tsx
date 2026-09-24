@@ -27,7 +27,7 @@ export function CmsView({ tab, areas, articles, faqs, testimonials, settings }: 
   const del = (kind: "area" | "article" | "faq" | "testimonial", id: string) => run(() => deleteCmsAction({ kind, id }), { onSuccess: () => router.refresh() });
   const Row = ({ title, sub, published, kind, row }: { title: string; sub?: string; published: boolean; kind: "area" | "article" | "faq" | "testimonial"; row: Record<string, unknown> & { id: string } }) => (
     <li className="flex items-center gap-3 px-4 py-3">
-      <div className="min-w-0 flex-1"><p className="truncate text-[13.5px] font-medium text-ink">{title}</p>{sub && <p className="truncate text-[12px] text-ink-subtle" dir="ltr">{sub}</p>}</div>
+      <div className="min-w-0 flex-1"><p className="truncate text-body font-medium text-ink">{title}</p>{sub && <p className="truncate text-meta text-ink-subtle" dir="ltr">{sub}</p>}</div>
       <Badge tone={published ? "success" : "neutral"}>{published ? t("cms.published") : t("cms.draft")}</Badge>
       <Button size="icon-xs" variant="ghost" aria-label={t("common.edit")} onClick={() => setEdit({ kind, row })}><Pencil /></Button>
       <Button size="icon-xs" variant="danger-ghost" aria-label={t("common.delete")} onClick={() => del(kind, row.id)}><Trash2 /></Button>
@@ -53,7 +53,7 @@ export function CmsView({ tab, areas, articles, faqs, testimonials, settings }: 
         </Panel>
       )}
       {tab === "testimonials" && (
-        <Panel title={t("cms.tabs.testimonials")} actions={<Button size="sm" variant="primary" onClick={() => setEdit({ kind: "testimonial", row: null })}><Plus /> {t("cms.newTestimonial")}</Button>} footer={<p className="flex items-start gap-1.5 text-[12px] text-warning"><Info className="mt-0.5 size-3.5 shrink-0" /> {t("cms.testimonialNote")}</p>}>
+        <Panel title={t("cms.tabs.testimonials")} actions={<Button size="sm" variant="primary" onClick={() => setEdit({ kind: "testimonial", row: null })}><Plus /> {t("cms.newTestimonial")}</Button>} footer={<p className="flex items-start gap-1.5 text-meta text-warning"><Info className="mt-0.5 size-3.5 shrink-0" /> {t("cms.testimonialNote")}</p>}>
           {testimonials.length === 0 ? <EmptyState compact title="—" /> : <ul className="divide-y divide-line">{testimonials.map((x) => <Row key={x.id} kind="testimonial" row={x} title={x.authorName} published={!!x.published} />)}</ul>}
         </Panel>
       )}
@@ -75,7 +75,7 @@ function AreaDialog({ row, onDone }: { row: Area | null; onDone: () => void }) {
   const r = form.register;
   return (
     <DialogContent title={row ? t("common.edit") : t("cms.newArea")} size="xl">
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+      <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate>
         <Field label={t("cms.titleEn")} error={err("titleEn")} required>{(a) => <Input {...a} dir="ltr" {...r("titleEn")} />}</Field>
         <Field label={t("cms.titleAr")} error={err("titleAr")} required>{(a) => <Input {...a} dir="rtl" {...r("titleAr")} />}</Field>
         <Field label={t("cms.slug")} error={err("slug")} required>{(a) => <Input {...a} dir="ltr" className="font-mono" {...r("slug")} />}</Field>
@@ -99,7 +99,7 @@ function ArticleDialog({ row, onDone }: { row: Article | null; onDone: () => voi
   const dir = form.watch("locale") === "ar" ? "rtl" : "ltr";
   return (
     <DialogContent title={row ? t("common.edit") : t("cms.newArticle")} size="xl">
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-3" noValidate>
+      <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-3" noValidate>
         <Field label={t("cms.locale")}>{(a) => <Select {...a} {...r("locale")}><option value="ar">العربية</option><option value="en">English</option></Select>}</Field>
         <Field label={t("common.status")}>{(a) => <Select {...a} {...r("status")}><option value="DRAFT">{t("cms.draft")}</option><option value="PUBLISHED">{t("cms.published")}</option></Select>}</Field>
         <Field label={t("cms.category")}>{(a) => <Input {...a} {...r("category")} />}</Field>
@@ -121,7 +121,7 @@ function FaqDialog({ row, onDone }: { row: Faq | null; onDone: () => void }) {
   const r = form.register;
   return (
     <DialogContent title={row ? t("common.edit") : t("cms.newFaq")} size="lg">
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+      <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate>
         <Field label={t("cms.questionEn")} error={err("questionEn")} required>{(a) => <Input {...a} dir="ltr" {...r("questionEn")} />}</Field>
         <Field label={t("cms.questionAr")} error={err("questionAr")} required>{(a) => <Input {...a} dir="rtl" {...r("questionAr")} />}</Field>
         <Field label={t("cms.answerEn")} error={err("answerEn")} required>{(a) => <Textarea {...a} rows={4} dir="ltr" {...r("answerEn")} />}</Field>
@@ -140,13 +140,13 @@ function TestimonialDialog({ row, onDone }: { row: Testimonial | null; onDone: (
   const r = form.register;
   return (
     <DialogContent title={row ? t("common.edit") : t("cms.newTestimonial")} size="lg">
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+      <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate>
         <Field label={t("cms.author")} error={err("authorName")} required className="sm:col-span-2">{(a) => <Input {...a} {...r("authorName")} />}</Field>
         <Field label={t("cms.quoteEn")}>{(a) => <Textarea {...a} rows={3} dir="ltr" {...r("quoteEn")} />}</Field>
         <Field label={t("cms.quoteAr")}>{(a) => <Textarea {...a} rows={3} dir="rtl" {...r("quoteAr")} />}</Field>
         <Field label={t("cms.order")}>{(a) => <Input {...a} type="number" dir="ltr" {...r("order")} />}</Field>
         <Checkbox label={t("cms.published")} {...r("published")} className="self-end pb-2" />
-        <p className="text-[12px] text-warning sm:col-span-2">{t("cms.testimonialNote")}</p>
+        <p className="text-meta text-warning sm:col-span-2">{t("cms.testimonialNote")}</p>
         <DialogFooter className="sm:col-span-2"><Button type="submit" variant="primary" loading={pending}>{t("common.save")}</Button></DialogFooter>
       </form>
     </DialogContent>

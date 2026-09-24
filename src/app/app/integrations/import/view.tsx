@@ -73,7 +73,7 @@ export function ImportView({ history }: { history: { id: string; sourceType: str
             <div className="flex flex-wrap items-center gap-3">
               <input ref={fileRef} type="file" hidden accept=".pdf,.csv,.txt,.eml,.docx,.png,.jpg,.jpeg,.webp,.tif,.tiff" onChange={(e) => { const f = e.target.files?.[0]; if (f) void analyse(f); e.target.value = ""; }} />
               <Button variant="primary" loading={busy} onClick={() => fileRef.current?.click()}><Upload /> {t("courtImport.upload")}</Button>
-              <span className="text-[12px] text-ink-subtle" dir="ltr">PDF · CSV · TXT · EML · DOCX</span>
+              <span className="text-meta text-ink-subtle" dir="ltr">PDF · CSV · TXT · EML · DOCX</span>
             </div>
             <div>
               <Label htmlFor="ci-text">{t("courtImport.source")}</Label>
@@ -89,8 +89,8 @@ export function ImportView({ history }: { history: { id: string; sourceType: str
           title={t("courtImport.suggestions")}
           actions={<Button size="sm" variant="ghost" onClick={() => run(() => discardImportAction({ id: res.id }), { onSuccess: () => { setRes(null); setItems([]); router.refresh(); } })}><X /> {t("courtImport.discard")}</Button>}
         >
-          {res.status === "ocrMissing" && <p className="m-4 flex items-start gap-2 rounded-md bg-warning-soft px-3 py-2 text-[12.5px] text-warning"><AlertTriangle className="mt-0.5 size-4 shrink-0" /> {t("courtImport.ocrMissing")}</p>}
-          {res.status === "unsupported" && <p className="m-4 text-[12.5px] text-warning">{t("errors.unsupported")}</p>}
+          {res.status === "ocrMissing" && <p className="m-4 flex items-start gap-2 rounded-md bg-warning-soft px-3 py-2 text-meta text-warning"><AlertTriangle className="mt-0.5 size-4 shrink-0" /> {t("courtImport.ocrMissing")}</p>}
+          {res.status === "unsupported" && <p className="m-4 text-meta text-warning">{t("errors.unsupported")}</p>}
           {items.length === 0 ? (
             <EmptyState compact title={t("courtImport.noSuggestions")} />
           ) : (
@@ -111,7 +111,7 @@ export function ImportView({ history }: { history: { id: string; sourceType: str
           )}
           {items.length > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3">
-              <span className="text-[12px] text-ink-subtle">{!matter && t("courtImport.matter")}</span>
+              <span className="text-meta text-ink-subtle">{!matter && t("courtImport.matter")}</span>
               <div className="flex items-center gap-3">
                 {!matter && <div className="w-72"><Picker type="matters" value={matter} onChange={(x) => setMatter(x?.id ?? null)} /></div>}
                 <Button variant="primary" disabled={!matter || !selected.length} loading={pending} onClick={apply}><Check /> {t("courtImport.apply")} ({selected.length})</Button>
@@ -120,8 +120,8 @@ export function ImportView({ history }: { history: { id: string; sourceType: str
           )}
           {res.excerpt && (
             <details className="border-t border-line px-4 py-3">
-              <summary className="cursor-pointer text-[12.5px] font-medium text-ink-muted">{t("courtImport.source")}</summary>
-              <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap font-sans text-[12.5px] text-ink-muted" dir="auto">{res.excerpt}</pre>
+              <summary className="cursor-pointer text-meta font-medium text-ink-muted">{t("courtImport.source")}</summary>
+              <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap font-sans text-meta text-ink-muted" dir="auto">{res.excerpt}</pre>
             </details>
           )}
         </Panel>
@@ -131,7 +131,7 @@ export function ImportView({ history }: { history: { id: string; sourceType: str
         {history.length === 0 ? <EmptyState compact title={t("courtImport.noSuggestions").split(".")[0]} /> : (
           <ul className="divide-y divide-line">
             {history.map((h) => (
-              <li key={h.id} className="flex items-center gap-3 px-4 py-2.5 text-[13px]">
+              <li key={h.id} className="flex items-center gap-3 px-4 py-2.5 text-body">
                 <span className="text-ink-subtle">{formatDateTime(h.createdAt, locale)}</span>
                 <Badge tone="neutral">{h.sourceType}</Badge>
                 <span className="flex-1 text-ink-muted">{t("common.items", { n: h.count })}</span>

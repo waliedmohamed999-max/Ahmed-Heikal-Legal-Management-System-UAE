@@ -47,6 +47,8 @@ test.describe("public website", () => {
   test("booking request is validated and lands in the CRM as a lead", async ({ page, context, baseURL }) => {
     await context.addCookies([{ name: "ahl_locale", value: "en", url: baseURL! }]);
     await page.goto("/book");
+    // Step 1 (service & time) → step 2 (details)
+    await page.getByRole("button", { name: /Continue/i }).click();
     await page.getByRole("button", { name: /Send request|Request/i }).click();
     await expect(page.locator("[aria-invalid=true]").first()).toBeVisible();
     const name = `E2E Visitor ${Date.now()}`;

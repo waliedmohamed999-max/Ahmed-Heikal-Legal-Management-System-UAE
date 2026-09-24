@@ -30,8 +30,8 @@ export function ReferenceTable({ kind, title, rows, columns, fields, blank }: {
   return (
     <Panel title={title} actions={<Button size="sm" variant="secondary" onClick={() => setEdit({ ...blank, id: "" })}><Plus /> {t("settings.reference.new")}</Button>}>
       <div className="overflow-x-auto scrollbar-thin">
-        <table className="w-full text-[13px]">
-          <thead><tr className="border-b border-line text-start text-[11.5px] text-ink-subtle">{columns.map((c) => <th key={c.key} className="px-4 py-2 text-start font-medium">{c.label}</th>)}<th /></tr></thead>
+        <table className="w-full text-body">
+          <thead><tr className="border-b border-line text-start text-meta text-ink-subtle">{columns.map((c) => <th key={c.key} className="px-4 py-2 text-start font-medium">{c.label}</th>)}<th /></tr></thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id} className="border-b border-line last:border-0 hover:bg-surface-muted/50">
@@ -45,7 +45,7 @@ export function ReferenceTable({ kind, title, rows, columns, fields, blank }: {
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
         {edit && (
           <DialogContent title={title}>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {fields.map((f) => (
                 f.type === "checkbox" ? (
                   <Checkbox key={f.name} className="sm:col-span-2" label={f.label} checked={!!edit[f.name]} onChange={(e) => setEdit({ ...edit, [f.name]: e.target.checked })} />
@@ -79,8 +79,8 @@ export function NestedEditor({ kind, title, rows, header, childKey, childFields,
     <Panel title={title} actions={<Button size="sm" variant="secondary" onClick={() => setEdit({ ...blank, id: "", [childKey]: [{ ...blankChild }] })}><Plus /> {t("settings.reference.new")}</Button>}>
       <ul className="divide-y divide-line">
         {rows.map((r) => (
-          <li key={r.id} className="flex items-center gap-3 px-4 py-2.5 text-[13px]">
-            <div className="min-w-0 flex-1">{r.display}{r.sub && <span className="ms-1 text-[12px] text-ink-subtle">· {r.sub}</span>}</div>
+          <li key={r.id} className="flex items-center gap-3 px-4 py-2.5 text-body">
+            <div className="min-w-0 flex-1">{r.display}{r.sub && <span className="ms-1 text-meta text-ink-subtle">· {r.sub}</span>}</div>
             <Badge tone="outline">{(r[childKey] as unknown[]).length}</Badge>
             <Button size="icon-xs" variant="ghost" aria-label={t("common.edit")} onClick={() => setEdit(r)}><Pencil /></Button>
           </li>
@@ -89,7 +89,7 @@ export function NestedEditor({ kind, title, rows, header, childKey, childFields,
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
         {edit && (
           <DialogContent title={title} size="xl">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {header.map((f) =>
                 f.type === "checkbox" ? <Checkbox key={f.name} label={f.label} checked={!!edit[f.name]} onChange={(e) => setEdit({ ...edit, [f.name]: e.target.checked })} /> :
                 f.type === "select" ? <Field key={f.name} label={f.label}>{(a) => <Select {...a} value={String(edit[f.name] ?? "")} onChange={(e) => setEdit({ ...edit, [f.name]: e.target.value })}>{f.empty && <option value="">{t("common.notSet")}</option>}{f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</Select>}</Field> :
@@ -99,7 +99,7 @@ export function NestedEditor({ kind, title, rows, header, childKey, childFields,
             <div className="mt-4 space-y-2">
               {children.map((c, i) => (
                 <div key={i} className="flex flex-wrap items-center gap-2 rounded-md border border-line p-2">
-                  <span className="w-6 text-center text-[12px] tabular text-ink-subtle">{i + 1}</span>
+                  <span className="w-6 text-center text-meta tabular text-ink-subtle">{i + 1}</span>
                   {childFields.map((f) =>
                     f.type === "checkbox" ? <Checkbox key={f.name} label={f.label} checked={!!c[f.name]} onChange={(e) => setChild(i, { [f.name]: e.target.checked })} /> :
                     <Input key={f.name} placeholder={f.label} aria-label={f.label} dir={f.type === "text" ? f.dir : undefined} className={f.type === "text" && f.mono ? "w-40 font-mono uppercase" : "min-w-40 flex-1"} value={String(c[f.name] ?? "")} onChange={(e) => setChild(i, { [f.name]: e.target.value })} />,

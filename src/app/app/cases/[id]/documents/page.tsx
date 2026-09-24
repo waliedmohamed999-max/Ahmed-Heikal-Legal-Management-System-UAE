@@ -17,10 +17,9 @@ export default async function CaseDocumentsPage({ params, searchParams }: { para
   const data = await listDocuments(ctx, { ...q, page: 1 }, id);
   const m = ws.matter;
   return (
-    <div className="space-y-3">
-      <ListSearch placeholder={t("documents.searchPlaceholder")} filters={[{ key: "status", label: t("common.status"), options: ["DRAFT", "UNDER_REVIEW", "CHANGES_REQUESTED", "APPROVED", "SUBMITTED"].map((s) => ({ value: s, label: t(`enums.documentStatus.${s}`) })) }]} />
-      <div className="overflow-hidden rounded-lg border border-line bg-surface shadow-xs">
+    <div>
         <DocumentTable
+          toolbar={<ListSearch placeholder={t("documents.searchPlaceholder")} filters={[{ key: "status", label: t("common.status"), options: ["DRAFT", "UNDER_REVIEW", "CHANGES_REQUESTED", "APPROVED", "SUBMITTED"].map((s) => ({ value: s, label: t(`enums.documentStatus.${s}`) })) }]} />}
           rows={data.rows}
           showMatter={false}
           canUpload={ws.caps.includes("documents.upload")}
@@ -29,7 +28,6 @@ export default async function CaseDocumentsPage({ params, searchParams }: { para
           autoOpenUpload={sp.upload === "1"}
           suggest={{ number: m.internalNumber, client: locale === "ar" ? m.client.nameEn : m.client.nameEn }}
         />
-      </div>
     </div>
   );
 }

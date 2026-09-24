@@ -22,9 +22,9 @@ export default async function AgendaPage() {
     listTasks(ctx, { bucket: "overdue", mine: true }),
   ]);
   return (
-    <div className="mx-auto max-w-[1300px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-[1300px] px-4 pb-10 pt-5 sm:px-6 lg:px-8 lg:pt-6">
       <PageHeader title={t("agenda.title")} subtitle={`${formatLongDate(now, locale, tz)} · ${formatHijri(now, locale, tz)}`} />
-      <div className="mt-6 grid gap-5 xl:grid-cols-12">
+      <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-12">
         <div className="xl:col-span-8">
           <Panel title={t("agenda.subtitle")} icon={<Sun />}>
             {items.length === 0 ? <EmptyState icon={<Sun />} title={t("agenda.empty")} body={t("agenda.emptyBody")} /> : <TimeGrid days={[start.toISOString()]} items={items} startHour={7} endHour={21} />}

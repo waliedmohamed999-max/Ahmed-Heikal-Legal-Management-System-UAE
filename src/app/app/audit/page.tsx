@@ -26,24 +26,24 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   const L = (en: string, ar: string | null) => (locale === "ar" ? ar || en : en);
   const ACTIONS = ["auth", "matter", "document", "permission", "access", "client", "deadline", "hearing", "invoice", "payment", "settings", "ai", "privacy"];
   return (
-    <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-[1400px] px-4 pb-10 pt-5 sm:px-6 lg:px-8 lg:pt-6">
       <PageHeader title={t("audit.title")} subtitle={t("audit.subtitle")} actions={<AuditTools canExport={ctx.can("audit.export")} query={new URLSearchParams(Object.entries(sp).filter(([k, v]) => v && k !== "page") as [string, string][]).toString()} />} />
       <ListSearch className="mt-6" placeholder={t("common.search")} filters={[
         { key: "user", label: t("audit.user"), options: users.map((u) => ({ value: u.id, label: L(u.name, u.nameAr) })) },
         { key: "action", label: t("audit.action"), options: ACTIONS.map((a) => ({ value: a, label: a })) },
       ]} />
-      <form className="mt-2 flex flex-wrap items-end gap-2 text-[12.5px]" action="/app/audit">
+      <form className="mt-2 flex flex-wrap items-end gap-2 text-meta" action="/app/audit">
         {Object.entries(sp).filter(([k, v]) => v && !["from", "to", "page"].includes(k)).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
         <label className="flex items-center gap-1.5">{t("audit.from")} <input type="date" name="from" defaultValue={sp.from} className="h-8 rounded-md border border-line-strong bg-surface px-2" /></label>
         <label className="flex items-center gap-1.5">{t("audit.to")} <input type="date" name="to" defaultValue={sp.to} className="h-8 rounded-md border border-line-strong bg-surface px-2" /></label>
         <button type="submit" className="h-8 rounded-md border border-line-strong bg-surface px-3 font-medium">{t("common.apply")}</button>
       </form>
-      <div className="mt-4 overflow-hidden rounded-lg border border-line bg-surface shadow-xs">
+      <div className="mt-4 overflow-hidden rounded-lg border border-line bg-surface">
         {rows.length === 0 ? <EmptyState title={t("audit.empty")} /> : (
           <>
             <div className="overflow-x-auto scrollbar-thin">
-              <table className="w-full text-[12.5px]">
-                <thead className="bg-surface-muted/80"><tr className="text-start text-[11.5px] text-ink-subtle">{[t("audit.time"), t("audit.user"), t("audit.action"), t("audit.record"), t("audit.ip"), t("audit.changes")].map((h) => <th key={h} className="px-3 py-2 text-start font-medium">{h}</th>)}</tr></thead>
+              <table className="w-full text-meta">
+                <thead className="bg-surface-muted/80"><tr className="text-start text-meta text-ink-subtle">{[t("audit.time"), t("audit.user"), t("audit.action"), t("audit.record"), t("audit.ip"), t("audit.changes")].map((h) => <th key={h} className="px-3 py-2 text-start font-medium">{h}</th>)}</tr></thead>
                 <tbody>
                   {rows.map((r) => (
                     <AuditRow key={r.id} r={{

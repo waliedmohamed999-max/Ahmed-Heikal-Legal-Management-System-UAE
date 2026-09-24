@@ -1,45 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Search, X, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useI18n } from "@/i18n/client";
-import { Input, Select } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useQueryNav } from "@/app/app/cases/toolbar";
+import { FilterMenu, FilterChips, SearchField } from "@/components/filters";
 
-/** Generic URL-synced search + filter bar for server-rendered lists. */
-export function ListSearch({ placeholder, filters = [], className }: { placeholder: string; filters?: { key: string; label: string; options: { value: string; label: string }[] }[]; className?: string }) {
+/** Generic URL-synced search + dropdown filters (+ removable chips) for server-rendered lists. */
+export function ListSearch({ placeholder, filters = [], className, trailing }: { placeholder: string; filters?: { key: string; label: string; options: { value: string; label: string }[] }[]; className?: string; trailing?: React.ReactNode }) {
   const { t } = useI18n();
   const { sp, set, pending } = useQueryNav();
-  const [q, setQ] = useState(sp.get("q") ?? "");
-  useEffect(() => {
-    const h = setTimeout(() => {
-      if ((sp.get("q") ?? "") !== q) set({ q });
-    }, 300);
-    return () => clearTimeout(h);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
-  const active = !!q || filters.some((f) => sp.get(f.key));
+  const chips = filters
+    .filter((f) => sp.get(f.key))
+    .map((f) => ({ key: f.key, label: f.label, value: f.options.find((o) => o.value === sp.get(f.key))?.label ?? sp.get(f.key)!, onRemove: () => set({ [f.key]: null }) }));
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", className)}>
-      <div className="relative min-w-[220px] flex-1 sm:max-w-sm">
-        <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-ink-subtle" />
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} className="ps-8" aria-label={t("common.search")} />
+    <div className={cn("space-y-2", className)}>
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchField value={sp.get("q") ?? ""} onChange={(q) => set({ q })} placeholder={placeholder} className="w-full sm:w-72" />
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto scrollbar-none">
+          {filters.map((f) => (
+            <FilterMenu key={f.key} label={f.label} value={sp.get(f.key)} options={f.options} onChange={(v) => set({ [f.key]: v })} />
+          ))}
+          {pending && <Loader2 className="size-4 shrink-0 animate-spin text-ink-subtle" aria-label={t("common.loading")} />}
+        </div>
+        {trailing && <div className="flex items-center gap-1.5">{trailing}</div>}
       </div>
-      {filters.map((f) => (
-        <Select key={f.key} aria-label={f.label} value={sp.get(f.key) ?? ""} onChange={(e) => set({ [f.key]: e.target.value || null })}
-          className={cn("h-8 w-auto max-w-[200px] text-[13px]", sp.get(f.key) && "border-accent/60 bg-accent-soft")}>
-          <option value="">{f.label}: {t("common.all")}</option>
-          {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </Select>
-      ))}
-      {active && (
-        <Button variant="ghost" size="sm" onClick={() => { setQ(""); set(Object.fromEntries([["q", null], ...filters.map((f) => [f.key, null])])); }}>
-          <X /> {t("common.clear")}
-        </Button>
-      )}
-      {pending && <Loader2 className="size-4 animate-spin text-ink-subtle" />}
+      <FilterChips chips={chips} onClear={() => set({ q: null, ...Object.fromEntries(filters.map((f) => [f.key, null])) })} />
     </div>
   );
 }

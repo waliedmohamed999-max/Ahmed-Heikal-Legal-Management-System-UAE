@@ -21,9 +21,9 @@ export default async function AppointmentsPage() {
     ctx.can("appointments.manage") ? db.appointment.findMany({ where: { organizationId: ctx.org.id, status: "REQUESTED", deletedAt: null }, orderBy: { startsAt: "asc" }, include: { lead: { select: { name: true, phone: true, email: true } } } }) : [],
   ]);
   return (
-    <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-[1200px] px-4 pb-10 pt-5 sm:px-6 lg:px-8 lg:pt-6">
       <PageHeader title={t("appointmentsPage.title")} subtitle={t("appointmentsPage.subtitle")} actions={ctx.can("appointments.manage") && <QuickButton type="appointment" label={t("appointments.new")} variant="primary" size="md" />} />
-      <div className="mt-6 grid gap-5 xl:grid-cols-12">
+      <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-12">
         <div className="space-y-5 xl:col-span-8">
           <Panel title={t("appointmentsPage.upcoming")} icon={<CalendarDays />}>
             {upcoming.filter((a) => a.status !== "REQUESTED").length ? <ul className="divide-y divide-line">{upcoming.filter((a) => a.status !== "REQUESTED").map((e) => <li key={e.id}><EventRow e={e} showDate /></li>)}</ul> : <EmptyState compact title={t("appointmentsPage.empty")} />}
@@ -36,10 +36,10 @@ export default async function AppointmentsPage() {
           {requested.length === 0 ? <EmptyState compact title={t("appointmentsPage.empty")} /> : (
             <ul className="divide-y divide-line">
               {requested.map((a) => (
-                <li key={a.id} className="space-y-1.5 px-4 py-3 text-[13px]">
+                <li key={a.id} className="space-y-1.5 px-4 py-3 text-body">
                   <p className="font-medium text-ink">{a.title}</p>
-                  <p className="text-[12px] text-ink-muted">{formatDateTime(a.startsAt, locale, ctx.org.timezone)} · {t(`enums.appointmentType.${a.type}`)}</p>
-                  {a.lead && <p className="ltr-nums text-[12px] text-ink-subtle">{a.lead.phone} · {a.lead.email}</p>}
+                  <p className="text-meta text-ink-muted">{formatDateTime(a.startsAt, locale, ctx.org.timezone)} · {t(`enums.appointmentType.${a.type}`)}</p>
+                  {a.lead && <p className="ltr-nums text-meta text-ink-subtle">{a.lead.phone} · {a.lead.email}</p>}
                   <ConfirmAppointment id={a.id} />
                 </li>
               ))}

@@ -15,14 +15,14 @@ export default async function AiSettingsPage() {
   return (
     <div className="space-y-5">
       <Panel title={t("settings.ai.title")} icon={<Sparkles />}>
-        <dl className="grid gap-3 p-4 text-[13px] sm:grid-cols-3">
+        <dl className="grid gap-3 p-4 text-body sm:grid-cols-3">
           <div><dt className="text-ink-subtle">{t("settings.ai.provider")}</dt><dd>{s.provider}</dd></div>
           <div><dt className="text-ink-subtle">{t("settings.ai.model")}</dt><dd className="font-mono" dir="ltr">{s.model}</dd></div>
           <div><dt className="text-ink-subtle">{t("settings.ai.status")}</dt><dd><Badge tone={s.keyConfigured ? "success" : "warning"}>{s.keyConfigured ? t("settings.ai.keyPresent") : t("settings.ai.keyMissing")}</Badge></dd></div>
         </dl>
         <AiSettingsForm enabled={s.enabled} allowDocumentProcessing={s.allowDocuments} />
       </Panel>
-      <p className="flex items-start gap-2 rounded-md bg-info-soft px-3 py-2.5 text-[12.5px] text-info"><ShieldCheck className="mt-0.5 size-4 shrink-0" /> {t("settings.ai.policy")}</p>
+      <p className="flex items-start gap-2 rounded-md bg-info-soft px-3 py-2.5 text-meta text-info"><ShieldCheck className="mt-0.5 size-4 shrink-0" /> {t("settings.ai.policy")}</p>
     </div>
   );
 }

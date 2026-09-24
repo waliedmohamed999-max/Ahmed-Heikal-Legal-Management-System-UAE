@@ -114,15 +114,15 @@ export function Picker({
           />
         </div>
         <ul id={`${id ?? type}-list`} role="listbox" className="max-h-64 overflow-y-auto p-1 scrollbar-thin">
-          {isError && <li className="px-3 py-4 text-center text-[13px] text-danger">{t("errors.network")}</li>}
-          {!isError && !isFetching && items.length === 0 && <li className="px-3 py-4 text-center text-[13px] text-ink-muted">{t("common.noResults")}</li>}
+          {isError && <li className="px-3 py-4 text-center text-body text-danger">{t("errors.network")}</li>}
+          {!isError && !isFetching && items.length === 0 && <li className="px-3 py-4 text-center text-body text-ink-muted">{t("common.noResults")}</li>}
           {items.map((i, idx) => (
             <li key={i.id} role="option" aria-selected={i.id === value}>
               <button type="button" onMouseEnter={() => setActive(idx)} onClick={() => pick(i)}
-                className={cn("flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-[13px]", idx === active && "bg-surface-muted")}>
+                className={cn("flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-start text-body", idx === active && "bg-surface-muted")}>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-ink">{text(i)}</span>
-                  {i.sub && <span className="ltr-nums block truncate text-[11.5px] text-ink-subtle">{i.sub}</span>}
+                  {i.sub && <span className="ltr-nums block truncate text-meta text-ink-subtle">{i.sub}</span>}
                 </span>
                 {i.id === value && <Check className="size-4 text-accent" />}
               </button>

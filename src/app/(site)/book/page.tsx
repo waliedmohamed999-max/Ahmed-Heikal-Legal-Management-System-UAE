@@ -13,13 +13,13 @@ export default async function BookPage({ searchParams }: { searchParams: Promise
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <h1 className="text-[32px] font-semibold tracking-tight">{t("site.bookTitle")}</h1>
-      <p className="mt-2 text-[15px] text-ink-muted">{t("site.bookIntro")}</p>
+      <p className="mt-2 text-heading text-ink-muted">{t("site.bookIntro")}</p>
       <BookingForm
         preset={service ?? ""}
         slots={s?.booking ?? { slotMinutes: 60, days: [1, 2, 3, 4, 5], startHour: 9, endHour: 17 }}
         services={areas.map((a) => ({ id: a.id, label: locale === "ar" ? a.titleAr : a.titleEn }))}
       />
-      <p className="mt-8 text-[12px] text-ink-subtle">{t("site.disclaimer")}</p>
+      <p className="mt-8 text-meta text-ink-subtle">{t("site.disclaimer")}</p>
     </div>
   );
 }

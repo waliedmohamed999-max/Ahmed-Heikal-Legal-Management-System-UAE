@@ -49,9 +49,9 @@ export function ClientForm({ id, initial, canSensitive, hasSensitive }: { id?: s
 
       {canSensitive && (
         <div className="p-5">
-          <p className="flex items-center gap-1.5 text-[13px] font-semibold text-ink"><ShieldAlert className="size-4 text-warning" /> {t("clients.sensitive")}</p>
-          <p className="mb-3 mt-0.5 text-[12px] text-ink-subtle">{t("clients.sensitiveHint")}</p>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <p className="flex items-center gap-1.5 text-body font-semibold text-ink"><ShieldAlert className="size-4 text-warning" /> {t("clients.sensitive")}</p>
+          <p className="mb-3 mt-0.5 text-meta text-ink-subtle">{t("clients.sensitiveHint")}</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t("clients.fields.emiratesId")} hint={hasSensitive ? t("clients.keepExisting") : undefined}>{(a) => <Input {...a} dir="ltr" autoComplete="off" {...r("emiratesId")} />}</Field>
             <Field label={t("clients.fields.passportNo")} hint={hasSensitive ? t("clients.keepExisting") : undefined}>{(a) => <Input {...a} dir="ltr" autoComplete="off" {...r("passportNo")} />}</Field>
           </div>

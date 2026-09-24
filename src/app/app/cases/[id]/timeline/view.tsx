@@ -41,7 +41,7 @@ export function TimelineView({ matterId, canEdit, events, documents }: { matterI
   };
 
   return (
-    <div className="grid gap-5 xl:grid-cols-12">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
       <div className="xl:col-span-8">
         <Panel
           title={t("workspace.tabs.timeline")}
@@ -57,15 +57,15 @@ export function TimelineView({ matterId, canEdit, events, documents }: { matterI
                   <span aria-hidden className="relative mt-1 size-[15px] shrink-0 rounded-full border-[3px] border-surface ring-1 ring-line-strong" style={{ background: TONE[e.eventType] ?? "var(--accent)" }} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <time className="text-[12px] font-medium tabular text-ink-muted" dateTime={e.occurredAt}>{formatDate(e.occurredAt, locale, tz)}</time>
-                      <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: TONE[e.eventType] ?? "var(--accent)" }}>{typeLabel(e.eventType)}</span>
+                      <time className="text-meta font-medium tabular text-ink-muted" dateTime={e.occurredAt}>{formatDate(e.occurredAt, locale, tz)}</time>
+                      <span className="text-caption font-medium uppercase tracking-wide" style={{ color: TONE[e.eventType] ?? "var(--accent)" }}>{typeLabel(e.eventType)}</span>
                       {e.source === "SYSTEM" && <Badge tone="outline">{t("enums.eventSource.AUTOMATION")}</Badge>}
                       {e.source === "AI" && <Badge tone="info"><Sparkles /> AI</Badge>}
                     </div>
-                    <p className="mt-0.5 text-[14px] font-medium text-ink">{e.title}</p>
-                    {e.description && <p className="mt-1 whitespace-pre-line text-[13px] text-ink-muted">{e.description}</p>}
-                    {e.notes && <p className="mt-1 rounded-md bg-surface-muted px-2.5 py-1.5 text-[12.5px] text-ink-muted">{e.notes}</p>}
-                    <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[12px] text-ink-subtle">
+                    <p className="mt-0.5 text-ui font-medium text-ink">{e.title}</p>
+                    {e.description && <p className="bidi-plain mt-1 whitespace-pre-line text-body text-ink-muted">{e.description}</p>}
+                    {e.notes && <p className="mt-1 rounded-md bg-surface-muted px-2.5 py-1.5 text-meta text-ink-muted">{e.notes}</p>}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-3 text-meta text-ink-subtle">
                       {e.user && <span className="inline-flex items-center gap-1"><User className="size-3" /> {e.user}</span>}
                       <span>{formatTime(e.occurredAt, locale, tz)}</span>
                       {e.documents.map((d) => (
@@ -89,10 +89,10 @@ export function TimelineView({ matterId, canEdit, events, documents }: { matterI
               {proposed.map((e) => (
                 <li key={e.id} className="px-4 py-3">
                   <Badge tone="warning">{t("common.aiGenerated")}</Badge>
-                  <p className="mt-1.5 text-[12px] tabular text-ink-muted">{formatDate(e.occurredAt, locale, tz)}</p>
-                  <p className="text-[13px] font-medium text-ink">{e.title}</p>
+                  <p className="mt-1.5 text-meta tabular text-ink-muted">{formatDate(e.occurredAt, locale, tz)}</p>
+                  <p className="text-body font-medium text-ink">{e.title}</p>
                   {e.citations?.map((c, i) => (
-                    <p key={i} className="text-[11.5px] text-ink-subtle">{c.document}{c.page ? ` — p. ${c.page}` : ""}</p>
+                    <p key={i} className="text-meta text-ink-subtle">{c.document}{c.page ? ` — p. ${c.page}` : ""}</p>
                   ))}
                   {canEdit && (
                     <div className="mt-2 flex gap-2">
@@ -131,7 +131,7 @@ function AddEventDialog({ matterId, documents, types, typeLabel, onDone }: { mat
   return (
     <DialogContent title={t("workspace.timelineAdd")}>
       <form onSubmit={submit} className="grid gap-4" noValidate>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("workspace.eventType")}>{(a) => <Select {...a} {...form.register("eventType")}>{types.map((x) => <option key={x} value={x}>{typeLabel(x)}</option>)}</Select>}</Field>
           <Field label={t("common.date")} error={err("occurredAt")} required>{(a) => <Input {...a} type="datetime-local" {...form.register("occurredAt")} />}</Field>
         </div>
@@ -140,10 +140,10 @@ function AddEventDialog({ matterId, documents, types, typeLabel, onDone }: { mat
         <Field label={t("common.notes")}>{(a) => <Textarea {...a} rows={2} {...form.register("notes")} />}</Field>
         {documents.length > 0 && (
           <div>
-            <p className="mb-1.5 text-[13px] font-medium">{t("workspace.tabs.documents")}</p>
+            <p className="mb-1.5 text-body font-medium">{t("workspace.tabs.documents")}</p>
             <div className="max-h-36 overflow-y-auto rounded-md border border-line p-1.5 scrollbar-thin">
               {documents.map((d) => (
-                <label key={d.id} className={cn("flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-[13px] hover:bg-surface-muted")}>
+                <label key={d.id} className={cn("flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-body hover:bg-surface-muted")}>
                   <input type="checkbox" checked={selected.has(d.id)} className="accent-[var(--accent)]"
                     onChange={(e) => { const n = new Set(selected); if (e.target.checked) n.add(d.id); else n.delete(d.id); form.setValue("documentIds", [...n]); }} />
                   {d.title}

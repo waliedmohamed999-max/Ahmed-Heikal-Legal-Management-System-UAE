@@ -69,7 +69,7 @@ export function KeyboardShortcuts({ permissions }: { permissions: string[] }) {
       <DialogContent title={t("shortcuts.title")} size="sm">
         <ul className="divide-y divide-line">
           {SHORTCUTS.map((s) => (
-            <li key={s.labelKey} className="flex items-center justify-between py-2 text-[13px]">
+            <li key={s.labelKey} className="flex items-center justify-between py-2 text-body">
               <span className="text-ink">{t(s.labelKey)}</span>
               <span className="flex gap-1" dir="ltr">
                 {s.keys.map((k) => (

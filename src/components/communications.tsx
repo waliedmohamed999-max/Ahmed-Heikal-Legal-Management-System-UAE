@@ -35,12 +35,12 @@ export function CommunicationsView({ matterId, clientId, canLog, items }: { matt
               <li key={c.id} className="flex gap-3 px-4 py-3">
                 <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-muted text-ink-muted"><Icon className="size-4" /></span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2 text-[13px]">
+                  <div className="flex flex-wrap items-center gap-x-2 text-body">
                     <span className="font-medium text-ink">{c.subject || t(`workspace.channels.${c.channel}`)}</span>
-                    <span className="inline-flex items-center gap-0.5 text-[12px] text-ink-subtle"><Dir className="size-3.5 rtl:-scale-x-100" /> {t(`workspace.directions.${c.direction}`)}</span>
+                    <span className="inline-flex items-center gap-0.5 text-meta text-ink-subtle"><Dir className="size-3.5 rtl:-scale-x-100" /> {t(`workspace.directions.${c.direction}`)}</span>
                   </div>
-                  {c.body && <p className="mt-1 line-clamp-3 whitespace-pre-line text-[13px] text-ink-muted">{c.body}</p>}
-                  <p className="mt-1 text-[12px] text-ink-subtle">{formatDateTime(c.occurredAt, locale, tz)}{c.user && ` · ${c.user}`}</p>
+                  {c.body && <p className="bidi-plain mt-1 line-clamp-3 whitespace-pre-line text-body text-ink-muted">{c.body}</p>}
+                  <p className="mt-1 text-meta text-ink-subtle">{formatDateTime(c.occurredAt, locale, tz)}{c.user && ` · ${c.user}`}</p>
                 </div>
               </li>
             );
@@ -65,7 +65,7 @@ function LogDialog({ matterId, clientId, onDone }: { matterId?: string; clientId
   return (
     <DialogContent title={t("workspace.commLog")}>
       <form onSubmit={submit} className="grid gap-4" noValidate>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label={t("workspace.channel")}>{(a) => <Select {...a} {...r("channel")}>{Object.keys(ICON).map((c) => <option key={c} value={c}>{t(`workspace.channels.${c}`)}</option>)}</Select>}</Field>
           <Field label={t("workspace.direction")}>{(a) => <Select {...a} {...r("direction")}>{Object.keys(DIR).map((c) => <option key={c} value={c}>{t(`workspace.directions.${c}`)}</option>)}</Select>}</Field>
           <Field label={t("common.date")} error={err("occurredAt")}>{(a) => <Input {...a} type="datetime-local" {...r("occurredAt")} />}</Field>

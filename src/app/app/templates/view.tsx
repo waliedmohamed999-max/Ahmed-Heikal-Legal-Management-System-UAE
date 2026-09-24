@@ -32,17 +32,17 @@ export function TemplatesView({ rows, canManage, canNote }: { rows: Row[]; canMa
   const saveNote = () => draft && matter && run(() => saveDraftAsNoteAction({ matterId: matter.id, body: draft.text, visibility: "TEAM", pinned: false }), { success: t("cms.saved") });
 
   return (
-    <div className="mt-5 grid gap-5 lg:grid-cols-[320px_1fr]">
+    <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[320px_1fr]">
       <Panel title={t("templatesPage.title")} icon={<FileStack />} actions={canManage && <Button size="xs" variant="secondary" onClick={() => setEdit("new")}><Plus /> {t("templatesPage.new")}</Button>}>
         {rows.length === 0 ? <EmptyState compact title={t("templatesPage.empty")} /> : (
           <ul className="divide-y divide-line">
             {rows.map((r) => (
               <li key={r.id}>
                 <button type="button" onClick={() => { setSel(r); setDraft(null); }} className={cn("flex w-full flex-col items-start gap-1 px-4 py-3 text-start hover:bg-surface-muted/60", sel?.id === r.id && "bg-accent-soft/60")}>
-                  <span className="text-[13.5px] font-medium text-ink" dir="auto">{r.name}</span>
+                  <span className="text-body font-medium text-ink" dir="auto">{r.name}</span>
                   <span className="flex items-center gap-1.5">
                     <Badge tone="neutral">{t(`templatesPage.kinds.${r.kind}`)}</Badge>
-                    <span className="text-[11px] uppercase text-ink-subtle">{r.locale}</span>
+                    <span className="text-caption uppercase text-ink-subtle">{r.locale}</span>
                     {!r.active && <Badge tone="warning">{t("cms.draft")}</Badge>}
                   </span>
                 </button>
@@ -63,7 +63,7 @@ export function TemplatesView({ rows, canManage, canNote }: { rows: Row[]; canMa
               </div>
             )}
           >
-            <pre className="max-h-[320px] overflow-y-auto whitespace-pre-wrap p-4 font-sans text-[13px] leading-7 text-ink-muted" dir={sel.locale === "ar" ? "rtl" : "ltr"}>{sel.body}</pre>
+            <pre className="max-h-[320px] overflow-y-auto whitespace-pre-wrap p-4 font-sans text-body leading-7 text-ink-muted" dir={sel.locale === "ar" ? "rtl" : "ltr"}>{sel.body}</pre>
           </Panel>
           <Panel title={t("templatesPage.generate")} icon={<Wand2 />}>
             <div className="flex flex-wrap items-end gap-3 p-4">
@@ -73,7 +73,7 @@ export function TemplatesView({ rows, canManage, canNote }: { rows: Row[]; canMa
             {draft && (
               <div className="border-t border-line p-4">
                 {draft.missing.length > 0 && (
-                  <p className="mb-3 flex items-start gap-1.5 rounded-md bg-warning-soft px-3 py-2 text-[12.5px] text-warning">
+                  <p className="mb-3 flex items-start gap-1.5 rounded-md bg-warning-soft px-3 py-2 text-meta text-warning">
                     <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
                     <span dir="ltr" className="font-mono">{draft.missing.map((m) => `[[${m}]]`).join("  ")}</span>
                   </p>
@@ -109,16 +109,16 @@ function EditDialog({ row, onDone }: { row: Row | null; onDone: () => void }) {
   const insert = (k: string) => form.setValue("body", `${form.getValues("body") ?? ""}{{${k}}}`, { shouldDirty: true });
   return (
     <DialogContent title={row ? t("common.edit") : t("templatesPage.new")} size="xl">
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-3" noValidate>
+      <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-3" noValidate>
         <Field label={t("common.name")} error={err("name")} required className="sm:col-span-3">{(a) => <Input {...a} {...r("name")} />}</Field>
         <Field label={t("common.type")}>{(a) => <Select {...a} {...r("kind")}>{TEMPLATE_KINDS.map((k) => <option key={k} value={k}>{t(`templatesPage.kinds.${k}`)}</option>)}</Select>}</Field>
         <Field label={t("cms.locale")}>{(a) => <Select {...a} {...r("locale")}><option value="ar">العربية</option><option value="en">English</option></Select>}</Field>
         <Checkbox label={t("templatesPage.active")} {...r("active")} className="self-end pb-2" />
         <Field label={t("cms.body")} error={err("body")} required className="sm:col-span-3">{(a) => <Textarea {...a} rows={12} dir={form.watch("locale") === "ar" ? "rtl" : "ltr"} {...r("body")} />}</Field>
         <div className="sm:col-span-3">
-          <p className="mb-1.5 text-[12px] font-medium text-ink-muted">{t("templatesPage.placeholders")}</p>
+          <p className="mb-1.5 text-meta font-medium text-ink-muted">{t("templatesPage.placeholders")}</p>
           <div className="flex flex-wrap gap-1.5" dir="ltr">
-            {TEMPLATE_PLACEHOLDERS.map((k) => <button key={k} type="button" onClick={() => insert(k)} className="rounded border border-line bg-surface-muted px-1.5 py-0.5 font-mono text-[11.5px] text-ink-muted hover:border-accent hover:text-accent">{`{{${k}}}`}</button>)}
+            {TEMPLATE_PLACEHOLDERS.map((k) => <button key={k} type="button" onClick={() => insert(k)} className="rounded border border-line bg-surface-muted px-1.5 py-0.5 font-mono text-meta text-ink-muted hover:border-accent hover:text-accent">{`{{${k}}}`}</button>)}
           </div>
         </div>
         <DialogFooter className="sm:col-span-3"><Button type="submit" variant="primary" loading={pending}>{t("common.save")}</Button></DialogFooter>

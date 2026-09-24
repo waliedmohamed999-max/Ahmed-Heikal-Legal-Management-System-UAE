@@ -19,11 +19,11 @@ export function PortalMessages({ matterId, messages }: { matterId: string; messa
   const { run, pending } = useAction();
   return (
     <div className="rounded-md border border-line">
-      <p className="flex items-center gap-1.5 border-b border-line px-3 py-2 text-[12px] font-semibold text-ink-muted"><MessageSquare className="size-3.5" /> {t("portal.messages")}</p>
+      <p className="flex items-center gap-1.5 border-b border-line px-3 py-2 text-meta font-semibold text-ink-muted"><MessageSquare className="size-3.5" /> {t("portal.messages")}</p>
       {messages.length > 0 && (
         <ul className="max-h-64 space-y-2 overflow-y-auto p-3 scrollbar-thin">
           {messages.map((m) => (
-            <li key={m.id} className={cn("max-w-[85%] rounded-lg px-3 py-2 text-[13px]", m.mine ? "ms-auto bg-brand text-brand-fg" : "bg-surface-muted text-ink")}>
+            <li key={m.id} className={cn("max-w-[85%] rounded-lg px-3 py-2 text-body", m.mine ? "ms-auto bg-brand text-brand-fg" : "bg-surface-muted text-ink")}>
               <p className="whitespace-pre-line">{m.body}</p>
               <p className={cn("mt-0.5 text-[10.5px]", m.mine ? "text-white/70" : "text-ink-subtle")}>{m.mine ? t("portal.fromYou") : t("portal.fromOffice")} · {relativeTime(m.at, locale)}</p>
             </li>
@@ -59,7 +59,7 @@ export function PortalUpload({ matterId }: { matterId: string }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button size="sm" variant="secondary" loading={busy} onClick={() => ref.current?.click()}><Upload /> {t("portal.uploads")}</Button>
-      <span className="text-[11.5px] text-ink-subtle">{t("portal.uploadHint")}</span>
+      <span className="text-meta text-ink-subtle">{t("portal.uploadHint")}</span>
       <input ref={ref} type="file" multiple className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp" onChange={(e) => e.target.files && upload(e.target.files)} />
     </div>
   );

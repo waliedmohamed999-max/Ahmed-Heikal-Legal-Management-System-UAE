@@ -15,7 +15,7 @@ export default async function TemplatesPage() {
   const manage = ctx.can("knowledge.manage");
   const rows = await db.template.findMany({ where: { organizationId: ctx.org.id, ...(manage ? {} : { active: true }) }, orderBy: [{ kind: "asc" }, { name: "asc" }] });
   return (
-    <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-[1200px] px-4 pb-10 pt-5 sm:px-6 lg:px-8 lg:pt-6">
       <PageHeader title={t("templatesPage.title")} subtitle={t("templatesPage.subtitle")} />
       <TemplatesView
         canManage={manage}

@@ -25,13 +25,13 @@ export function PrivacyView({ retentionYears, requests, breaches }: { retentionY
   const [br, setBr] = useState({ detectedAt: "", description: "", severity: "MEDIUM", affectedData: "", actionsTaken: "", reportedToAuthorityAt: "" });
   return (
     <div className="space-y-5">
-      <p className="rounded-md border border-warning/30 bg-warning-soft px-3 py-2.5 text-[12.5px] text-warning">{t("settings.privacy.intro")}</p>
+      <p className="rounded-md border border-warning/30 bg-warning-soft px-3 py-2.5 text-meta text-warning">{t("settings.privacy.intro")}</p>
       <Panel title={t("settings.privacy.retention")} icon={<Scale />}>
         <div className="flex items-end gap-3 p-4">
           <Field label={t("settings.privacy.retention")}>{(a) => <Input {...a} type="number" min={1} max={50} value={years} onChange={(e) => setYears(Number(e.target.value))} className="w-32" dir="ltr" />}</Field>
           <Button variant="primary" loading={pending} onClick={() => run(() => saveRetentionAction({ closedMatterYears: years }), { success: t("settings.saved") })}>{t("common.save")}</Button>
         </div>
-        <p className="border-t border-line px-4 py-2.5 text-[12px] text-ink-subtle">{t("settings.privacy.legalHold")}</p>
+        <p className="border-t border-line px-4 py-2.5 text-meta text-ink-subtle">{t("settings.privacy.legalHold")}</p>
       </Panel>
 
       <Panel title={t("settings.privacy.requests")} icon={<FileDown />}>
@@ -44,10 +44,10 @@ export function PrivacyView({ retentionYears, requests, breaches }: { retentionY
         {requests.length === 0 ? <EmptyState compact title="—" /> : (
           <ul className="divide-y divide-line">
             {requests.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center gap-2 px-4 py-2.5 text-[13px]">
+              <li key={r.id} className="flex flex-wrap items-center gap-2 px-4 py-2.5 text-body">
                 <Badge tone="info">{t(`settings.privacy.kinds.${r.kind}`)}</Badge>
                 <span className="font-medium">{r.subject}</span>
-                <span className="text-[12px] text-ink-subtle">{formatDateTime(r.createdAt, locale, tz)}</span>
+                <span className="text-meta text-ink-subtle">{formatDateTime(r.createdAt, locale, tz)}</span>
                 <Badge tone={r.status === "COMPLETED" ? "success" : r.status === "ON_LEGAL_HOLD" ? "warning" : "neutral"}>{t(`settings.privacy.statuses.${r.status}`)}</Badge>
                 <div className="ms-auto flex gap-1">
                   {r.kind === "EXPORT" && <Button asChild size="xs" variant="ghost"><a href={`/api/privacy/export/${r.subjectId}`}><FileDown /> {t("settings.privacy.export")}</a></Button>}
@@ -72,8 +72,8 @@ export function PrivacyView({ retentionYears, requests, breaches }: { retentionY
         {breaches.length === 0 ? <EmptyState compact title="—" /> : (
           <ul className="divide-y divide-line">
             {breaches.map((b) => (
-              <li key={b.id} className="px-4 py-2.5 text-[13px]">
-                <div className="flex items-center gap-2"><Badge tone={b.severity === "CRITICAL" || b.severity === "HIGH" ? "danger" : "warning"}>{b.severity}</Badge><span className="text-[12px] text-ink-subtle">{formatDateTime(b.detectedAt, locale, tz)}</span></div>
+              <li key={b.id} className="px-4 py-2.5 text-body">
+                <div className="flex items-center gap-2"><Badge tone={b.severity === "CRITICAL" || b.severity === "HIGH" ? "danger" : "warning"}>{b.severity}</Badge><span className="text-meta text-ink-subtle">{formatDateTime(b.detectedAt, locale, tz)}</span></div>
                 <p className="mt-1 text-ink">{b.description}</p>
               </li>
             ))}

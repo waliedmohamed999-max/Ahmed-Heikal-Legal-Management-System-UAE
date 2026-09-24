@@ -37,16 +37,16 @@ export function WidgetCustomizer({ widgets, hidden }: { widgets: string[]; hidde
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="secondary" loading={pending}>
+        <Button variant="ghost" size="sm" loading={pending}>
           <SlidersHorizontal /> {t("dashboard.customize")}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2">
-        <p className="px-2 pb-1.5 pt-1 text-[11px] font-medium uppercase tracking-wide text-ink-subtle">{t("dashboard.widgets")}</p>
+        <p className="px-2 pb-1.5 pt-1 text-caption font-medium uppercase tracking-wide text-ink-subtle">{t("dashboard.widgets")}</p>
         <ul>
           {widgets.map((w) => (
             <li key={w}>
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] hover:bg-surface-muted">
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-body hover:bg-surface-muted">
                 <input type="checkbox" checked={!off.has(w)} onChange={() => toggle(w)} className="size-4 accent-[var(--accent)]" />
                 {t(LABEL[w])}
               </label>

@@ -7,7 +7,7 @@ import { Dialog as D } from "radix-ui";
 import { useQuery } from "@tanstack/react-query";
 import { Briefcase, Users, FileText, CheckSquare, Contact, Receipt, Search, Loader2, CornerDownLeft, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/i18n/client";
-import { PRIMARY_NAV, MORE_NAV } from "./nav";
+import { ALL_NAV } from "./nav";
 import { quickCreate, type QuickType } from "./bus";
 
 type Hit = { id: string; title: string; subtitle?: string | null; href: string; snippet?: string | null };
@@ -85,7 +85,7 @@ export function CommandPalette({ permissions }: { permissions: string[] }) {
     { label: t("quick.newNote"), perm: "notes.create", run: () => quick("note"), keywords: "note ملاحظة" },
   ].filter((c) => perms.has(c.perm));
 
-  const nav = [...PRIMARY_NAV, ...MORE_NAV].filter((n) => !n.perm || perms.has(n.perm));
+  const nav = ALL_NAV.filter((n) => !n.perm || perms.has(n.perm));
   const groups = data ? (Object.keys(GROUP_ICON) as (keyof SearchResponse)[]).filter((g) => data[g]?.length) : [];
 
   return (
@@ -102,11 +102,11 @@ export function CommandPalette({ permissions }: { permissions: string[] }) {
                 value={q}
                 onValueChange={setQ}
                 placeholder={t("command.placeholder")}
-                className="h-12 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-subtle"
+                className="h-12 flex-1 bg-transparent text-heading text-ink outline-none placeholder:text-ink-subtle"
               />
             </div>
             <Command.List className="max-h-[min(60vh,440px)] overflow-y-auto p-2 scrollbar-thin">
-              <Command.Empty className="px-3 py-8 text-center text-[13px] text-ink-muted">
+              <Command.Empty className="px-3 py-8 text-center text-body text-ink-muted">
                 {isError ? t("errors.network") : isFetching ? t("command.searching") : t("command.empty")}
               </Command.Empty>
 
@@ -118,7 +118,7 @@ export function CommandPalette({ permissions }: { permissions: string[] }) {
                       <Command.Item key={hit.id} value={`${g}-${hit.id}`} onSelect={() => go(hit.href)} className={itemCls}>
                         <Icon className="size-4 shrink-0 text-ink-subtle" />
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-[13.5px] text-ink">{hit.title}</div>
+                          <div className="truncate text-body text-ink">{hit.title}</div>
                           {(hit.subtitle || hit.snippet) && <div className="truncate text-xs text-ink-subtle">{hit.snippet ? `${t("command.matchedInText")}: “${hit.snippet}”` : hit.subtitle}</div>}
                         </div>
                         <CornerDownLeft className="hidden size-3.5 text-ink-subtle group-data-[selected=true]:block" />
@@ -133,8 +133,8 @@ export function CommandPalette({ permissions }: { permissions: string[] }) {
                   <Command.Group heading={t("command.commands")} className={groupCls}>
                     {commands.map((c) => (
                       <Command.Item key={c.label} value={`${c.label} ${c.keywords}`} onSelect={c.run} className={itemCls}>
-                        <span className="flex size-5 items-center justify-center rounded bg-surface-sunken text-[11px] text-ink-muted">+</span>
-                        <span className="text-[13.5px]">{c.label}</span>
+                        <span className="flex size-5 items-center justify-center rounded bg-surface-sunken text-caption text-ink-muted">+</span>
+                        <span className="text-body">{c.label}</span>
                       </Command.Item>
                     ))}
                   </Command.Group>
@@ -142,14 +142,14 @@ export function CommandPalette({ permissions }: { permissions: string[] }) {
                     {nav.map((n) => (
                       <Command.Item key={n.key} value={`go ${t(n.labelKey)} ${n.key}`} onSelect={() => go(n.href)} className={itemCls}>
                         <n.icon className="size-4 text-ink-subtle" />
-                        <span className="text-[13.5px]">{t(n.labelKey)}</span>
+                        <span className="text-body">{t(n.labelKey)}</span>
                       </Command.Item>
                     ))}
                   </Command.Group>
                 </>
               )}
             </Command.List>
-            <div className="border-t border-line bg-surface-muted/60 px-4 py-2 text-[11.5px] text-ink-subtle">{t("command.hint")}</div>
+            <div className="border-t border-line bg-surface-muted/60 px-4 py-2 text-meta text-ink-subtle">{t("command.hint")}</div>
           </Command>
         </D.Content>
       </D.Portal>
@@ -157,5 +157,5 @@ export function CommandPalette({ permissions }: { permissions: string[] }) {
   );
 }
 
-const groupCls = "[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-ink-subtle";
+const groupCls = "[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-2 [&_[cmdk-group-heading]]:text-caption [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-ink-subtle";
 const itemCls = "group flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-2 data-[selected=true]:bg-surface-muted";

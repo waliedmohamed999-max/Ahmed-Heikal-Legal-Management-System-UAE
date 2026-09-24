@@ -33,8 +33,8 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
   const Back = locale === "ar" ? ChevronRight : ChevronLeft;
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
-      <Link href={doc.matter ? `/app/cases/${doc.matter.id}/documents` : "/app/documents"} className="inline-flex items-center gap-1 text-[12.5px] text-ink-subtle hover:text-ink">
+    <div className="mx-auto w-full max-w-[1440px] px-4 pb-10 pt-5 sm:px-6 lg:px-8 lg:pt-6">
+      <Link href={doc.matter ? `/app/cases/${doc.matter.id}/documents` : "/app/documents"} className="inline-flex items-center gap-1 text-meta text-ink-subtle hover:text-ink">
         <Back className="size-3.5" /> {doc.matter ? doc.matter.internalNumber : t("documents.title")}
       </Link>
       <header className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -42,20 +42,20 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={DOC_STATUS_TONE[doc.status]}>{t(`enums.documentStatus.${doc.status}`)}</Badge>
             <Badge tone="outline">v{doc.currentVersion}</Badge>
-            <span className="text-[12px] text-ink-subtle">{t(`enums.documentCategory.${doc.category}`)}</span>
+            <span className="text-meta text-ink-subtle">{t(`enums.documentCategory.${doc.category}`)}</span>
             {doc.confidentiality !== "STANDARD" && <Badge tone="warning"><Lock /> {t(`enums.confidentiality.${doc.confidentiality}`)}</Badge>}
           </div>
           <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-ink">{doc.title}</h1>
-          {doc.matter && <Link href={`/app/cases/${doc.matter.id}`} className="text-[13px] text-accent hover:underline"><span className="ltr-nums font-mono">{doc.matter.internalNumber}</span> · {L(doc.matter.title, doc.matter.titleAr)}</Link>}
+          {doc.matter && <Link href={`/app/cases/${doc.matter.id}`} className="text-body text-accent hover:underline"><span className="ltr-nums font-mono">{doc.matter.internalNumber}</span> · {L(doc.matter.title, doc.matter.titleAr)}</Link>}
         </div>
         {current && d.access.download && (
           <Button asChild variant="secondary"><a href={signedFileUrl(current.id, ctx.user.id, "attachment")}><Download /> {t("documents.download")}</a></Button>
         )}
       </header>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-12">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-12">
         <div className="space-y-5 xl:col-span-8">
-          <div className="overflow-hidden rounded-lg border border-line bg-surface shadow-xs">
+          <div className="overflow-hidden rounded-lg border border-line bg-surface">
             {previewUrl ? (
               current!.mimeType.startsWith("image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -69,7 +69,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
           </div>
           {current?.extractedText && (
             <Panel title={t("documents.extractedText")}>
-              <pre className="max-h-72 overflow-auto whitespace-pre-wrap p-4 font-sans text-[12.5px] leading-relaxed text-ink-muted scrollbar-thin">{current.extractedText.slice(0, 20000)}</pre>
+              <pre className="max-h-72 overflow-auto whitespace-pre-wrap p-4 font-sans text-meta leading-relaxed text-ink-muted scrollbar-thin">{current.extractedText.slice(0, 20000)}</pre>
             </Panel>
           )}
           <Panel title={t("tasks.comments")} icon={<MessageSquare />}>
@@ -88,7 +88,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
           <Panel title={t("documents.versions")} icon={<History />}>
             <ol className="divide-y divide-line">
               {doc.versions.map((v) => (
-                <li key={v.id} className="space-y-1 px-4 py-3 text-[12.5px]">
+                <li key={v.id} className="space-y-1 px-4 py-3 text-meta">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-ink">v{v.version} {v.version === doc.currentVersion && <Badge tone="info">{t("documents.current")}</Badge>}</span>
                     <Badge tone={DOC_STATUS_TONE[v.status]}>{t(`enums.documentStatus.${v.status}`)}</Badge>
@@ -108,7 +108,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
             {d.approvals.length === 0 ? <EmptyState compact title="—" /> : (
               <ul className="divide-y divide-line">
                 {d.approvals.map((a) => (
-                  <li key={a.id} className="flex gap-2.5 px-4 py-2.5 text-[12.5px]">
+                  <li key={a.id} className="flex gap-2.5 px-4 py-2.5 text-meta">
                     <Avatar name={a.requestedBy?.name ?? "—"} size={22} />
                     <div className="min-w-0 flex-1">
                       <p className="text-ink">{a.title}</p>

@@ -27,7 +27,7 @@ export default async function PlannerPage({ searchParams }: { searchParams: Prom
   const Prev = locale === "ar" ? ChevronRight : ChevronLeft;
   const Next = locale === "ar" ? ChevronLeft : ChevronRight;
   return (
-    <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-[1500px] px-4 pb-10 pt-5 sm:px-6 lg:px-8 lg:pt-6">
       <PageHeader title={t("planner.title")} subtitle={t("planner.subtitle")} actions={
         <div className="flex items-center gap-1">
           <Button asChild size="icon-sm" variant="secondary" aria-label={t("planner.prev")}><Link href={`/app/planner?w=${offset - 1}`}><Prev /></Link></Button>
@@ -35,25 +35,25 @@ export default async function PlannerPage({ searchParams }: { searchParams: Prom
           <Button asChild size="icon-sm" variant="secondary" aria-label={t("planner.next")}><Link href={`/app/planner?w=${offset + 1}`}><Next /></Link></Button>
         </div>
       } />
-      <p className="mt-4 text-[13px] font-medium text-ink-muted">{formatDate(start, locale, tz)} – {formatDate(days[6], locale, tz)}</p>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+      <p className="mt-4 text-body font-medium text-ink-muted">{formatDate(start, locale, tz)} – {formatDate(days[6], locale, tz)}</p>
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         {days.map((d) => {
           const list = items.filter((i) => key(i.startsAt) === key(d));
           return (
             <section key={d.toISOString()} className={cn("flex min-h-56 flex-col rounded-lg border bg-surface shadow-xs", key(d) === today ? "border-accent/50" : "border-line")}>
               <header className={cn("border-b border-line px-3 py-2", key(d) === today && "bg-accent-soft/60")}>
-                <div className="text-[11px] font-medium uppercase text-ink-subtle">{formatDate(d, locale, tz, { weekday: "long", day: undefined, month: undefined, year: undefined })}</div>
-                <div className="text-[15px] font-semibold tabular text-ink">{formatDate(d, locale, tz, { day: "numeric", month: "short", year: undefined })}</div>
+                <div className="text-caption font-medium uppercase text-ink-subtle">{formatDate(d, locale, tz, { weekday: "long", day: undefined, month: undefined, year: undefined })}</div>
+                <div className="text-heading font-semibold tabular text-ink">{formatDate(d, locale, tz, { day: "numeric", month: "short", year: undefined })}</div>
               </header>
               <ul className="flex-1 space-y-1.5 p-2">
-                {list.length === 0 && <li className="pt-6 text-center text-[12px] text-ink-subtle">{t("planner.empty")}</li>}
+                {list.length === 0 && <li className="pt-6 text-center text-meta text-ink-subtle">{t("planner.empty")}</li>}
                 {list.map((i) => {
                   const s = EVENT_STYLE[i.eventType];
                   return (
                     <li key={`${i.kind}-${i.id}`}>
                       <Link href={i.href} className="block rounded-md border-s-[3px] px-2 py-1.5 hover:shadow-sm" style={{ borderInlineStartColor: s.color, background: `color-mix(in srgb, ${s.color} 9%, var(--surface))` }}>
-                        <div className="flex items-center gap-1 text-[11px] font-medium tabular" style={{ color: s.color }}><s.icon className="size-3" /> {formatTime(i.startsAt, locale, tz)}</div>
-                        <div className="line-clamp-2 text-[12.5px] font-medium text-ink">{i.title}</div>
+                        <div className="flex items-center gap-1 text-caption font-medium tabular" style={{ color: s.color }}><s.icon className="size-3" /> {formatTime(i.startsAt, locale, tz)}</div>
+                        <div className="line-clamp-2 text-meta font-medium text-ink">{i.title}</div>
                         {i.matter && <div className="ltr-nums truncate font-mono text-[10.5px] text-ink-subtle">{i.matter.internalNumber}</div>}
                       </Link>
                     </li>

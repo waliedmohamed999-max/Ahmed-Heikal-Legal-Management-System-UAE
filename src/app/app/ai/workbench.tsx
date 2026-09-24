@@ -38,61 +38,107 @@ export function AiWorkbench({ available, allowDocuments, matter, documents, pres
       onSuccess: (d) => { setOpenId((d as { id: string }).id); router.refresh(); },
     });
 
-  return (
-    <div className="mt-5 grid gap-5 xl:grid-cols-12">
-      <div className="space-y-5 xl:col-span-5">
-        <Panel title={t("ai.run")} icon={<Sparkles />}>
-          <div className="grid gap-4 p-4">
-            <Field label={t("ai.matter")} required>
-              {(a) => <Picker {...a} type="matters" value={matter?.id ?? null} initialLabel={matter?.label} onChange={(i) => router.push(i ? `/app/ai?matter=${i.id}&task=${task}` : "/app/ai")} placeholder={t("quickForms.selectCase")} />}
-            </Field>
-            <Field label={t("common.type")}>{(a) => <Select {...a} value={task} onChange={(e) => setTask(e.target.value as never)}>{TASKS.map((k) => <option key={k} value={k}>{t(`ai.tasks.${k}`)}</option>)}</Select>}</Field>
-            {matter && (
-              <div>
-                <p className="mb-1 text-[13px] font-medium">{t("ai.documents")}</p>
-                <p className="mb-2 text-[11.5px] text-ink-subtle">{allowDocuments ? t("ai.documentsHint") : t("settings.ai.documentsHint")}</p>
-                <div className="max-h-56 space-y-0.5 overflow-y-auto rounded-md border border-line p-1.5 scrollbar-thin">
-                  {documents.length === 0 && <p className="px-2 py-3 text-center text-[12.5px] text-ink-subtle">{t("documents.empty")}</p>}
-                  {documents.map((d) => (
-                    <label key={d.id} className={cn("flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[13px] hover:bg-surface-muted", !allowDocuments && "opacity-50")}>
-                      <input type="checkbox" disabled={!allowDocuments || d.textStatus !== "DONE"} checked={docs.includes(d.id)} onChange={(e) => setDocs(e.target.checked ? [...docs, d.id] : docs.filter((x) => x !== d.id))} className="accent-[var(--accent)]" />
-                      <FileText className="size-3.5 text-ink-subtle" />
-                      <span className="flex-1 truncate">{d.title}</span>
-                      {d.textStatus !== "DONE" ? <Badge tone="warning">{t(`enums.processingStatus.${d.textStatus}`)}</Badge> : d.pages && <span className="text-[11px] text-ink-subtle">{d.pages}p</span>}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-            <Field label={t("ai.instructions")}>{(a) => <Textarea {...a} rows={3} value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder={t("ai.instructionsPlaceholder")} />}</Field>
-            <Field label={t("ai.targetLanguage")}>{(a) => <Select {...a} value={lang} onChange={(e) => setLang(e.target.value as never)}><option value="ar">{t("clients.langAr")}</option><option value="en">{t("clients.langEn")}</option></Select>}</Field>
-            {task === "EXTRACT" && <p className="rounded-md bg-warning-soft px-3 py-2 text-[12px] text-warning">{t("ai.deadlineWarning")}</p>}
-            <Button variant="primary" loading={pending} disabled={!available || !matter} onClick={submit}><Sparkles /> {pending ? t("ai.running") : t("ai.run")}</Button>
+  const sources = job && job.citations.length > 0 ? (
+    <ol className="space-y-2">
+      {job.citations.map((c, i) => (
+        <li key={i} className="text-body">
+          <div className="flex items-start gap-2">
+            <span className="mt-px shrink-0 rounded-sm bg-surface-sunken px-1 text-caption font-medium tabular text-ink-muted">{i + 1}</span>
+            <span className="min-w-0">
+              {c.documentId ? <Link href={`/app/documents/${c.documentId}`} className="bidi-plain font-medium text-ink hover:underline">{c.document}</Link> : <span className="bidi-plain font-medium text-ink">{c.document}</span>}
+              {c.page ? <span className="text-meta text-ink-subtle"> · p.{c.page}</span> : null}
+              <span className="bidi-plain mt-0.5 line-clamp-3 block text-meta text-ink-muted">“{c.quote}”</span>
+            </span>
           </div>
-        </Panel>
+        </li>
+      ))}
+    </ol>
+  ) : (
+    <p className="text-meta text-ink-subtle">—</p>
+  );
 
-        <Panel title={t("ai.history")} icon={<Bot />}>
-          {jobs.length === 0 ? <EmptyState compact title={t("ai.empty")} /> : (
-            <ul className="divide-y divide-line">
+  return (
+    <div className="mt-4 grid grid-cols-1 gap-6 xl:grid-cols-[260px_minmax(0,1fr)_300px]">
+      {/* Left: case · tools · history */}
+      <aside className="space-y-6">
+        <Field label={t("ai.matter")} required>
+          {(a) => <Picker {...a} type="matters" value={matter?.id ?? null} initialLabel={matter?.label} onChange={(i) => router.push(i ? `/app/ai?matter=${i.id}&task=${task}` : "/app/ai")} placeholder={t("quickForms.selectCase")} />}
+        </Field>
+        <div>
+          <div className="eyebrow">{t("common.type")}</div>
+          <ul role="radiogroup" className="mt-1.5 space-y-0.5">
+            {TASKS.map((k) => (
+              <li key={k}>
+                <button type="button" role="radio" aria-checked={task === k} onClick={() => setTask(k as never)} className={cn("flex h-8 w-full items-center gap-2 rounded-md px-2.5 text-start text-body transition-colors", task === k ? "bg-surface-sunken font-medium text-ink" : "text-ink-muted hover:bg-surface-muted hover:text-ink")}>
+                  <Sparkles className={cn("size-3.5 shrink-0", task === k ? "text-accent" : "text-ink-subtle")} />
+                  <span className="truncate">{t(`ai.tasks.${k}`)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <div className="eyebrow">{t("ai.history")}</div>
+          {jobs.length === 0 ? <p className="mt-1.5 px-2.5 text-meta text-ink-subtle">{t("ai.empty")}</p> : (
+            <ul className="mt-1.5 space-y-0.5">
               {jobs.map((j) => (
                 <li key={j.id}>
-                  <button type="button" onClick={() => setOpenId(j.id)} className={cn("flex w-full items-center gap-2 px-4 py-2.5 text-start text-[13px] hover:bg-surface-muted/60", openId === j.id && "bg-accent-soft/50")}>
-                    <span className="flex-1 truncate">{t(`ai.tasks.${j.kind}`)} <span className="ltr-nums text-[11.5px] text-ink-subtle">· {j.matter}</span></span>
-                    <Badge tone={j.status === "SUCCEEDED" ? (j.reviewStatus === "ACCEPTED" ? "success" : j.reviewStatus === "DISCARDED" ? "outline" : "warning") : j.status === "FAILED" ? "danger" : "info"}>
-                      {j.status === "SUCCEEDED" ? (j.reviewStatus === "REVIEW_REQUIRED" ? t("ai.reviewRequired").split("—")[0] : j.reviewStatus) : j.status}
-                    </Badge>
-                    <span className="text-[11px] text-ink-subtle">{relativeTime(j.createdAt, locale)}</span>
+                  <button type="button" onClick={() => setOpenId(j.id)} className={cn("flex w-full flex-col items-start rounded-md px-2.5 py-1.5 text-start transition-colors", openId === j.id ? "bg-surface-sunken" : "hover:bg-surface-muted")}>
+                    <span className="w-full truncate text-body text-ink">{t(`ai.tasks.${j.kind}`)}</span>
+                    <span className="flex w-full items-center gap-1.5 text-meta text-ink-subtle">
+                      {j.matter && <span className="record-id">{j.matter}</span>}
+                      <span>· {relativeTime(j.createdAt, locale)}</span>
+                    </span>
                   </button>
                 </li>
               ))}
             </ul>
           )}
-        </Panel>
-      </div>
+        </div>
+      </aside>
 
-      <div className="xl:col-span-7">
+      {/* Centre: composer + output */}
+      <section className="min-w-0 space-y-4">
+        <div className="rounded-lg border border-line focus-within:border-accent">
+          <textarea rows={3} value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder={t("ai.instructionsPlaceholder")} aria-label={t("ai.instructions")} className="bidi-plain block w-full resize-y rounded-t-lg bg-transparent px-3 py-2.5 text-[16px] text-ink placeholder:text-ink-subtle focus:outline-none sm:text-body" />
+          <div className="flex flex-wrap items-center gap-2 border-t border-line px-2.5 py-2">
+            <span className="min-w-0 truncate text-meta text-ink-subtle">{t(`ai.tasks.${task}`)}{matter && <> · <span className="record-id">{matter.label.split(" · ")[0]}</span></>}</span>
+            <div className="ms-auto flex items-center gap-2">
+              <Select value={lang} onChange={(e) => setLang(e.target.value as never)} aria-label={t("ai.targetLanguage")} className="sm:h-7 sm:w-28">
+                <option value="ar">{t("clients.langAr")}</option><option value="en">{t("clients.langEn")}</option>
+              </Select>
+              <Button variant="primary" size="sm" loading={pending} disabled={!available || !matter} onClick={submit}><Sparkles /> {pending ? t("ai.running") : t("ai.run")}</Button>
+            </div>
+          </div>
+        </div>
+        {task === "EXTRACT" && <p className="border-s-2 border-warning bg-warning-soft/60 px-3 py-2 text-meta text-warning">{t("ai.deadlineWarning")}</p>}
         {job ? <JobResult key={job.id} job={job} /> : <div className="rounded-lg border border-dashed border-line-strong"><EmptyState icon={<Sparkles />} title={t("ai.result")} /></div>}
-      </div>
+      </section>
+
+      {/* Right: sources · case context */}
+      <aside className="space-y-6">
+        <div>
+          <div className="eyebrow">{t("ai.sources")}</div>
+          <div className="mt-2">{sources}</div>
+        </div>
+        {matter && (
+          <div>
+            <div className="eyebrow">{t("ai.documents")}</div>
+            <p className="mt-1 text-meta text-ink-subtle">{allowDocuments ? t("ai.documentsHint") : t("settings.ai.documentsHint")}</p>
+            <div className="mt-2 max-h-72 space-y-0.5 overflow-y-auto scrollbar-thin">
+              {documents.length === 0 && <p className="py-2 text-meta text-ink-subtle">{t("documents.empty")}</p>}
+              {documents.map((d) => (
+                <label key={d.id} className={cn("flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-body hover:bg-surface-muted", !allowDocuments && "opacity-50")}>
+                  <input type="checkbox" disabled={!allowDocuments || d.textStatus !== "DONE"} checked={docs.includes(d.id)} onChange={(e) => setDocs(e.target.checked ? [...docs, d.id] : docs.filter((x) => x !== d.id))} className="accent-[var(--brand)]" />
+                  <FileText className="size-3.5 shrink-0 text-ink-subtle" />
+                  <span className="bidi-plain min-w-0 flex-1 truncate">{d.title}</span>
+                  {d.textStatus !== "DONE" ? <Badge tone="warning">{t(`enums.processingStatus.${d.textStatus}`)}</Badge> : d.pages && <span className="text-meta text-ink-subtle">{d.pages}p</span>}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+      </aside>
     </div>
   );
 }
@@ -109,9 +155,9 @@ function JobResult({ job }: { job: Job }) {
     onSuccess: (d) => { const n = (d as { count: number }).count; toast.success(kind === "timeline" ? t("ai.proposalsCreated", { n }) : kind === "tasks" ? t("ai.tasksCreated", { n }) : t("courtImport.applied")); setSel([]); router.refresh(); },
   });
   const Row = ({ i, children, src }: { i: number; children: React.ReactNode; src?: { document: string; page: number | null } }) => (
-    <label className="flex cursor-pointer items-start gap-2.5 px-4 py-2.5 text-[13px] hover:bg-surface-muted/50">
+    <label className="flex cursor-pointer items-start gap-2.5 px-4 py-2.5 text-body hover:bg-surface-muted/50">
       <input type="checkbox" checked={sel.includes(i)} onChange={() => toggle(i)} className="mt-0.5 accent-[var(--accent)]" />
-      <div className="min-w-0 flex-1">{children}{src && <p className="text-[11.5px] text-ink-subtle"><Quote className="me-1 inline size-3" />{src.document}{src.page ? ` — p. ${src.page}` : ""}</p>}</div>
+      <div className="min-w-0 flex-1">{children}{src && <p className="text-meta text-ink-subtle"><Quote className="me-1 inline size-3" />{src.document}{src.page ? ` — p. ${src.page}` : ""}</p>}</div>
     </label>
   );
 
@@ -127,7 +173,7 @@ function JobResult({ job }: { job: Job }) {
         </div>
       )}
     >
-      <div className="border-b border-warning/30 bg-warning-soft px-4 py-2 text-[12px] font-medium text-warning"><AlertTriangle className="me-1 inline size-3.5" /> {t("ai.reviewRequired")}</div>
+      <div className="border-b border-warning/30 bg-warning-soft px-4 py-2 text-meta font-medium text-warning"><AlertTriangle className="me-1 inline size-3.5" /> {t("ai.reviewRequired")}</div>
       {job.status === "FAILED" ? (
         <EmptyState compact title={t(`errors.${job.error ?? "unexpected"}`)} />
       ) : s ? (
@@ -145,16 +191,16 @@ function JobResult({ job }: { job: Job }) {
             </>
           )}
           {Array.isArray(s.deadlines) && (
-            <div className="space-y-4 p-4 text-[13px]">
+            <div className="space-y-4 p-4 text-body">
               {(["parties", "dates", "amounts"] as const).map((k) => Array.isArray(s[k]) && (s[k] as unknown[]).length > 0 && (
                 <div key={k}>
-                  <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-ink-subtle">{k}</p>
-                  <ul className="space-y-1">{(s[k] as Record<string, string | number | null>[]).map((x, i) => <li key={i} className="text-ink">{Object.entries(x).filter(([kk]) => !["document", "page"].includes(kk)).map(([, v]) => v).join(" · ")} <span className="text-[11.5px] text-ink-subtle">— {x.document}{x.page ? `, p. ${x.page}` : ""}</span></li>)}</ul>
+                  <p className="mb-1 text-meta font-semibold uppercase tracking-wide text-ink-subtle">{k}</p>
+                  <ul className="space-y-1">{(s[k] as Record<string, string | number | null>[]).map((x, i) => <li key={i} className="text-ink">{Object.entries(x).filter(([kk]) => !["document", "page"].includes(kk)).map(([, v]) => v).join(" · ")} <span className="text-meta text-ink-subtle">— {x.document}{x.page ? `, p. ${x.page}` : ""}</span></li>)}</ul>
                 </div>
               ))}
               <div>
-                <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-wide text-ink-subtle">{t("deadlines.title")}</p>
-                <div className="-mx-4 divide-y divide-line">{(s.deadlines as { due: string; description: string; type: string; document: string; page: number | null }[]).map((d, i) => <Row key={i} i={i} src={d}><p className="text-ink"><span className="ltr-nums me-2 font-mono text-[12px]">{d.due}</span>{d.description} <Badge tone="warning">{t("enums.verification.NEEDS_VERIFICATION")}</Badge></p></Row>)}</div>
+                <p className="mb-1 text-meta font-semibold uppercase tracking-wide text-ink-subtle">{t("deadlines.title")}</p>
+                <div className="-mx-4 divide-y divide-line">{(s.deadlines as { due: string; description: string; type: string; document: string; page: number | null }[]).map((d, i) => <Row key={i} i={i} src={d}><p className="text-ink"><span className="ltr-nums me-2 font-mono text-meta">{d.due}</span>{d.description} <Badge tone="warning">{t("enums.verification.NEEDS_VERIFICATION")}</Badge></p></Row>)}</div>
                 <Button size="sm" variant="primary" className="mt-2" disabled={!sel.length} loading={pending} onClick={() => apply("deadlines")}><CalendarPlus /> {t("deadlines.new")}</Button>
               </div>
             </div>
@@ -162,21 +208,8 @@ function JobResult({ job }: { job: Job }) {
         </div>
       ) : (
         <div className="p-4">
-          <div className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink">{job.output}</div>
-          {job.citations.length > 0 && (
-            <div className="mt-5 border-t border-line pt-3">
-              <p className="mb-2 text-[11.5px] font-semibold uppercase tracking-wide text-ink-subtle">{t("ai.sources")}</p>
-              <ul className="space-y-2">
-                {job.citations.map((c, i) => (
-                  <li key={i} className="rounded-md bg-surface-muted p-2.5 text-[12.5px]">
-                    <p className="font-medium text-ink">{c.documentId ? <Link href={`/app/documents/${c.documentId}`} className="hover:underline">{c.document}</Link> : c.document}{c.page ? ` — p. ${c.page}` : ""}</p>
-                    <p className="mt-0.5 line-clamp-3 text-ink-muted">“{c.quote}”</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {job.tokens > 0 && <p className="mt-3 text-end text-[11px] text-ink-subtle">{job.tokens.toLocaleString()} {t("ai.tokens")}</p>}
+          <div className="whitespace-pre-wrap text-body leading-relaxed text-ink">{job.output}</div>
+          {job.tokens > 0 && <p className="mt-3 text-end text-caption text-ink-subtle">{job.tokens.toLocaleString()} {t("ai.tokens")}</p>}
         </div>
       )}
     </Panel>

@@ -76,18 +76,18 @@ export function EditCaseForm({
 
       <fieldset className="grid gap-4 p-5">
         <Field label={t("intake.summary")} error={err("summary")}>{(a) => <Textarea {...a} rows={5} {...register("summary")} />}</Field>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Field label={t("workspace.currentStatus")}>{(a) => <Textarea {...a} rows={3} {...register("currentStatusText")} />}</Field>
           <Field label={t("workspace.lastAction")}>{(a) => <Textarea {...a} rows={3} {...register("lastActionText")} />}</Field>
           <Field label={t("workspace.nextAction")}>{(a) => <Textarea {...a} rows={3} {...register("nextActionText")} />}</Field>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Field label={t("intake.claims")}>{(a) => <Textarea {...a} rows={3} {...register("claims")} />}</Field>
           <Field label={t("intake.claimAmount")} error={err("claimAmount")}>{(a) => <Input {...a} type="number" step="0.01" min="0" dir="ltr" {...register("claimAmount")} />}</Field>
         </div>
         <Field label={t("workspace.internalNotes")}>{(a) => <Textarea {...a} rows={3} {...register("internalNotes")} />}</Field>
         <div>
-          <p className="mb-2 text-[13px] font-medium text-ink">{t("workspace.riskFlags")}</p>
+          <p className="mb-2 text-body font-medium text-ink">{t("workspace.riskFlags")}</p>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             {RISK_FLAGS.map((f) => (
               <Checkbox

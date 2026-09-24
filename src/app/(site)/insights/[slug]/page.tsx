@@ -23,7 +23,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   if (!a) notFound();
   return (
     <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6" dir={a.locale === "ar" ? "rtl" : "ltr"}>
-      <p className="text-[12.5px] text-ink-subtle">{a.category}{a.publishedAt && ` · ${formatDate(a.publishedAt, locale)}`}</p>
+      <p className="text-meta text-ink-subtle">{a.category}{a.publishedAt && ` · ${formatDate(a.publishedAt, locale)}`}</p>
       <h1 className="mt-2 text-[32px] font-semibold leading-tight tracking-tight">{a.title}</h1>
       {a.excerpt && <p className="mt-4 text-[17px] leading-relaxed text-ink-muted">{a.excerpt}</p>}
       <div className="mt-8 whitespace-pre-line text-[16px] leading-8 text-ink">{a.body}</div>

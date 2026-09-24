@@ -29,26 +29,26 @@ export default async function TeamMemberPage({ params }: { params: Promise<{ id:
   const L = (en: string, ar: string | null | undefined) => (locale === "ar" ? ar || en : en);
   const Back = locale === "ar" ? ChevronRight : ChevronLeft;
   return (
-    <div className="mx-auto max-w-[1300px] px-4 py-6 sm:px-6 lg:px-8">
-      <Link href="/app/team" className="inline-flex items-center gap-1 text-[12.5px] text-ink-subtle hover:text-ink"><Back className="size-3.5" /> {t("team.title")}</Link>
+    <div className="mx-auto w-full max-w-[1300px] px-4 pb-10 pt-5 sm:px-6 lg:px-8 lg:pt-6">
+      <Link href="/app/team" className="inline-flex items-center gap-1 text-meta text-ink-subtle hover:text-ink"><Back className="size-3.5" /> {t("team.title")}</Link>
       <header className="mt-3 flex items-center gap-4">
         <Avatar name={u.name} src={u.photoUrl} size={56} />
         <div>
           <h1 className="text-xl font-semibold text-ink">{L(u.name, u.nameAr)}</h1>
-          <p className="text-[13px] text-ink-muted">{L(u.position ?? "", u.positionAr)} · {L(u.role.name, u.role.nameAr)}</p>
-          <div className="mt-1 flex gap-3 text-[12.5px] text-ink-muted">
+          <p className="text-body text-ink-muted">{L(u.position ?? "", u.positionAr)} · {L(u.role.name, u.role.nameAr)}</p>
+          <div className="mt-1 flex gap-3 text-meta text-ink-muted">
             <a href={`mailto:${u.email}`} className="ltr-nums inline-flex items-center gap-1 hover:text-ink"><Mail className="size-3.5" /> {u.email}</a>
             {u.phone && <a href={`tel:${u.phone}`} className="ltr-nums inline-flex items-center gap-1 hover:text-ink"><Phone className="size-3.5" /> {u.phone}</a>}
           </div>
         </div>
       </header>
-      <div className="mt-6 grid gap-5 xl:grid-cols-12">
+      <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-12">
         <div className="space-y-5 xl:col-span-7">
           <Panel title={`${t("team.cases")} (${matters.length})`} icon={<Briefcase />}>
             {matters.length === 0 ? <EmptyState compact title="—" /> : (
               <ul className="divide-y divide-line">
                 {matters.map((m) => (
-                  <li key={m.id}><Link href={`/app/cases/${m.id}`} className="flex items-center gap-2 px-4 py-2.5 text-[13px] hover:bg-surface-muted/60"><span className="ltr-nums font-mono text-[11.5px] text-ink-subtle">{m.internalNumber}</span><span className="flex-1 truncate">{L(m.title, m.titleAr)}</span><Badge tone={PRIORITY_TONE[m.priority]}>{t(`enums.priority.${m.priority}`)}</Badge><Badge tone={MATTER_STATUS_TONE[m.status]}>{t(`enums.matterStatus.${m.status}`)}</Badge></Link></li>
+                  <li key={m.id}><Link href={`/app/cases/${m.id}`} className="flex items-center gap-2 px-4 py-2.5 text-body hover:bg-surface-muted/60"><span className="ltr-nums font-mono text-meta text-ink-subtle">{m.internalNumber}</span><span className="flex-1 truncate">{L(m.title, m.titleAr)}</span><Badge tone={PRIORITY_TONE[m.priority]}>{t(`enums.priority.${m.priority}`)}</Badge><Badge tone={MATTER_STATUS_TONE[m.status]}>{t(`enums.matterStatus.${m.status}`)}</Badge></Link></li>
                 ))}
               </ul>
             )}

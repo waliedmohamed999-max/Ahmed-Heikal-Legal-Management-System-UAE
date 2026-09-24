@@ -21,7 +21,7 @@ export function LanguageToggle({ locale, label, ariaLabel, className }: { locale
         })
       }
       className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[13px] font-medium transition-colors disabled:opacity-60",
+        "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-body font-medium transition-colors disabled:opacity-60",
         className,
       )}
     >

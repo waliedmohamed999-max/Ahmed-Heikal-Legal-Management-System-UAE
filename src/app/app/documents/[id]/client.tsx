@@ -57,7 +57,7 @@ export function DocumentActions({ doc, transitions, caps, canEdit }: { doc: Doc;
           )}
         </div>
         {!editing ? (
-          <dl className="space-y-2 border-t border-line pt-3 text-[12.5px]">
+          <dl className="space-y-2 border-t border-line pt-3 text-meta">
             {doc.description && <div><dt className="text-ink-subtle">{t("documents.fields.description")}</dt><dd className="text-ink">{doc.description}</dd></div>}
             <div><dt className="text-ink-subtle">{t("documents.fields.tags")}</dt><dd className="flex flex-wrap gap-1">{doc.tags.length ? doc.tags.map((x) => <Badge key={x} tone="outline">{x}</Badge>) : "—"}</dd></div>
             <div><dt className="text-ink-subtle">{t("documents.fields.portalShared")}</dt><dd>{doc.portalShared ? t("common.yes") : t("common.no")}</dd></div>
@@ -98,7 +98,7 @@ export function DocumentComments({ documentId, comments }: { documentId: string;
         {comments.map((c) => (
           <li key={c.id} className="flex gap-2.5 px-4 py-3">
             <Avatar name={c.author} src={c.photoUrl} size={24} />
-            <div className="text-[13px]"><span className="font-medium">{c.author}</span> <span className="text-[11.5px] text-ink-subtle">{relativeTime(c.createdAt, locale)}</span><p className="whitespace-pre-line text-ink">{c.body}</p></div>
+            <div className="text-body"><span className="font-medium">{c.author}</span> <span className="text-meta text-ink-subtle">{relativeTime(c.createdAt, locale)}</span><p className="whitespace-pre-line text-ink">{c.body}</p></div>
           </li>
         ))}
       </ul>

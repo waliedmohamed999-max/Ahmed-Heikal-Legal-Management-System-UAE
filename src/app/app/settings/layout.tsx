@@ -1,6 +1,6 @@
 import { requireStaff } from "@/server/auth/session";
 import { getT } from "@/i18n/server";
-import { PageHeader } from "@/components/ui/layout";
+import { Page, PageHeader } from "@/components/ui/layout";
 import { SettingsNav } from "./nav";
 
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
@@ -24,12 +24,12 @@ export default async function SettingsLayout({ children }: { children: React.Rea
     { href: "/app/website", key: "website", show: ctx.can("cms.manage") },
   ].filter((i) => i.show).map((i) => ({ href: i.href, label: t(`settings.nav.${i.key}`) }));
   return (
-    <div className="mx-auto max-w-[1300px] px-4 py-6 sm:px-6 lg:px-8">
+    <Page width="default" className="max-w-[1200px]">
       <PageHeader title={t("settings.title")} />
-      <div className="mt-6 grid gap-6 lg:grid-cols-[220px_1fr]">
+      <div className="mt-5 grid items-start gap-8 lg:grid-cols-[200px_minmax(0,1fr)]">
         <SettingsNav items={items} />
-        <div className="min-w-0">{children}</div>
+        <div className="min-w-0 max-w-[880px]">{children}</div>
       </div>
-    </div>
+    </Page>
   );
 }

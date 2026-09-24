@@ -13,11 +13,11 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const L = (en: string | null, ar: string | null) => (locale === "ar" ? ar || en : en || ar) ?? "";
   return (
     <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-      <Link href="/services" className="text-[13px] text-ink-subtle hover:text-ink">{t("site.nav.services")}</Link>
+      <Link href="/services" className="text-body text-ink-subtle hover:text-ink">{t("site.nav.services")}</Link>
       <h1 className="mt-2 text-[32px] font-semibold tracking-tight">{L(a.titleEn, a.titleAr)}</h1>
       <p className="mt-4 text-[17px] leading-relaxed text-ink-muted">{L(a.summaryEn, a.summaryAr)}</p>
-      {L(a.bodyEn, a.bodyAr) && <div className="mt-8 whitespace-pre-line text-[15px] leading-8 text-ink">{L(a.bodyEn, a.bodyAr)}</div>}
-      {a.bookable && <Link href={`/book?service=${a.id}`} className="mt-10 inline-flex h-11 items-center rounded-md bg-[#0e1b33] px-5 text-[14px] font-semibold text-white hover:bg-[#182a4b]">{t("site.bookCta")}</Link>}
+      {L(a.bodyEn, a.bodyAr) && <div className="mt-8 whitespace-pre-line text-heading leading-8 text-ink">{L(a.bodyEn, a.bodyAr)}</div>}
+      {a.bookable && <Link href={`/book?service=${a.id}`} className="mt-10 inline-flex h-11 items-center rounded-md bg-[#0e1b33] px-5 text-ui font-semibold text-white hover:bg-[#182a4b]">{t("site.bookCta")}</Link>}
     </article>
   );
 }

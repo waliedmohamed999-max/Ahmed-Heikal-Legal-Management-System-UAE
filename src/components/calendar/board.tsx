@@ -65,14 +65,14 @@ export function TimeGrid({ days, items, startHour = 7, endHour = 21, compactHead
 
   return (
     <div className={cn("overflow-x-auto scrollbar-thin", busy && "pointer-events-none opacity-70")}>
-      <div className="grid min-w-[640px]" style={{ gridTemplateColumns: `56px repeat(${days.length}, minmax(0,1fr))` }}>
+      <div className={cn("grid", days.length > 1 && "min-w-[640px]")} style={{ gridTemplateColumns: `56px repeat(${days.length}, minmax(0,1fr))` }}>
         <div className="sticky top-0 z-[2] border-b border-line bg-surface" />
         {days.map((d) => {
           const k = dayKey(d);
           return (
             <div key={d} className={cn("sticky top-0 z-[2] border-b border-s border-line bg-surface px-2 py-2 text-center", k === todayKey && "bg-accent-soft/60")}>
-              <div className="text-[11px] font-medium uppercase text-ink-subtle">{formatDate(d, locale, tz, { weekday: "short", day: undefined, month: undefined, year: undefined })}</div>
-              <div className={cn("text-[15px] font-semibold tabular", k === todayKey ? "text-accent" : "text-ink")}>{formatDate(d, locale, tz, { day: "numeric", month: compactHeader ? undefined : "short", year: undefined })}</div>
+              <div className="text-caption font-medium uppercase text-ink-subtle">{formatDate(d, locale, tz, { weekday: "short", day: undefined, month: undefined, year: undefined })}</div>
+              <div className={cn("text-heading font-semibold tabular", k === todayKey ? "text-accent" : "text-ink")}>{formatDate(d, locale, tz, { day: "numeric", month: compactHeader ? undefined : "short", year: undefined })}</div>
             </div>
           );
         })}
@@ -134,7 +134,7 @@ export function TimeGrid({ days, items, startHour = 7, endHour = 21, compactHead
                     draggable={i.movable}
                     onDragStart={() => setDrag(i)}
                     onDragEnd={() => setDrag(null)}
-                    className={cn("group absolute inset-x-1 z-[1] overflow-hidden rounded-md border-s-[3px] px-1.5 py-1 text-[11.5px] leading-tight shadow-xs hover:z-[3] hover:shadow-md", i.movable ? "cursor-grab" : "cursor-pointer")}
+                    className={cn("group absolute inset-x-1 z-[1] overflow-hidden rounded-md border-s-[3px] px-1.5 py-1 text-meta leading-tight hover:z-[3] hover:ring-1 hover:ring-line-strong", i.movable ? "cursor-grab" : "cursor-pointer")}
                     style={{ top, height, borderInlineStartColor: s.color, background: `color-mix(in srgb, ${s.color} 11%, var(--surface))` }}
                     title={i.title}
                   >
@@ -157,7 +157,7 @@ export function TimeGrid({ days, items, startHour = 7, endHour = 21, compactHead
 function Chip({ i }: { i: AgendaItem }) {
   const s = EVENT_STYLE[i.eventType];
   return (
-    <Link href={i.href} className="block truncate rounded px-1.5 py-0.5 text-[11px] font-medium text-ink hover:underline" style={{ background: `color-mix(in srgb, ${s.color} 14%, var(--surface))`, borderInlineStart: `3px solid ${s.color}` }} title={i.title}>
+    <Link href={i.href} className="block truncate rounded px-1.5 py-0.5 text-caption font-medium text-ink hover:underline" style={{ background: `color-mix(in srgb, ${s.color} 14%, var(--surface))`, borderInlineStart: `3px solid ${s.color}` }} title={i.title}>
       {i.title}
     </Link>
   );
@@ -180,7 +180,7 @@ export function MonthGrid({ weeks, month, items }: { weeks: string[][]; month: n
     <div className="overflow-x-auto scrollbar-thin">
       <div className="grid min-w-[700px] grid-cols-7">
         {weeks[0].map((d) => (
-          <div key={`h-${d}`} className="border-b border-line px-2 py-2 text-[11px] font-medium uppercase text-ink-subtle">{formatDate(d, locale, tz, { weekday: "short", day: undefined, month: undefined, year: undefined })}</div>
+          <div key={`h-${d}`} className="border-b border-line px-2 py-2 text-caption font-medium uppercase text-ink-subtle">{formatDate(d, locale, tz, { weekday: "short", day: undefined, month: undefined, year: undefined })}</div>
         ))}
         {weeks.flat().map((d) => {
           const k = dayKey(d);
@@ -196,7 +196,7 @@ export function MonthGrid({ weeks, month, items }: { weeks: string[][]; month: n
                 move(drag, new Date(new Date(d).getTime() + (orig.hour * 60 + orig.minute) * 60_000));
                 setDrag(null);
               }}>
-              <div className={cn("mb-1 flex size-6 items-center justify-center rounded-full text-[12px] tabular", k === today ? "bg-accent font-semibold text-white" : inMonth ? "text-ink" : "text-ink-subtle")}>
+              <div className={cn("mb-1 flex size-6 items-center justify-center rounded-full text-meta tabular", k === today ? "bg-accent font-semibold text-white" : inMonth ? "text-ink" : "text-ink-subtle")}>
                 {zonedParts(new Date(d), tz).day}
               </div>
               <div className="space-y-0.5">
@@ -205,7 +205,7 @@ export function MonthGrid({ weeks, month, items }: { weeks: string[][]; month: n
                     <Chip i={i} />
                   </div>
                 ))}
-                {list.length > 3 && <p className="px-1 text-[11px] text-ink-subtle">{t("calendar.more", { n: list.length - 3 })}</p>}
+                {list.length > 3 && <p className="px-1 text-caption text-ink-subtle">{t("calendar.more", { n: list.length - 3 })}</p>}
               </div>
             </div>
           );
@@ -231,7 +231,7 @@ export function AgendaList({ items }: { items: AgendaItem[] }) {
     <div>
       {groups.map((g) => (
         <section key={g.key}>
-          <h3 className="sticky top-0 z-[1] border-b border-line bg-surface-muted/90 px-4 py-1.5 text-[12px] font-semibold text-ink-muted backdrop-blur">{g.label}</h3>
+          <h3 className="sticky top-0 z-[1] border-b border-line bg-surface-muted/90 px-4 py-1.5 text-meta font-semibold text-ink-muted backdrop-blur">{g.label}</h3>
           <ul className="divide-y divide-line">{g.items.map((i) => <li key={`${i.kind}-${i.id}`}><EventRow e={i} /></li>)}</ul>
         </section>
       ))}
@@ -244,7 +244,7 @@ export function Legend({ types }: { types?: string[] }) {
   return (
     <ul className="flex flex-wrap gap-x-4 gap-y-1.5" aria-label={t("calendar.legend")}>
       {(types ?? Object.keys(EVENT_STYLE)).map((k) => (
-        <li key={k} className="inline-flex items-center gap-1.5 text-[12px] text-ink-muted">
+        <li key={k} className="inline-flex items-center gap-1.5 text-meta text-ink-muted">
           <span className="size-2.5 rounded-sm" style={{ background: EVENT_STYLE[k].color }} /> {t(`enums.eventType.${k}`)}
         </li>
       ))}

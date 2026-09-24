@@ -18,7 +18,7 @@ export default async function CourtImportPage() {
     select: { id: true, sourceType: true, status: true, createdAt: true, suggestions: true },
   });
   return (
-    <div className="mx-auto max-w-[1100px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-[1100px] px-4 pb-10 pt-5 sm:px-6 lg:px-8 lg:pt-6">
       <PageHeader title={t("courtImport.title")} subtitle={t("courtImport.subtitle")} />
       <ImportView history={history.map((h) => ({ id: h.id, sourceType: h.sourceType, status: h.status, createdAt: h.createdAt.toISOString(), count: Array.isArray(h.suggestions) ? h.suggestions.length : 0 }))} />
     </div>

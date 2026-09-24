@@ -89,13 +89,13 @@ export function Uploader({ matterId, matterLabel, documentId, suggest, onDone }:
         className={cn("flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-10 text-center transition-colors", drag ? "border-accent bg-accent-soft" : "border-line-strong hover:border-ink-subtle hover:bg-surface-muted/50")}
       >
         <UploadCloud className="size-8 text-ink-subtle" />
-        <span className="text-[14px] font-medium text-ink">{t("documents.dropHere")}</span>
-        <span className="text-[12px] text-ink-subtle">{t("documents.dropHint")}</span>
+        <span className="text-ui font-medium text-ink">{t("documents.dropHere")}</span>
+        <span className="text-meta text-ink-subtle">{t("documents.dropHint")}</span>
       </button>
       <input ref={input} type="file" multiple={!documentId} accept={ACCEPT} className="hidden" onChange={(e) => e.target.files && add(e.target.files)} aria-label={t("documents.upload")} />
 
       {!documentId && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {!matterId && (
             <Field label={t("documents.selectCase")} className="sm:col-span-2">
               {(a) => <Picker {...a} type="matters" value={target} initialLabel={matterLabel} onChange={(i) => setTarget(i?.id ?? null)} placeholder={t("documents.clientLevel")} />}
@@ -119,19 +119,19 @@ export function Uploader({ matterId, matterLabel, documentId, suggest, onDone }:
               <div className="min-w-0 flex-1">
                 {it.state === "queued" ? (
                   <div className="flex items-center gap-2">
-                    <Input value={it.name} onChange={(e) => setItems((c) => c.map((x) => (x.id === it.id ? { ...x, name: e.target.value } : x)))} className="h-7 text-[12.5px]" dir="ltr" aria-label={t("documents.fields.fileName")} />
+                    <Input value={it.name} onChange={(e) => setItems((c) => c.map((x) => (x.id === it.id ? { ...x, name: e.target.value } : x)))} className="h-7 text-meta" dir="ltr" aria-label={t("documents.fields.fileName")} />
                     {suggest?.number && <Button type="button" size="xs" variant="ghost" onClick={() => setItems((c) => c.map((x) => (x.id === it.id ? { ...x, name: suggestName(x.file) } : x)))}>{t("documents.suggestedName")}</Button>}
                   </div>
                 ) : (
-                  <p className="ltr-nums truncate text-[13px] text-ink">{it.name}</p>
+                  <p className="ltr-nums truncate text-body text-ink">{it.name}</p>
                 )}
                 <div className="mt-1 flex items-center gap-2">
                   <div className="h-1 flex-1 overflow-hidden rounded-full bg-surface-sunken" role="progressbar" aria-valuenow={it.progress} aria-valuemin={0} aria-valuemax={100}>
                     <div className={cn("h-full transition-all", it.state === "error" ? "bg-danger" : it.state === "done" ? "bg-success" : "bg-accent")} style={{ width: `${it.state === "error" ? 100 : it.progress}%` }} />
                   </div>
-                  <span className="w-16 text-end text-[11px] tabular text-ink-subtle">{formatBytes(it.file.size)}</span>
+                  <span className="w-16 text-end text-caption tabular text-ink-subtle">{formatBytes(it.file.size)}</span>
                 </div>
-                {it.error && <p className="mt-0.5 text-[11.5px] text-danger">{it.error}</p>}
+                {it.error && <p className="mt-0.5 text-meta text-danger">{it.error}</p>}
               </div>
               {it.state === "done" ? <CheckCircle2 className="size-4 text-success" /> : it.state === "error" ? <AlertCircle className="size-4 text-danger" /> : it.state === "queued" && (
                 <button type="button" aria-label={t("common.remove")} onClick={() => setItems((c) => c.filter((x) => x.id !== it.id))}><X className="size-4 text-ink-subtle" /></button>

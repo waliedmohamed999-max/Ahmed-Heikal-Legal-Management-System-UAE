@@ -27,7 +27,7 @@ export default async function WebsiteCmsPage({ searchParams }: { searchParams: P
     getSiteSettings(orgId),
   ]);
   return (
-    <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-[1200px] px-4 pb-10 pt-5 sm:px-6 lg:px-8 lg:pt-6">
       <PageHeader title={t("cms.title")} subtitle={t("cms.subtitle")} actions={<Button asChild variant="secondary"><Link href="/" target="_blank"><ExternalLink /> {t("cms.view")}</Link></Button>} />
       <div className="mt-5 border-b border-line"><LinkTabs active={tab} tabs={TABS.map((k) => ({ key: k, href: `/app/website?tab=${k}`, label: t(`cms.tabs.${k}`) }))} /></div>
       <CmsView

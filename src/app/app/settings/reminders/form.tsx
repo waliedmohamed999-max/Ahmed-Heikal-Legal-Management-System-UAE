@@ -33,8 +33,8 @@ export function RemindersForm({ thresholds, policies, channels }: { thresholds: 
     <div className="space-y-5">
       <Panel title={t("settings.reminders.thresholds")} icon={<Gauge />}>
         <div className="space-y-3 p-4">
-          <p className="text-[12.5px] text-ink-muted">{t("settings.reminders.thresholdsHint")}</p>
-          <div className="grid gap-3 sm:grid-cols-5">
+          <p className="text-meta text-ink-muted">{t("settings.reminders.thresholdsHint")}</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
             {th.map((x, i) => (
               <div key={x.level}>
                 <Badge tone={ALERT_TONE[x.level]} className="mb-1.5">{t(`enums.alertLevel.${x.level}`)}</Badge>
@@ -44,14 +44,14 @@ export function RemindersForm({ thresholds, policies, channels }: { thresholds: 
           </div>
         </div>
       </Panel>
-      <Panel title={t("settings.reminders.policies")} icon={<Bell />} footer={<p className="flex items-start gap-1.5 text-[11.5px] text-ink-subtle"><Info className="mt-0.5 size-3.5 shrink-0" /> {t("settings.reminders.channelNote")}</p>}>
+      <Panel title={t("settings.reminders.policies")} icon={<Bell />} footer={<p className="flex items-start gap-1.5 text-meta text-ink-subtle"><Info className="mt-0.5 size-3.5 shrink-0" /> {t("settings.reminders.channelNote")}</p>}>
         <div className="divide-y divide-line">
           {ps.map((p, i) => {
             const set = (patch: Partial<typeof p>) => setPs(ps.map((y, j) => (j === i ? { ...y, ...patch } : y)));
             return (
               <div key={p.subjectType} className="grid gap-3 p-4 lg:grid-cols-[160px_1fr_1fr]">
                 <div>
-                  <p className="text-[13.5px] font-semibold text-ink">{t(`settings.reminders.types.${p.subjectType}`)}</p>
+                  <p className="text-body font-semibold text-ink">{t(`settings.reminders.types.${p.subjectType}`)}</p>
                   <Checkbox className="mt-1.5" label={t("settings.reminders.enabled")} checked={p.enabled} onChange={(e) => set({ enabled: e.target.checked })} />
                 </div>
                 <div className="space-y-3">
@@ -59,10 +59,10 @@ export function RemindersForm({ thresholds, policies, channels }: { thresholds: 
                   <Field label={t("settings.reminders.escalate")}>{(a) => <Input {...a} dir="ltr" className="font-mono" placeholder="1d" value={p.esc} onChange={(e) => set({ esc: e.target.value })} />}</Field>
                 </div>
                 <div>
-                  <p className="mb-1.5 text-[13px] font-medium">{t("settings.reminders.channels")}</p>
+                  <p className="mb-1.5 text-body font-medium">{t("settings.reminders.channels")}</p>
                   <div className="space-y-1">
                     {(["IN_APP", "EMAIL", "SMS", "WHATSAPP", "PUSH"] as Channel[]).map((c) => (
-                      <label key={c} className="flex items-center gap-2 text-[13px]">
+                      <label key={c} className="flex items-center gap-2 text-body">
                         <input type="checkbox" disabled={c === "IN_APP"} checked={p.channels.includes(c) || c === "IN_APP"} className="accent-[var(--accent)]"
                           onChange={(e) => set({ channels: e.target.checked ? [...p.channels, c] : p.channels.filter((x) => x !== c) })} />
                         {c.replace("_", " ")}

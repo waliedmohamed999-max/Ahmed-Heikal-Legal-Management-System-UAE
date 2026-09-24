@@ -5,12 +5,14 @@ import { requireStaff } from "@/server/auth/session";
 import { getT } from "@/i18n/server";
 import { teamWorkload } from "@/server/services/dashboard";
 import { db } from "@/server/db";
-import { PageHeader, Avatar } from "@/components/ui/layout";
+import { Page, PageHeader, Avatar, EmptyState } from "@/components/ui/layout";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Table, THead, TH, TR, TD } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Team" };
 
+/** Team as a list with descriptive workload indicators — never a score or ranking. */
 export default async function TeamPage() {
   const ctx = await requireStaff();
   if (!ctx.can("team.view")) notFound();
@@ -22,42 +24,88 @@ export default async function TeamPage() {
   const wl = new Map((workload ?? []).map((w) => [w.id, w]));
   const max = Math.max(1, ...(workload ?? []).map((w) => w.activeMatters + w.openTasks));
   const L = (en: string, ar: string | null) => (locale === "ar" ? ar || en : en);
+
   return (
-    <div className="mx-auto max-w-[1300px] px-4 py-6 sm:px-6 lg:px-8">
-      <PageHeader title={t("team.title")} subtitle={t("team.subtitle")} actions={ctx.can("team.manage") && <Button asChild variant="secondary"><Link href="/app/settings/users"><Settings /> {t("team.manage")}</Link></Button>} />
-      <p className="mt-4 rounded-md bg-surface-muted px-3 py-2 text-[12.5px] text-ink-muted">{t("team.workloadNote")}</p>
-      <ul className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {users.map((u) => {
-          const w = wl.get(u.id);
-          const load = w ? w.activeMatters + w.openTasks : 0;
-          return (
-            <li key={u.id}>
-              <Link href={`/app/team/${u.id}`} className="block rounded-lg border border-line bg-surface p-4 shadow-xs transition-shadow hover:shadow-md">
-                <div className="flex items-center gap-3">
-                  <Avatar name={u.name} src={u.photoUrl} size={40} />
-                  <div className="min-w-0">
-                    <p className="truncate text-[14px] font-semibold text-ink">{L(u.name, u.nameAr)}</p>
-                    <p className="truncate text-[12.5px] text-ink-muted">{L(u.position ?? "", u.positionAr)}</p>
-                  </div>
-                  <Badge tone="neutral" className="ms-auto">{L(u.role.name, u.role.nameAr)}</Badge>
-                </div>
-                <dl className="mt-4 grid grid-cols-4 gap-2 text-center">
-                  {[[t("team.activeMatters"), w?.activeMatters ?? 0, ""], [t("team.openTasks"), w?.openTasks ?? 0, ""], [t("team.urgent"), w?.urgentTasks ?? 0, (w?.urgentTasks ?? 0) > 0 ? "text-high" : ""], [t("team.hearings"), w?.hearings7d ?? 0, ""]].map(([k, v, c]) => (
-                    <div key={k as string} className="rounded-md bg-surface-muted px-1 py-2">
-                      <dd className={`text-lg font-semibold tabular ${c}`}>{v}</dd>
-                      <dt className="text-[10.5px] leading-tight text-ink-subtle">{k}</dt>
-                    </div>
-                  ))}
-                </dl>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-sunken" aria-label={t("team.workload")}>
-                  <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${(load / max) * 100}%` }} />
-                </div>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      {users.length === 0 && <div className="mt-6 text-center text-ink-muted"><UsersRound className="mx-auto" /></div>}
-    </div>
+    <Page width="full" className="max-w-[1320px]">
+      <PageHeader
+        title={<span className="flex items-baseline gap-2">{t("team.title")}<span className="text-body font-normal tabular text-ink-subtle">{users.length}</span></span>}
+        subtitle={t("team.workloadNote")}
+        actions={ctx.can("team.manage") && <Button asChild variant="secondary"><Link href="/app/settings/users"><Settings /> {t("team.manage")}</Link></Button>}
+      />
+
+      <div className="-mx-4 mt-5 border-y border-line sm:mx-0 sm:rounded-lg sm:border">
+        {users.length === 0 ? (
+          <EmptyState icon={<UsersRound />} title="—" />
+        ) : (
+          <>
+            <div className="hidden md:block">
+              <Table>
+                <THead>
+                  <tr>
+                    <TH>{t("common.name")}</TH>
+                    <TH>{t("shell.role")}</TH>
+                    <TH className="text-end">{t("team.activeMatters")}</TH>
+                    <TH className="text-end">{t("team.hearings")}</TH>
+                    <TH className="text-end">{t("team.openTasks")}</TH>
+                    <TH className="text-end">{t("team.urgent")}</TH>
+                    <TH className="w-40">{t("team.workload")}</TH>
+                  </tr>
+                </THead>
+                <tbody>
+                  {users.map((u) => {
+                    const w = wl.get(u.id);
+                    const load = w ? w.activeMatters + w.openTasks : 0;
+                    return (
+                      <TR key={u.id}>
+                        <TD className="py-1.5">
+                          <Link href={`/app/team/${u.id}`} className="group/link flex items-center gap-2.5">
+                            <Avatar name={u.name} src={u.photoUrl} size={28} />
+                            <span className="min-w-0">
+                              <span className="block truncate font-medium text-ink group-hover/link:underline">{L(u.name, u.nameAr)}</span>
+                              <span className="block truncate text-meta text-ink-subtle">{L(u.position ?? "", u.positionAr)}</span>
+                            </span>
+                          </Link>
+                        </TD>
+                        <TD className="text-ink-muted">{L(u.role.name, u.role.nameAr)}</TD>
+                        <TD className="text-end tabular text-ink">{w?.activeMatters ?? 0}</TD>
+                        <TD className="text-end tabular text-ink">{w?.hearings7d ?? 0}</TD>
+                        <TD className="text-end tabular text-ink">{w?.openTasks ?? 0}</TD>
+                        <TD className={cn("text-end tabular", (w?.urgentTasks ?? 0) > 0 ? "font-medium text-high" : "text-ink-subtle")}>{w?.urgentTasks ?? 0}</TD>
+                        <TD>
+                          <div className="h-1 overflow-hidden rounded-full bg-surface-sunken" role="img" aria-label={`${t("team.workload")}: ${load}`}>
+                            <div className="h-full rounded-full bg-ink-subtle" style={{ width: `${(load / max) * 100}%` }} />
+                          </div>
+                        </TD>
+                      </TR>
+                    );
+                  })}
+                </tbody>
+              </Table>
+            </div>
+            <ul className="divide-y divide-line md:hidden">
+              {users.map((u) => {
+                const w = wl.get(u.id);
+                return (
+                  <li key={u.id}>
+                    <Link href={`/app/team/${u.id}`} className="flex items-center gap-3 px-4 py-3 active:bg-surface-muted">
+                      <Avatar name={u.name} src={u.photoUrl} size={32} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-body font-medium text-ink">{L(u.name, u.nameAr)}</span>
+                        <span className="block truncate text-meta text-ink-subtle">{L(u.role.name, u.role.nameAr)}</span>
+                      </span>
+                      <span className="text-end text-meta tabular text-ink-muted">
+                        {w?.activeMatters ?? 0} {t("team.activeMatters")}
+                        <br />
+                        {w?.openTasks ?? 0} {t("team.openTasks")}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        )}
+      </div>
+    </Page>
   );
 }

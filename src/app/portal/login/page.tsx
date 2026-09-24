@@ -17,7 +17,7 @@ export default async function PortalLoginPage() {
         action={portalLoginAction}
         labels={{ email: t("auth.email"), password: t("auth.password"), submit: t("auth.signIn"), submitting: t("auth.signingIn"), errors: { invalid: t("auth.invalid"), locked: t("auth.locked"), rateLimited: t("errors.rateLimited") } }}
       />
-      <p className="mt-8 text-center text-[13px] text-ink-subtle"><Link href="/login" className="hover:text-ink hover:underline">{t("auth.staffLogin")}</Link></p>
+      <p className="mt-8 text-center text-body text-ink-subtle"><Link href="/login" className="hover:text-ink hover:underline">{t("auth.staffLogin")}</Link></p>
     </AuthFrame>
   );
 }

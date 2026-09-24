@@ -18,9 +18,9 @@ export default async function InsightsPage() {
           {articles.map((a) => (
             <li key={a.id}>
               <Link href={`/insights/${a.slug}`} className="block py-6 hover:bg-surface-muted/60 sm:px-2">
-                <p className="text-[12.5px] text-ink-subtle">{a.category}{a.publishedAt && ` · ${formatDate(a.publishedAt, locale)}`}</p>
+                <p className="text-meta text-ink-subtle">{a.category}{a.publishedAt && ` · ${formatDate(a.publishedAt, locale)}`}</p>
                 <p className="mt-1 text-[19px] font-semibold text-ink">{a.title}</p>
-                {a.excerpt && <p className="mt-2 text-[14.5px] text-ink-muted">{a.excerpt}</p>}
+                {a.excerpt && <p className="mt-2 text-ui text-ink-muted">{a.excerpt}</p>}
               </Link>
             </li>
           ))}

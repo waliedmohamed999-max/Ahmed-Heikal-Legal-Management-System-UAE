@@ -32,7 +32,7 @@ export function AuditRow({ r }: { r: Row }) {
       <tr className="border-t border-line hover:bg-surface-muted/50">
         <td className="whitespace-nowrap px-3 py-2 tabular text-ink-muted">{r.time}</td>
         <td className="px-3 py-2">{r.actor}</td>
-        <td className="px-3 py-2"><code className="rounded bg-surface-sunken px-1.5 py-0.5 text-[11.5px]" dir="ltr">{r.action}</code></td>
+        <td className="px-3 py-2"><code className="rounded bg-surface-sunken px-1.5 py-0.5 text-meta" dir="ltr">{r.action}</code></td>
         <td className="px-3 py-2 text-ink-muted">{r.record || "—"}</td>
         <td className="ltr-nums px-3 py-2 text-ink-subtle">{r.ip ?? "—"}</td>
         <td className="px-3 py-2">{hasDetail && <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="inline-flex items-center gap-1 text-accent">{t("common.view")} <ChevronDown className={`size-3 transition-transform ${open ? "rotate-180" : ""}`} /></button>}</td>
@@ -40,9 +40,9 @@ export function AuditRow({ r }: { r: Row }) {
       {open && (
         <tr className="bg-surface-muted/40">
           <td colSpan={6} className="px-3 py-3">
-            <div className="grid gap-3 md:grid-cols-3" dir="ltr">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3" dir="ltr">
               {[[t("audit.before"), r.before], [t("audit.after"), r.after], ["metadata", r.metadata]].map(([k, v]) => (
-                <div key={k as string}><p className="mb-1 text-[11px] font-semibold uppercase text-ink-subtle">{k as string}</p><pre className="max-h-48 overflow-auto rounded bg-surface p-2 text-[11px] scrollbar-thin">{v == null ? "—" : JSON.stringify(v, null, 2)}</pre></div>
+                <div key={k as string}><p className="mb-1 text-caption font-semibold uppercase text-ink-subtle">{k as string}</p><pre className="max-h-48 overflow-auto rounded bg-surface p-2 text-caption scrollbar-thin">{v == null ? "—" : JSON.stringify(v, null, 2)}</pre></div>
               ))}
             </div>
             <p className="mt-2 font-mono text-[10.5px] text-ink-subtle" dir="ltr">{r.ua} · hash {r.hash.slice(0, 20)}…</p>

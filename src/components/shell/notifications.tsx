@@ -72,10 +72,10 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   return (
     <D.Root open={open} onOpenChange={setOpen}>
       <D.Trigger asChild>
-        <button type="button" className="relative rounded-md p-2 text-ink-muted hover:bg-surface-muted hover:text-ink" aria-label={`${t("notif.title")}${unread ? ` (${unread})` : ""}`}>
-          <Bell className="size-[18px]" />
+        <button type="button" className="relative flex size-8 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink" aria-label={`${t("notif.title")}${unread ? ` (${unread})` : ""}`}>
+          <Bell className="size-4" />
           {unread > 0 && (
-            <span className="absolute end-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-critical px-1 text-[10px] font-semibold text-white tabular">{unread > 99 ? "99+" : unread}</span>
+            <span className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-critical px-1 text-[10px] ring-2 ring-surface font-semibold text-white tabular">{unread > 99 ? "99+" : unread}</span>
           )}
         </button>
       </D.Trigger>
@@ -132,15 +132,15 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
                           setOpen(false);
                           if (!n.readAt) m.mutate({ action: "read", id: n.id });
                         }}
-                        className="text-[13px] font-medium text-ink hover:underline"
+                        className="text-body font-medium text-ink hover:underline"
                       >
                         {n.title}
                       </Link>
                     ) : (
-                      <p className="text-[13px] font-medium text-ink">{n.title}</p>
+                      <p className="text-body font-medium text-ink">{n.title}</p>
                     )}
                     {n.body && <p className="ltr-nums mt-0.5 text-xs text-ink-muted">{n.body}</p>}
-                    <div className="mt-1.5 flex items-center gap-2 text-[11px] text-ink-subtle">
+                    <div className="mt-1.5 flex items-center gap-2 text-caption text-ink-subtle">
                       <span>{relativeTime(n.createdAt, locale)}</span>
                       {n.requiresAck &&
                         (n.acknowledgedAt ? (

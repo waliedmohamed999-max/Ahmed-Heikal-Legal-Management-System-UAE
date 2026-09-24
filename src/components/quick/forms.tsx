@@ -51,7 +51,7 @@ export function HearingDialog({ matterId, initial, labels, onDone }: { matterId?
   const remote = form.watch("isRemote");
   return (
     <DialogContent title={initial?.id ? t("hearings.edit") : t("hearings.new")} size="lg">
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+      <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate>
         <Field label={t("tasks.fields.matter")} error={err("matterId")} required className="sm:col-span-2">
           {(a) => <Picker {...a} type="matters" value={form.watch("matterId")} initialLabel={labels?.matter} disabled={!!initial?.id || !!matterId} invalid={!!err("matterId")}
             onChange={(i) => form.setValue("matterId", i?.id ?? "", { shouldValidate: true })} placeholder={t("quickForms.selectCase")} />}
@@ -98,7 +98,7 @@ export function DeadlineDialog({ matterId, initial, labels, onDone }: { matterId
   const r = form.register;
   return (
     <DialogContent title={initial?.id ? t("deadlines.edit") : t("deadlines.new")}>
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+      <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate>
         <Field label={t("tasks.fields.matter")} className="sm:col-span-2">
           {(a) => <Picker {...a} type="matters" value={form.watch("matterId")} initialLabel={labels?.matter} disabled={!!initial?.id || !!matterId} onChange={(i) => form.setValue("matterId", i?.id ?? "")} placeholder={t("quickForms.selectCase")} />}
         </Field>
@@ -133,7 +133,7 @@ export function AppointmentDialog({ matterId, initial, labels, onDone }: { matte
   const r = form.register;
   return (
     <DialogContent title={initial?.id ? t("appointments.edit") : t("appointments.new")} size="lg">
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+      <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate>
         <Field label={t("appointments.fields.title")} error={err("title")} required className="sm:col-span-2">{(a) => <Input {...a} {...r("title")} />}</Field>
         <Field label={t("appointments.fields.type")}>{(a) => <Select {...a} {...r("type")}>{APPOINTMENT_TYPES.map((v) => <option key={v} value={v}>{t(`enums.appointmentType.${v}`)}</option>)}</Select>}</Field>
         <Field label={t("appointments.fields.startsAt")} error={err("startsAt")} required>{(a) => <Input {...a} type="datetime-local" {...r("startsAt")} />}</Field>
@@ -176,7 +176,7 @@ export function TaskDialog({ matterId, initial, labels, onDone }: { matterId?: s
   const checklist = form.watch("checklist") ?? [];
   return (
     <DialogContent title={initial?.id ? t("tasks.edit") : t("tasks.new")} size="lg">
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+      <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate>
         <Field label={t("tasks.fields.title")} error={err("title")} required className="sm:col-span-2">{(a) => <Input {...a} {...r("title")} />}</Field>
         <Field label={t("tasks.fields.matter")}>
           {(a) => <Picker {...a} type="matters" value={form.watch("matterId")} initialLabel={labels?.matter} disabled={!!matterId} onChange={(i) => form.setValue("matterId", i?.id ?? "")} placeholder={t("tasks.noMatter")} />}
@@ -192,10 +192,10 @@ export function TaskDialog({ matterId, initial, labels, onDone }: { matterId?: s
         <Field label={t("tasks.fields.description")} className="sm:col-span-2">{(a) => <Textarea {...a} rows={3} {...r("description")} />}</Field>
         {!initial?.id && (
           <div className="sm:col-span-2">
-            <p className="mb-1.5 text-[13px] font-medium">{t("tasks.fields.checklist")}</p>
+            <p className="mb-1.5 text-body font-medium">{t("tasks.fields.checklist")}</p>
             <ul className="mb-2 space-y-1">
               {checklist.map((c, i) => (
-                <li key={i} className="flex items-center gap-2 rounded bg-surface-muted px-2 py-1 text-[13px]">
+                <li key={i} className="flex items-center gap-2 rounded bg-surface-muted px-2 py-1 text-body">
                   <span className="flex-1">{c}</span>
                   <button type="button" aria-label={t("common.remove")} onClick={() => form.setValue("checklist", checklist.filter((_, j) => j !== i))}><X className="size-3.5 text-ink-subtle" /></button>
                 </li>

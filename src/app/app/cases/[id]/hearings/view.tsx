@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge, HEARING_STATUS_TONE } from "@/components/ui/badge";
 import { EmptyState, Panel } from "@/components/ui/layout";
 import { Dialog } from "@/components/ui/overlay";
-import { CountdownBlocks, useNow } from "@/components/countdown";
+import { CountdownInline, useNow } from "@/components/countdown";
 import { useAction } from "@/components/forms";
 import { HearingDialog } from "@/components/quick/forms";
 import { formatDate, formatDateTime, formatTime, toZonedLocalInput } from "@/lib/time";
@@ -46,9 +46,9 @@ export function HearingsView({ matterId, matterLabel, meId, focus, caps, hearing
             {h.reportedAt && <Badge tone="success"><FileCheck2 /> {t("hearings.reported")}</Badge>}
             {!h.reportedAt && new Date(h.startsAt).getTime() < now && h.status !== "CANCELLED" && <Badge tone="warning"><AlertCircle /> {t("hearings.reportDue")}</Badge>}
           </div>
-          <p className="mt-1.5 text-[15px] font-semibold text-ink">{h.sessionType || t("enums.eventType.HEARING")}</p>
-          <p className="mt-0.5 text-[13px] text-ink-muted">{formatDate(h.startsAt, locale, tz, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · {formatTime(h.startsAt, locale, tz)}</p>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-ink-muted">
+          <p className="mt-1.5 text-heading font-semibold text-ink">{h.sessionType || t("enums.eventType.HEARING")}</p>
+          <p className="mt-0.5 text-body text-ink-muted">{formatDate(h.startsAt, locale, tz, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · {formatTime(h.startsAt, locale, tz)}</p>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-meta text-ink-muted">
             {h.court && <span className="inline-flex items-center gap-1"><Gavel className="size-3.5" /> {h.court.name}</span>}
             {h.isRemote ? (
               <span className="inline-flex items-center gap-1"><Video className="size-3.5" /> {h.remoteUrl ? <a href={h.remoteUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">{t("hearingWidget.remote")}</a> : t("hearingWidget.remote")}</span>
@@ -58,23 +58,23 @@ export function HearingsView({ matterId, matterLabel, meId, focus, caps, hearing
             <span>{t("hearings.clientAttendance")}: {t(`enums.attendance.${h.clientAttendance}`)}</span>
           </div>
         </div>
-        {big && <CountdownBlocks target={h.startsAt} />}
+        {big && <CountdownInline target={h.startsAt} className="text-[17px] font-semibold" />}
       </div>
 
       {(h.requiredDocuments || h.preparationNotes) && (
         <div className="mt-3 grid gap-3 border-t border-line pt-3 sm:grid-cols-2">
-          {h.requiredDocuments && <div><p className="text-[11.5px] font-medium text-ink-subtle">{t("hearings.requiredDocuments")}</p><p className="mt-0.5 whitespace-pre-line text-[13px] text-ink">{h.requiredDocuments}</p></div>}
-          {h.preparationNotes && <div><p className="text-[11.5px] font-medium text-ink-subtle">{t("hearings.preparationNotes")}</p><p className="mt-0.5 whitespace-pre-line text-[13px] text-ink">{h.preparationNotes}</p></div>}
+          {h.requiredDocuments && <div><p className="text-meta font-medium text-ink-subtle">{t("hearings.requiredDocuments")}</p><p className="mt-0.5 whitespace-pre-line text-body text-ink">{h.requiredDocuments}</p></div>}
+          {h.preparationNotes && <div><p className="text-meta font-medium text-ink-subtle">{t("hearings.preparationNotes")}</p><p className="mt-0.5 whitespace-pre-line text-body text-ink">{h.preparationNotes}</p></div>}
         </div>
       )}
       {h.reportedAt && (
         <div className="mt-3 grid gap-3 rounded-md bg-surface-muted/70 p-3 sm:grid-cols-3">
-          <div><p className="text-[11.5px] font-medium text-ink-subtle">{t("hearings.outcome")}</p><p className="mt-0.5 whitespace-pre-line text-[13px] text-ink">{h.outcome}</p></div>
-          <div><p className="text-[11.5px] font-medium text-ink-subtle">{t("hearings.decisions")}</p><p className="mt-0.5 whitespace-pre-line text-[13px] text-ink">{h.decisions || "—"}</p></div>
-          <div><p className="text-[11.5px] font-medium text-ink-subtle">{t("hearings.requiredActions")}</p><p className="mt-0.5 whitespace-pre-line text-[13px] text-ink">{h.requiredActions || "—"}</p></div>
+          <div><p className="text-meta font-medium text-ink-subtle">{t("hearings.outcome")}</p><p className="mt-0.5 whitespace-pre-line text-body text-ink">{h.outcome}</p></div>
+          <div><p className="text-meta font-medium text-ink-subtle">{t("hearings.decisions")}</p><p className="mt-0.5 whitespace-pre-line text-body text-ink">{h.decisions || "—"}</p></div>
+          <div><p className="text-meta font-medium text-ink-subtle">{t("hearings.requiredActions")}</p><p className="mt-0.5 whitespace-pre-line text-body text-ink">{h.requiredActions || "—"}</p></div>
           {h.deadlines.length > 0 && (
             <div className="sm:col-span-3">
-              {h.deadlines.map((d) => <p key={d.id} className="inline-flex items-center gap-1.5 text-[12.5px] text-high"><CalendarClock className="size-3.5" /> {d.title} — {formatDateTime(d.dueAt, locale, tz)}</p>)}
+              {h.deadlines.map((d) => <p key={d.id} className="inline-flex items-center gap-1.5 text-meta text-high"><CalendarClock className="size-3.5" /> {d.title} — {formatDateTime(d.dueAt, locale, tz)}</p>)}
             </div>
           )}
         </div>
@@ -89,16 +89,16 @@ export function HearingsView({ matterId, matterLabel, meId, focus, caps, hearing
         {h.lawyer?.id === meId && !h.acknowledgedAt && new Date(h.startsAt).getTime() > now && (
           <Button size="xs" variant="ghost" loading={pending} onClick={() => run(() => acknowledgeHearingAction({ id: h.id }), { onSuccess: () => router.refresh() })}><CheckCircle2 /> {t("hearings.acknowledge")}</Button>
         )}
-        {h.acknowledgedAt ? <span className="ms-auto text-[11.5px] text-success">{t("hearings.acknowledged")}</span> : new Date(h.startsAt).getTime() > now && <span className="ms-auto text-[11.5px] text-ink-subtle">{t("hearings.notAcknowledged")}</span>}
+        {h.acknowledgedAt ? <span className="ms-auto text-meta text-success">{t("hearings.acknowledged")}</span> : new Date(h.startsAt).getTime() > now && <span className="ms-auto text-meta text-ink-subtle">{t("hearings.notAcknowledged")}</span>}
       </div>
     </li>
   );
 
   return (
-    <div className="grid gap-5 xl:grid-cols-12">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
       <div className="space-y-5 xl:col-span-8">
         {reportDue.length > 0 && can("hearings.report") && (
-          <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-[13px] text-warning">
+          <div className="flex items-center gap-3 rounded-lg border border-warning/30 bg-warning-soft px-4 py-3 text-body text-warning">
             <AlertCircle className="size-4 shrink-0" /> <span className="flex-1">{t("hearings.reportIntro")}</span>
             <Button size="xs" variant="primary" onClick={() => setReport(reportDue[0])}>{t("hearings.reportCta")}</Button>
           </div>
@@ -118,11 +118,11 @@ export function HearingsView({ matterId, matterLabel, meId, focus, caps, hearing
               {past.map((h) => (
                 <li key={h.id} className="px-4 py-3">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-medium text-ink">{h.sessionType || t("enums.eventType.HEARING")}</span>
+                    <span className="text-body font-medium text-ink">{h.sessionType || t("enums.eventType.HEARING")}</span>
                     <Badge tone={HEARING_STATUS_TONE[h.status]}>{t(`enums.hearingStatus.${h.status}`)}</Badge>
                   </div>
-                  <p className="text-[12px] text-ink-subtle">{formatDateTime(h.startsAt, locale, tz)}</p>
-                  {h.decisions && <p className="mt-1 line-clamp-3 text-[12.5px] text-ink-muted">{h.decisions}</p>}
+                  <p className="text-meta text-ink-subtle">{formatDateTime(h.startsAt, locale, tz)}</p>
+                  {h.decisions && <p className="mt-1 line-clamp-3 text-meta text-ink-muted">{h.decisions}</p>}
                   {!h.reportedAt && h.status !== "CANCELLED" && can("hearings.report") && (
                     <Button size="xs" variant="link" className="mt-1" onClick={() => setReport(h)}>{t("hearings.reportCta")} <ArrowUpRight className="size-3" /></Button>
                   )}

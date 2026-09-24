@@ -29,7 +29,7 @@ export function TeamView({ matterId, canManage, members, staff, requests }: {
   const [editing, setEditing] = useState<Member | "new" | null>(null);
 
   return (
-    <div className="grid gap-5 xl:grid-cols-12">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
       <Panel
         className="xl:col-span-8"
         title={t("workspace.members")}
@@ -41,14 +41,14 @@ export function TeamView({ matterId, canManage, members, staff, requests }: {
             <li key={m.userId} className="flex flex-wrap items-center gap-3 px-4 py-3">
               <Avatar name={m.name} src={m.photoUrl} size={32} />
               <div className="min-w-0 flex-1">
-                <div className="text-[13.5px] font-medium text-ink">{m.name}</div>
-                <div className="text-[12px] text-ink-subtle">{m.position}</div>
+                <div className="text-body font-medium text-ink">{m.name}</div>
+                <div className="text-meta text-ink-subtle">{m.position}</div>
               </div>
               <Badge tone={m.role === "OWNER" || m.role === "LEAD" ? "brand" : "neutral"}>{t(`enums.memberRole.${m.role}`)}</Badge>
               {m.expiresAt ? (
                 <Badge tone="warning"><Clock /> {t("workspace.expires")} {formatDate(m.expiresAt, locale, tz)}</Badge>
               ) : (
-                <span className="text-[12px] text-ink-subtle">{t("workspace.permanent")}</span>
+                <span className="text-meta text-ink-subtle">{t("workspace.permanent")}</span>
               )}
               {m.overrides.length > 0 && <Badge tone="info">{m.overrides.length} {t("workspace.overrides")}</Badge>}
               {canManage && m.role !== "OWNER" && (
@@ -92,15 +92,15 @@ function AccessRequestRow({ r, onDone }: { r: { id: string; name: string; reason
   const [until, setUntil] = useState("");
   return (
     <li className="space-y-2 px-4 py-3">
-      <div className="text-[13px]"><span className="font-medium text-ink">{r.name}</span> <span className="text-ink-subtle">· {relativeTime(r.createdAt, locale)}</span></div>
-      {r.reason && <p className="rounded bg-surface-muted p-2 text-[12.5px] text-ink-muted">{r.reason}</p>}
+      <div className="text-body"><span className="font-medium text-ink">{r.name}</span> <span className="text-ink-subtle">· {relativeTime(r.createdAt, locale)}</span></div>
+      {r.reason && <p className="rounded bg-surface-muted p-2 text-meta text-ink-muted">{r.reason}</p>}
       <div className="grid grid-cols-2 gap-2">
-        <Select value={role} onChange={(e) => setRole(e.target.value as never)} aria-label={t("approvals.grantAs")} className="h-8 text-[13px]">
+        <Select value={role} onChange={(e) => setRole(e.target.value as never)} aria-label={t("approvals.grantAs")} className="h-8 text-body">
           <option value="OBSERVER">{t("approvals.viewOnly")}</option>
           <option value="ASSIGNED">{t("approvals.editAccess")}</option>
           <option value="DOCUMENTS_ONLY">{t("approvals.documentsOnly")}</option>
         </Select>
-        <Input type="date" value={until} onChange={(e) => setUntil(e.target.value)} aria-label={t("approvals.until")} className="h-8 text-[13px]" />
+        <Input type="date" value={until} onChange={(e) => setUntil(e.target.value)} aria-label={t("approvals.until")} className="h-8 text-body" />
       </div>
       <div className="flex gap-2">
         <Button size="xs" variant="primary" loading={pending} onClick={() => run(() => decideAccessAction({ id: r.id, approve: true, role, expiresAt: until || null }), { success: t("approvals.decided"), onSuccess: onDone })}>
@@ -133,21 +133,21 @@ function MemberDialog({ matterId, member, staff, onDone }: { matterId: string; m
         {!member && (
           <Field label={t("common.name")}>{(a) => <Select {...a} value={userId} onChange={(e) => setUserId(e.target.value)}>{staff.map((s) => <option key={s.id} value={s.id}>{s.name} — {s.role}</option>)}</Select>}</Field>
         )}
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("workspace.memberRole")}>{(a) => <Select {...a} value={role} onChange={(e) => { setRole(e.target.value as never); setOverrides([]); }}>{ROLES.map((r) => <option key={r} value={r}>{t(`enums.memberRole.${r}`)}</option>)}</Select>}</Field>
           <Field label={t("workspace.tempAccess")}>{(a) => <Input {...a} type="date" value={until} onChange={(e) => setUntil(e.target.value)} />}</Field>
         </div>
         <div>
-          <p className="mb-1.5 text-[13px] font-medium">{t("workspace.overrides")}</p>
+          <p className="mb-1.5 text-body font-medium">{t("workspace.overrides")}</p>
           <div className="grid grid-cols-1 gap-1 rounded-md border border-line p-2 sm:grid-cols-2">
             {TOGGLES.map((a) => (
-              <label key={a} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-[12.5px] hover:bg-surface-muted">
+              <label key={a} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-meta hover:bg-surface-muted">
                 <input type="checkbox" checked={effective(a)} onChange={(e) => toggle(a, e.target.checked)} className="accent-[var(--accent)]" />
-                <span className="font-mono text-[11.5px] text-ink-muted" dir="ltr">{a}</span>
+                <span className="font-mono text-meta text-ink-muted" dir="ltr">{a}</span>
               </label>
             ))}
           </div>
-          <p className="mt-1.5 text-[11.5px] text-ink-subtle">{t("workspace.overridesNote")}</p>
+          <p className="mt-1.5 text-meta text-ink-subtle">{t("workspace.overridesNote")}</p>
         </div>
       </div>
       <DialogFooter>

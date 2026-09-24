@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Gavel, FolderOpen, ClipboardList, ArrowUpRight } from "lucide-react";
+import { Gavel } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { CountdownInline } from "@/components/countdown";
-import { Badge, HEARING_STATUS_TONE } from "@/components/ui/badge";
+import { Tooltip } from "@/components/ui/overlay";
 import { formatDate, formatTime } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
@@ -20,52 +20,53 @@ export type NextHearingData = {
   matter: { id: string; internalNumber: string; officialCaseNumber: string | null; title: string; titleAr: string | null };
 };
 
-/** Always-visible next-hearing strip in the top bar. */
-export function NextHearingStrip({ data }: { data: NextHearingData | null }) {
+/**
+ * Always-visible next hearing — sidebar footer on desktop (full or icon rail).
+ * Links to hearing preparation.
+ */
+export function NextHearingMini({ data, narrow }: { data: NextHearingData | null; narrow?: boolean }) {
   const { t, locale, tz } = useI18n();
-  if (!data) {
+  if (!data) return null;
+  const title = locale === "ar" ? data.matter.titleAr || data.matter.title : data.matter.title;
+  const href = `/app/hearings/${data.id}/prepare`;
+  if (narrow) {
     return (
-      <div className="flex items-center gap-2 text-[13px] text-ink-subtle">
-        <Gavel className="size-4" aria-hidden />
-        <span className="hidden sm:inline">{t("hearingWidget.none")}</span>
-      </div>
+      <Tooltip content={`${t("shell.nextHearing")} · ${title}`} side={locale === "ar" ? "left" : "right"}>
+        <Link href={href} className="mx-auto flex size-9 items-center justify-center rounded-md text-ev-hearing transition-colors hover:bg-surface-sunken" aria-label={t("shell.nextHearing")}>
+          <Gavel className="size-4" />
+        </Link>
+      </Tooltip>
     );
   }
-  const title = locale === "ar" ? data.matter.titleAr || data.matter.title : data.matter.title;
-  const court = data.court ? (locale === "ar" ? data.court.nameAr || data.court.name : data.court.name) : null;
-  const base = `/app/cases/${data.matter.id}`;
   return (
-    <div className="flex min-w-0 items-center gap-3">
-      <Link href={`${base}/hearings?h=${data.id}`} className="group flex min-w-0 items-center gap-2.5 rounded-md py-1 pe-2 text-[13px]" aria-label={t("hearingWidget.label")}>
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[var(--ev-hearing)]/10 text-ev-hearing">
-          <Gavel className="size-4" aria-hidden />
+    <Link href={href} className="group block rounded-lg border border-line bg-surface px-3 py-2.5 transition-colors hover:border-line-strong">
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5 text-caption font-medium text-ink-subtle">
+          <Gavel className="size-3 text-ev-hearing" aria-hidden />
+          {t("shell.nextHearing")}
         </span>
-        <span className="hidden text-[11.5px] font-medium uppercase tracking-wide text-ink-subtle xl:inline">{t("hearingWidget.label")}</span>
-        <span className="ltr-nums hidden shrink-0 whitespace-nowrap font-mono text-[12px] text-ink-muted md:inline">{data.matter.internalNumber}</span>
-        <span className="min-w-0 truncate font-medium text-ink group-hover:underline">{title}</span>
-        <span className="hidden shrink-0 text-ink-muted 2xl:inline">· {court}</span>
-        <span className="hidden shrink-0 text-ink-muted sm:inline">
-          · {formatDate(data.startsAt, locale, tz, { day: "numeric", month: "short" })} {formatTime(data.startsAt, locale, tz)}
-        </span>
-      </Link>
-      <CountdownInline target={data.startsAt} className="shrink-0 rounded bg-surface-muted px-1.5 py-0.5" />
-      <Badge tone={HEARING_STATUS_TONE[data.status]} className="hidden shrink-0 md:inline-flex">
-        {t(`enums.hearingStatus.${data.status}`)}
-      </Badge>
-      <div className="hidden shrink-0 items-center gap-0.5 xl:flex">
-        <StripLink href={base} icon={ArrowUpRight} label={t("hearingWidget.openCase")} />
-        <StripLink href={`${base}/documents`} icon={FolderOpen} label={t("hearingWidget.documents")} />
-        <StripLink href={`/app/hearings/${data.id}/prepare`} icon={ClipboardList} label={t("hearingWidget.prepare")} />
+        <CountdownInline target={data.startsAt} className="text-caption" />
       </div>
-    </div>
+      <div className="mt-1 truncate text-body font-medium text-ink group-hover:underline bidi-plain">{title}</div>
+      <div className="mt-0.5 truncate text-meta text-ink-muted">
+        {formatDate(data.startsAt, locale, tz, { day: "numeric", month: "short" })} · {formatTime(data.startsAt, locale, tz)}
+      </div>
+    </Link>
   );
 }
 
-function StripLink({ href, icon: Icon, label }: { href: string; icon: React.ComponentType<{ className?: string }>; label: string }) {
+/** Compact chip for the top bar when the sidebar is not shown (tablet / mobile). */
+export function NextHearingChip({ data, className }: { data: NextHearingData | null; className?: string }) {
+  const { t } = useI18n();
+  if (!data) return null;
   return (
-    <Link href={href} className={cn("inline-flex h-7 items-center gap-1 rounded px-1.5 text-[12px] text-ink-muted hover:bg-surface-muted hover:text-ink")}>
-      <Icon className="size-3.5" aria-hidden />
-      {label}
+    <Link
+      href={`/app/hearings/${data.id}/prepare`}
+      className={cn("inline-flex h-7 items-center gap-1.5 rounded-md border border-line px-2 text-meta text-ink-muted transition-colors hover:bg-surface-muted", className)}
+      aria-label={t("shell.nextHearing")}
+    >
+      <Gavel className="size-3.5 text-ev-hearing" aria-hidden />
+      <CountdownInline target={data.startsAt} className="text-meta" />
     </Link>
   );
 }

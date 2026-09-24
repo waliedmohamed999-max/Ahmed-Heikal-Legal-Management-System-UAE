@@ -17,8 +17,8 @@ export function Wordmark({ className, sub }: { className?: string; sub?: string 
     <div className={cn("flex items-center gap-2.5", className)}>
       <Logo />
       <div className="leading-tight">
-        <div className="text-[13.5px] font-semibold tracking-tight">AH Legal OS</div>
-        {sub && <div className="text-[11px] opacity-60">{sub}</div>}
+        <div className="text-body font-semibold tracking-tight">AH Legal OS</div>
+        {sub && <div className="text-caption opacity-60">{sub}</div>}
       </div>
     </div>
   );

@@ -5,17 +5,17 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Dialog as D } from "radix-ui";
 import {
-  ChevronsLeft, ChevronsRight, Plus, Search, Menu as MenuIcon, LogOut, Moon, Sun, Languages, MoreHorizontal, User, Keyboard,
-  Briefcase, UserPlus, CheckSquare, CalendarPlus, Gavel, Upload, Receipt, StickyNote, Home, CalendarDays, AlarmClock,
+  PanelLeftClose, PanelLeftOpen, Plus, Search, LogOut, Moon, Sun, Languages, MoreHorizontal, User, Keyboard, ChevronDown,
+  Briefcase, UserPlus, CheckSquare, CalendarPlus, Gavel, Upload, Receipt, StickyNote, AlarmClock, X,
 } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand";
 import { Avatar, Kbd } from "@/components/ui/layout";
-import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlay";
+import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Tooltip } from "@/components/ui/overlay";
 import { logoutAction, setLocaleAction } from "@/app/(auth)/actions";
-import { PRIMARY_NAV, MORE_NAV, isActive, type NavItem } from "./nav";
-import { NextHearingStrip, type NextHearingData } from "./next-hearing";
+import { PRIMARY_NAV, TOOLS_NAV, MORE_NAV, MOBILE_NAV, isActive, currentSection, type NavItem } from "./nav";
+import { NextHearingMini, NextHearingChip, type NextHearingData } from "./next-hearing";
 import { CommandPalette } from "./command-palette";
 import { quickCreate, openCommandPalette, type QuickType } from "./bus";
 import { NotificationBell } from "./notifications";
@@ -27,9 +27,9 @@ const QUICK: { type: QuickType; labelKey: string; icon: React.ComponentType<{ cl
   { type: "case", labelKey: "quick.newCase", icon: Briefcase, perm: "matters.create", href: "/app/cases/new" },
   { type: "client", labelKey: "quick.newClient", icon: UserPlus, perm: "clients.create", href: "/app/clients/new" },
   { type: "task", labelKey: "quick.newTask", icon: CheckSquare, perm: "tasks.manage" },
-  { type: "appointment", labelKey: "quick.newAppointment", icon: CalendarPlus, perm: "appointments.manage" },
   { type: "hearing", labelKey: "quick.newHearing", icon: Gavel, perm: "hearings.manage" },
   { type: "deadline", labelKey: "quick.newDeadline", icon: AlarmClock, perm: "deadlines.manage" },
+  { type: "appointment", labelKey: "quick.newAppointment", icon: CalendarPlus, perm: "appointments.manage" },
   { type: "document", labelKey: "quick.uploadDocument", icon: Upload, perm: "documents.upload" },
   { type: "invoice", labelKey: "quick.newInvoice", icon: Receipt, perm: "finance.manage", href: "/app/finance/invoices/new" },
   { type: "note", labelKey: "quick.newNote", icon: StickyNote, perm: "notes.create" },
@@ -67,7 +67,7 @@ export function AppShell({
   const [dark, setDark] = useState(prefs.dark);
   const [, startTransition] = useTransition();
 
-  // Close the mobile drawer on navigation (state adjusted during render, not in an effect).
+  // Close the mobile menu on navigation (state adjusted during render, not in an effect).
   const [lastPath, setLastPath] = useState(pathname);
   if (pathname !== lastPath) {
     setLastPath(pathname);
@@ -95,265 +95,181 @@ export function AppShell({
   const runQuick = (q: (typeof QUICK)[number]) => (q.href ? router.push(q.href) : quickCreate(q.type));
   const displayName = locale === "ar" ? user.nameAr || user.name : user.name;
   const primary = PRIMARY_NAV.filter((n) => can(n.perm));
+  const tools = TOOLS_NAV.filter((n) => can(n.perm));
   const more = MORE_NAV.filter((n) => can(n.perm));
-  const moreActive = more.some((n) => isActive(pathname, n.href));
+  const section = currentSection(pathname);
+  const badgeFor = (item: NavItem) => (item.badge === "approvals" ? counts.approvals : 0);
 
-  const sidebar = (mobile: boolean) => {
-    const narrow = collapsed && !mobile;
-    const NavLink = ({ item }: { item: NavItem }) => {
-      const active = isActive(pathname, item.href);
-      const badge = item.badge === "approvals" ? counts.approvals : 0;
-      const link = (
-        <Link
-          href={item.href}
-          aria-current={active ? "page" : undefined}
-          className={cn(
-            "group relative flex h-8 items-center gap-2.5 rounded-md px-2.5 text-[13px] font-medium transition-colors",
-            active ? "bg-nav-active text-white" : "text-nav-fg/85 hover:bg-nav-surface hover:text-white",
-            narrow && "justify-center px-0",
-          )}
-        >
-          {active && <span aria-hidden className="absolute inset-y-1.5 start-0 w-0.5 rounded-full bg-[var(--accent)]" />}
-          <item.icon className={cn("size-4 shrink-0", active ? "text-white" : "text-nav-muted group-hover:text-nav-fg")} />
-          {!narrow && <span className="truncate">{t(item.labelKey)}</span>}
-          {badge > 0 && (
-            <span className={cn("rounded bg-[var(--accent)] px-1.5 text-[10.5px] font-semibold leading-4 text-white tabular", narrow ? "absolute -end-0.5 -top-0.5 px-1" : "ms-auto")}>{badge}</span>
-          )}
-        </Link>
-      );
-      return narrow ? <Tooltip content={t(item.labelKey)} side={locale === "ar" ? "left" : "right"}>{link}</Tooltip> : link;
-    };
+  return (
+    <div className="flex min-h-dvh bg-surface">
+      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:start-2 focus:top-2 focus:z-[60] focus:rounded focus:bg-surface focus:px-3 focus:py-2">
+        Skip to content
+      </a>
 
-    return (
-      <div className="flex h-full flex-col bg-nav text-nav-fg">
-        <div className={cn("flex h-14 items-center gap-2.5 px-3.5", narrow && "justify-center px-0")}>
-          <Logo className="text-white" />
-          {!narrow && (
-            <div className="min-w-0 leading-tight">
-              <div className="truncate text-[13px] font-semibold text-white">AH Legal OS</div>
-              <div className="truncate text-[11px] text-nav-muted">{t("app.office")}</div>
-            </div>
-          )}
-        </div>
+      {/* Sidebar: icon rail on tablet, full (collapsible) on desktop */}
+      <aside
+        className={cn(
+          "sticky top-0 hidden h-dvh shrink-0 border-e border-line bg-canvas transition-[width] duration-200 md:block",
+          collapsed ? "w-[var(--sidebar-w-collapsed)]" : "w-[var(--sidebar-w-collapsed)] xl:w-[var(--sidebar-w)]",
+        )}
+      >
+        <Sidebar
+          narrowAlways={collapsed}
+          collapsed={collapsed}
+          primary={primary}
+          tools={tools}
+          more={more}
+          pathname={pathname}
+          badgeFor={badgeFor}
+          nextHearing={nextHearing}
+          onToggle={toggleCollapse}
+        />
+      </aside>
 
-        <div className={cn("flex flex-col gap-1.5 px-3 pb-3", narrow && "items-center px-2")}>
-          <button
-            type="button"
-            onClick={openCommandPalette}
-            className={cn(
-              "flex h-8 items-center gap-2 rounded-md border border-nav-line bg-nav-surface px-2.5 text-[13px] text-nav-muted transition-colors hover:border-nav-muted/40 hover:text-nav-fg",
-              narrow && "size-8 justify-center px-0",
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Top bar: section · search · new · notifications · profile */}
+        <header className="sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85">
+          <div className="flex h-12 items-center gap-2 px-3 sm:px-4 xl:px-6">
+            <Link href="/app" className="md:hidden" aria-label={t("nav.home")}>
+              <Logo size={26} className="text-brand" />
+            </Link>
+            {section && (
+              <div className="flex min-w-0 items-center gap-2 text-body">
+                <section.icon className="hidden size-4 shrink-0 text-ink-subtle sm:block" />
+                <Link href={section.href} className="truncate font-medium text-ink hover:underline">
+                  {t(section.labelKey)}
+                </Link>
+              </div>
             )}
-            aria-label={t("nav.searchPlaceholder")}
-          >
-            <Search className="size-4 shrink-0" />
-            {!narrow && (
-              <>
-                <span className="flex-1 truncate text-start">{t("common.search")}</span>
-                <Kbd className="border-nav-line bg-transparent text-nav-muted">⌘K</Kbd>
-              </>
+            {isDemo && (
+              <Tooltip content={t("shell.demoHint")}>
+                <span className="hidden shrink-0 rounded-sm border border-warning/30 bg-warning-soft px-1.5 text-caption font-medium leading-[18px] text-warning sm:inline">{t("shell.demo")}</span>
+              </Tooltip>
             )}
-          </button>
-          {quickItems.length > 0 && (
-            <Menu>
-              <MenuTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex h-8 items-center gap-2 rounded-md bg-white px-2.5 text-[13px] font-semibold text-[#0c1424] shadow-xs transition-colors hover:bg-white/90",
-                    narrow && "size-8 justify-center px-0",
-                  )}
-                  aria-label={t("nav.quickCreate")}
-                >
-                  <Plus className="size-4" />
-                  {!narrow && <span>{t("nav.quickCreate")}</span>}
-                </button>
-              </MenuTrigger>
-              <MenuContent align="start" className="w-56">
-                {quickItems.map((q) => (
-                  <MenuItem key={q.type} onSelect={() => runQuick(q)}>
-                    <q.icon />
-                    {t(q.labelKey)}
-                  </MenuItem>
-                ))}
-              </MenuContent>
-            </Menu>
-          )}
-        </div>
 
-        <nav aria-label={t("nav.mainNavigation")} className={cn("nav-scroll flex-1 overflow-y-auto px-3", narrow && "px-2")}>
-          <ul className="flex flex-col gap-0.5">
-            {primary.map((item) => (
-              <li key={item.key}>
-                <NavLink item={item} />
-              </li>
-            ))}
-            {more.length > 0 && (
-              <li>
+            <div className="ms-auto flex items-center gap-1.5">
+              <NextHearingChip data={nextHearing} className="xl:hidden" />
+              <button
+                type="button"
+                onClick={openCommandPalette}
+                className="hidden h-8 w-64 items-center gap-2 rounded-md border border-line bg-surface-muted px-2.5 text-body text-ink-subtle transition-colors hover:border-line-strong hover:text-ink-muted md:flex xl:w-80"
+              >
+                <Search className="size-3.5 shrink-0" />
+                <span className="flex-1 truncate text-start">{t("shell.searchLaunch")}</span>
+                <Kbd>⌘K</Kbd>
+              </button>
+              <button type="button" onClick={openCommandPalette} className="flex size-8 items-center justify-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink md:hidden" aria-label={t("common.search")}>
+                <Search className="size-4" />
+              </button>
+              {quickItems.length > 0 && (
                 <Menu>
                   <MenuTrigger asChild>
-                    <button
-                      type="button"
-                      className={cn(
-                        "flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-[13px] font-medium transition-colors",
-                        moreActive ? "bg-nav-active text-white" : "text-nav-fg/85 hover:bg-nav-surface hover:text-white",
-                        narrow && "justify-center px-0",
-                      )}
-                    >
-                      <MoreHorizontal className="size-4 text-nav-muted" />
-                      {!narrow && <span>{t("nav.more")}</span>}
+                    <button type="button" className="inline-flex h-8 items-center gap-1.5 rounded-md bg-brand px-2.5 text-body font-medium text-brand-fg transition-colors hover:bg-brand-hover max-sm:w-8 max-sm:justify-center max-sm:px-0" aria-label={t("nav.quickCreate")}>
+                      <Plus className="size-4" />
+                      <span className="max-sm:hidden">{t("shell.new")}</span>
                     </button>
                   </MenuTrigger>
-                  <MenuContent align="start" className="w-60">
-                    {more.map((n) => (
-                      <MenuItem key={n.key} asChild>
-                        <Link href={n.href}>
-                          <n.icon />
-                          {t(n.labelKey)}
-                        </Link>
+                  <MenuContent align="end" className="w-56">
+                    {quickItems.map((q) => (
+                      <MenuItem key={q.type} onSelect={() => runQuick(q)}>
+                        <q.icon />
+                        {t(q.labelKey)}
                       </MenuItem>
                     ))}
                   </MenuContent>
                 </Menu>
-              </li>
-            )}
-          </ul>
-        </nav>
-
-        <div className={cn("border-t border-nav-line p-2", narrow && "flex flex-col items-center")}>
-          <Menu>
-            <MenuTrigger asChild>
-              <button type="button" className={cn("flex w-full items-center gap-2.5 rounded-md p-1.5 text-start hover:bg-nav-surface", narrow && "w-auto justify-center")}>
-                <Avatar name={user.name} src={user.photoUrl} size={28} className="ring-nav" />
-                {!narrow && (
-                  <div className="min-w-0 flex-1 leading-tight">
-                    <div className="truncate text-[13px] font-medium text-white">{displayName}</div>
-                    <div className="truncate text-[11px] text-nav-muted">{user.role}</div>
+              )}
+              <NotificationBell initialUnread={counts.unread} />
+              <Menu>
+                <MenuTrigger asChild>
+                  <button type="button" className="ms-0.5 rounded-full outline-offset-2" aria-label={t("shell.account")}>
+                    <Avatar name={user.name} src={user.photoUrl} size={28} />
+                  </button>
+                </MenuTrigger>
+                <MenuContent align="end" className="w-64">
+                  <div className="flex items-center gap-2.5 px-2 py-2">
+                    <Avatar name={user.name} src={user.photoUrl} size={32} />
+                    <div className="min-w-0 leading-tight">
+                      <div className="truncate text-body font-medium text-ink">{displayName}</div>
+                      <div className="truncate text-meta text-ink-subtle">{user.role} · {user.email}</div>
+                    </div>
                   </div>
-                )}
-              </button>
-            </MenuTrigger>
-            <MenuContent align="start" className="w-60">
-              <MenuLabel>{user.email}</MenuLabel>
-              <MenuItem asChild>
-                <Link href="/app/settings/profile">
-                  <User />
-                  {t("nav.profile")}
-                </Link>
-              </MenuItem>
-              <MenuItem onSelect={switchLocale}>
-                <Languages />
-                {t("common.switchLanguage")}
-              </MenuItem>
-              <MenuItem onSelect={toggleTheme}>
-                {dark ? <Sun /> : <Moon />}
-                {dark ? "Light" : "Dark"}
-              </MenuItem>
-              <MenuItem onSelect={() => window.dispatchEvent(new Event("ahl:shortcuts"))}>
-                <Keyboard />
-                {t("shortcuts.title")}
-              </MenuItem>
-              <MenuSeparator />
-              <MenuItem destructive onSelect={() => startTransition(() => logoutAction())}>
-                <LogOut />
-                {t("nav.signOut")}
-              </MenuItem>
-            </MenuContent>
-          </Menu>
-          {!mobile && (
-            <button
-              type="button"
-              onClick={toggleCollapse}
-              className={cn("mt-1 flex h-7 w-full items-center gap-2 rounded-md px-2 text-[12px] text-nav-muted hover:bg-nav-surface hover:text-nav-fg", narrow && "w-7 justify-center px-0")}
-              aria-label={collapsed ? t("nav.expand") : t("nav.collapse")}
-            >
-              {(locale === "ar") !== collapsed ? <ChevronsLeft className="size-4" /> : <ChevronsRight className="size-4" />}
-              {!narrow && <span>{t("nav.collapse")}</span>}
-            </button>
-          )}
-        </div>
+                  <MenuSeparator />
+                  <MenuItem asChild>
+                    <Link href="/app/settings/profile">
+                      <User />
+                      {t("nav.profile")}
+                    </Link>
+                  </MenuItem>
+                  <MenuItem onSelect={switchLocale}>
+                    <Languages />
+                    <span className="flex-1">{t("shell.language")}</span>
+                    <span className="text-meta text-ink-subtle">{t("common.switchLanguage")}</span>
+                  </MenuItem>
+                  <MenuItem onSelect={toggleTheme}>
+                    {dark ? <Sun /> : <Moon />}
+                    <span className="flex-1">{t("shell.theme")}</span>
+                    <span className="text-meta text-ink-subtle">{dark ? t("shell.light") : t("shell.dark")}</span>
+                  </MenuItem>
+                  <MenuItem onSelect={() => window.dispatchEvent(new Event("ahl:shortcuts"))}>
+                    <Keyboard />
+                    {t("shortcuts.title")}
+                  </MenuItem>
+                  <MenuSeparator />
+                  <MenuItem destructive onSelect={() => startTransition(() => logoutAction())}>
+                    <LogOut />
+                    {t("nav.signOut")}
+                  </MenuItem>
+                </MenuContent>
+              </Menu>
+            </div>
+          </div>
+        </header>
+
+        <main id="main" className="min-w-0 flex-1 pb-20 md:pb-0">
+          {children}
+        </main>
       </div>
-    );
-  };
 
-  const TABS = [
-    { href: "/app", icon: Home, label: t("nav.home") },
-    { href: "/app/cases", icon: Briefcase, label: t("nav.cases") },
-    { href: "/app/agenda", icon: CalendarDays, label: t("nav.agenda") },
-    { href: "/app/my-work", icon: CheckSquare, label: t("nav.tasks") },
-  ];
+      {/* Mobile bottom navigation: Home · Cases · Calendar · Tasks · More */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden" aria-label={t("nav.mainNavigation")}>
+        {MOBILE_NAV.map((n) => (
+          <MobileTab key={n.key} href={n.href} icon={n.icon} label={t(n.labelKey)} active={isActive(pathname, n.href, n.match)} />
+        ))}
+        <button type="button" onClick={() => setMobileOpen(true)} className={cn("flex h-14 flex-col items-center justify-center gap-1 text-[10.5px] font-medium", mobileOpen ? "text-ink" : "text-ink-subtle")}>
+          <MoreHorizontal className="size-5" />
+          {t("nav.more")}
+        </button>
+      </nav>
 
-  return (
-    <div className="flex min-h-dvh">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:start-2 focus:top-2 focus:z-[60] focus:rounded focus:bg-surface focus:px-3 focus:py-2">
-        Skip to content
-      </a>
-      {/* Desktop sidebar */}
-      <aside className={cn("sticky top-0 hidden h-dvh shrink-0 transition-[width] duration-200 lg:block", collapsed ? "w-[60px]" : "w-[244px]")}>{sidebar(false)}</aside>
-
-      {/* Mobile drawer */}
+      {/* Mobile "More" sheet — the rest of the navigation */}
       <D.Root open={mobileOpen} onOpenChange={setMobileOpen}>
         <D.Portal>
-          <D.Overlay className="fixed inset-0 z-50 bg-black/40 lg:hidden" />
-          <D.Content className="fixed inset-y-0 start-0 z-50 w-[82%] max-w-[300px] outline-none lg:hidden">
-            <D.Title className="sr-only">{t("nav.mainNavigation")}</D.Title>
-            <D.Description className="sr-only">{t("nav.mainNavigation")}</D.Description>
-            {sidebar(true)}
+          <D.Overlay className="fixed inset-0 z-50 bg-[#0d1220]/35 data-[state=open]:animate-fade-in md:hidden" />
+          <D.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] outline-none data-[state=open]:animate-slide-up md:hidden">
+            <div className="sticky top-0 flex items-center justify-between border-b border-line bg-surface px-4 py-3">
+              <D.Title className="text-heading font-semibold">{t("nav.more")}</D.Title>
+              <D.Description className="sr-only">{t("nav.mainNavigation")}</D.Description>
+              <D.Close className="rounded-md p-1.5 text-ink-subtle hover:bg-surface-muted" aria-label="Close">
+                <X className="size-4" />
+              </D.Close>
+            </div>
+            <div className="grid grid-cols-3 gap-1 p-3">
+              {[...primary.filter((n) => !MOBILE_NAV.includes(n)), ...tools, ...more].map((n) => {
+                const on = isActive(pathname, n.href, n.match);
+                const b = badgeFor(n);
+                return (
+                  <Link key={n.key} href={n.href} className={cn("relative flex flex-col items-center gap-1.5 rounded-lg px-1 py-3 text-center text-meta", on ? "bg-surface-sunken text-ink" : "text-ink-muted hover:bg-surface-muted")}>
+                    <n.icon className="size-5" />
+                    <span className="line-clamp-2 leading-tight">{t(n.labelKey)}</span>
+                    {b > 0 && <span className="absolute end-2 top-2 rounded-full bg-accent px-1.5 text-[10px] font-semibold text-accent-fg">{b}</span>}
+                  </Link>
+                );
+              })}
+            </div>
           </D.Content>
         </D.Portal>
       </D.Root>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        {isDemo && <div className="bg-[#0c1424] px-4 py-1 text-center text-[11.5px] text-nav-muted">{t("app.demoBanner")}</div>}
-        <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur supports-[backdrop-filter]:bg-surface/75">
-          <div className="flex h-[52px] items-center gap-2 px-3 sm:px-5">
-            <button type="button" onClick={() => setMobileOpen(true)} className="-ms-1 rounded-md p-2 text-ink-muted hover:bg-surface-muted lg:hidden" aria-label={t("nav.openMenu")}>
-              <MenuIcon className="size-5" />
-            </button>
-            <div className="min-w-0 flex-1">
-              <NextHearingStrip data={nextHearing} />
-            </div>
-            <button type="button" onClick={openCommandPalette} className="rounded-md p-2 text-ink-muted hover:bg-surface-muted hover:text-ink lg:hidden" aria-label={t("common.search")}>
-              <Search className="size-[18px]" />
-            </button>
-            <button type="button" onClick={switchLocale} className="hidden h-8 items-center gap-1.5 rounded-md px-2 text-[13px] font-medium text-ink-muted hover:bg-surface-muted hover:text-ink sm:inline-flex" aria-label={t("common.switchLanguageLabel")}>
-              <Languages className="size-4" />
-              {t("common.switchLanguage")}
-            </button>
-            <NotificationBell initialUnread={counts.unread} />
-          </div>
-        </header>
-        <main id="main" className="flex-1 pb-20 lg:pb-0">
-          {children}
-        </main>
-
-        {/* Mobile bottom navigation */}
-        <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" aria-label={t("nav.mainNavigation")}>
-          {TABS.slice(0, 2).map((tab) => (
-            <MobileTab key={tab.href} {...tab} active={isActive(pathname, tab.href)} />
-          ))}
-          <Menu>
-            <MenuTrigger asChild>
-              <button type="button" className="flex flex-col items-center justify-center" aria-label={t("nav.quickCreate")}>
-                <span className="flex size-10 items-center justify-center rounded-full bg-brand text-brand-fg shadow-md">
-                  <Plus className="size-5" />
-                </span>
-              </button>
-            </MenuTrigger>
-            <MenuContent align="center" className="mb-2 w-60">
-              {quickItems.map((q) => (
-                <MenuItem key={q.type} onSelect={() => runQuick(q)} className="py-2.5">
-                  <q.icon />
-                  {t(q.labelKey)}
-                </MenuItem>
-              ))}
-            </MenuContent>
-          </Menu>
-          {TABS.slice(2).map((tab) => (
-            <MobileTab key={tab.href} {...tab} active={isActive(pathname, tab.href)} />
-          ))}
-        </nav>
-      </div>
 
       <CommandPalette permissions={permissions} />
       <KeyboardShortcuts permissions={permissions} />
@@ -361,10 +277,172 @@ export function AppShell({
   );
 }
 
+// ─────────────────────────── Sidebar ───────────────────────────
+function Sidebar({
+  narrowAlways,
+  collapsed,
+  primary,
+  tools,
+  more,
+  pathname,
+  badgeFor,
+  nextHearing,
+  onToggle,
+}: {
+  narrowAlways: boolean;
+  collapsed: boolean;
+  primary: NavItem[];
+  tools: NavItem[];
+  more: NavItem[];
+  pathname: string;
+  badgeFor: (n: NavItem) => number;
+  nextHearing: NextHearingData | null;
+  onToggle: () => void;
+}) {
+  const { t, locale } = useI18n();
+  const moreActive = more.some((n) => isActive(pathname, n.href, n.match));
+  const [moreOpen, setMoreOpen] = useState(moreActive);
+  const moreBadge = more.reduce((s, n) => s + badgeFor(n), 0);
+  // Labels show on lg+ unless collapsed; the tablet (md) rail is icons only.
+  const label = narrowAlways ? "hidden" : "hidden xl:inline";
+  const side = locale === "ar" ? "left" : "right";
+
+  const navItem = (n: NavItem) => {
+    const on = isActive(pathname, n.href, n.match);
+    const b = badgeFor(n);
+    const link = (
+      <Link
+        href={n.href}
+        aria-current={on ? "page" : undefined}
+        aria-label={t(n.labelKey)}
+        className={cn(
+          "group relative flex h-8 items-center justify-center gap-2.5 rounded-md text-body transition-colors duration-150",
+          !narrowAlways && "xl:justify-start xl:px-2.5",
+          on ? "bg-surface font-medium text-ink shadow-xs ring-1 ring-line" : "text-ink-muted hover:bg-surface-sunken hover:text-ink",
+        )}
+      >
+        {on && <span aria-hidden className="absolute start-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-brand" />}
+        <n.icon className={cn("size-4 shrink-0", on ? "text-ink" : "text-ink-subtle group-hover:text-ink-muted")} />
+        <span className={cn("truncate", label)}>{t(n.labelKey)}</span>
+        {b > 0 && (
+          <span className={cn("absolute -top-0.5 end-0.5 rounded-sm bg-accent px-1 text-[10.5px] font-semibold leading-4 text-accent-fg tabular", !narrowAlways && "xl:static xl:ms-auto")}>{b}</span>
+        )}
+      </Link>
+    );
+    return (
+      <li key={n.key}>
+        {narrowAlways ? (
+          <Tooltip content={t(n.labelKey)} side={side}>
+            {link}
+          </Tooltip>
+        ) : (
+          link
+        )}
+      </li>
+    );
+  };
+
+  const moreMenu = (
+    <Menu>
+      <MenuTrigger asChild>
+        <button type="button" className={cn("relative flex h-8 w-full items-center justify-center rounded-md transition-colors hover:bg-surface-sunken", moreActive ? "text-ink" : "text-ink-subtle")} aria-label={t("nav.more")}>
+          <MoreHorizontal className="size-4" />
+          {moreBadge > 0 && <span className="absolute -top-0.5 end-0.5 rounded-sm bg-accent px-1 text-[10.5px] font-semibold leading-4 text-accent-fg">{moreBadge}</span>}
+        </button>
+      </MenuTrigger>
+      <MenuContent align="start" side={side} className="w-56">
+        {more.map((n) => (
+          <MenuItem key={n.key} asChild>
+            <Link href={n.href}>
+              <n.icon />
+              <span className="flex-1">{t(n.labelKey)}</span>
+              {badgeFor(n) > 0 && <span className="text-meta font-semibold text-accent">{badgeFor(n)}</span>}
+            </Link>
+          </MenuItem>
+        ))}
+      </MenuContent>
+    </Menu>
+  );
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className={cn("flex h-12 shrink-0 items-center px-4", narrowAlways ? "justify-center px-0" : "max-xl:justify-center max-xl:px-0")}>
+        <Link href="/app" className="flex min-w-0 items-center gap-2.5" aria-label={t("nav.home")}>
+          <Logo size={26} className="text-brand" />
+          <div className={cn("min-w-0 leading-tight", label)}>
+            <div className="truncate text-body font-semibold text-ink">AH Legal OS</div>
+            <div className="truncate text-caption text-ink-subtle">{t("app.office")}</div>
+          </div>
+        </Link>
+      </div>
+
+      <nav aria-label={t("nav.mainNavigation")} className={cn("relative flex-1 overflow-y-auto scrollbar-none px-3 pb-3 pt-2", narrowAlways ? "px-2" : "max-xl:px-2")}>
+        <ul className="flex flex-col gap-0.5">{primary.map(navItem)}</ul>
+        {tools.length > 0 && (
+          <>
+            <div className="mx-2 my-3 h-px bg-line" />
+            <ul className="flex flex-col gap-0.5">{tools.map(navItem)}</ul>
+          </>
+        )}
+        {more.length > 0 && (
+          <>
+            <div className="mx-2 my-3 h-px bg-line" />
+            {narrowAlways ? (
+              moreMenu
+            ) : (
+              <>
+                <div className="xl:hidden">{moreMenu}</div>
+                <div className="hidden xl:block">
+                  <button
+                    type="button"
+                    onClick={() => setMoreOpen((o) => !o)}
+                    aria-expanded={moreOpen}
+                    className="flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-body text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+                  >
+                    <MoreHorizontal className="size-4 text-ink-subtle" />
+                    <span className="flex-1 text-start">{t("nav.more")}</span>
+                    {!moreOpen && moreBadge > 0 && <span className="rounded-sm bg-accent px-1 text-[10.5px] font-semibold leading-4 text-accent-fg">{moreBadge}</span>}
+                    <ChevronDown className={cn("size-3.5 text-ink-subtle transition-transform duration-150", moreOpen && "rotate-180")} />
+                  </button>
+                  {moreOpen && <ul className="mt-0.5 flex flex-col gap-0.5">{more.map(navItem)}</ul>}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </nav>
+
+      <div className={cn("shrink-0 space-y-2 border-t border-line p-3", narrowAlways ? "px-2" : "max-xl:px-2")}>
+        {narrowAlways ? (
+          <NextHearingMini data={nextHearing} narrow />
+        ) : (
+          <>
+            <div className="hidden xl:block">
+              <NextHearingMini data={nextHearing} />
+            </div>
+            <div className="xl:hidden">
+              <NextHearingMini data={nextHearing} narrow />
+            </div>
+          </>
+        )}
+        <button
+          type="button"
+          onClick={onToggle}
+          className={cn("hidden h-7 w-full items-center gap-2 rounded-md px-2 text-meta text-ink-subtle transition-colors hover:bg-surface-sunken hover:text-ink xl:flex", narrowAlways && "justify-center px-0")}
+          aria-label={collapsed ? t("nav.expand") : t("nav.collapse")}
+        >
+          {collapsed ? <PanelLeftOpen className="size-4 rtl:-scale-x-100" /> : <PanelLeftClose className="size-4 rtl:-scale-x-100" />}
+          {!narrowAlways && <span>{t("nav.collapse")}</span>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function MobileTab({ href, icon: Icon, label, active }: { href: string; icon: React.ComponentType<{ className?: string }>; label: string; active: boolean }) {
   return (
-    <Link href={href} aria-current={active ? "page" : undefined} className={cn("flex h-14 flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium", active ? "text-ink" : "text-ink-subtle")}>
-      <Icon className={cn("size-5", active && "text-accent")} />
+    <Link href={href} aria-current={active ? "page" : undefined} className={cn("flex h-14 flex-col items-center justify-center gap-1 text-[10.5px] font-medium", active ? "text-ink" : "text-ink-subtle")}>
+      <Icon className="size-5" />
       {label}
     </Link>
   );

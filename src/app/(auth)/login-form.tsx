@@ -14,7 +14,7 @@ export function LoginForm({ action, labels, next }: { action: (s: FormState, f: 
     <form action={formAction} className="flex flex-col gap-4" noValidate>
       {next && <input type="hidden" name="next" value={next} />}
       {state?.error && (
-        <div role="alert" className="flex items-start gap-2 rounded-md border border-danger/20 bg-danger-soft px-3 py-2.5 text-[13px] text-danger">
+        <div role="alert" className="flex items-start gap-2 rounded-md border border-danger/20 bg-danger-soft px-3 py-2.5 text-body text-danger">
           <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
           {labels.errors[state.error] ?? labels.errors.invalid}
         </div>
@@ -39,7 +39,7 @@ export function MfaForm({ action, labels }: { action: (s: FormState, f: FormData
   return (
     <form action={formAction} className="flex flex-col gap-4">
       {state?.error && (
-        <div role="alert" className="rounded-md border border-danger/20 bg-danger-soft px-3 py-2.5 text-[13px] text-danger">
+        <div role="alert" className="rounded-md border border-danger/20 bg-danger-soft px-3 py-2.5 text-body text-danger">
           {labels.error}
         </div>
       )}

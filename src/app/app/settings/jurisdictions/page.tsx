@@ -17,7 +17,7 @@ export default async function JurisdictionsPage() {
   const jurOpts = jurs.map((j) => ({ value: j.id, label: L(j.name, j.nameAr) }));
   return (
     <div className="space-y-5">
-      <p className="rounded-md border border-warning/30 bg-warning-soft px-3 py-2.5 text-[12.5px] text-warning">{t("settings.reference.note")}</p>
+      <p className="rounded-md border border-warning/30 bg-warning-soft px-3 py-2.5 text-meta text-warning">{t("settings.reference.note")}</p>
       <ReferenceTable
         kind="jurisdiction"
         title={t("settings.reference.jurisdictions")}

@@ -18,7 +18,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
   const data = await listContacts(ctx, { q: sp.q, category: CONTACT_CATEGORIES.includes(sp.category as never) ? sp.category : undefined, page });
   const L = (en: string, ar: string | null) => (locale === "ar" ? ar || en : en);
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-[1440px] px-4 pb-10 pt-5 sm:px-6 lg:px-8 lg:pt-6">
       <PageHeader title={t("contacts.title")} subtitle={t("contacts.subtitle")} />
       <ListSearch className="mt-6" placeholder={t("common.search")} filters={[{ key: "category", label: t("contacts.fields.category"), options: CONTACT_CATEGORIES.map((c) => ({ value: c, label: t(`enums.contactCategory.${c}`) })) }]} />
       <ContactsView

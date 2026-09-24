@@ -4,27 +4,31 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * One primary action per view. Secondary actions use `secondary` (outline) or `ghost`.
+ * `danger` is for destructive actions only.
+ */
 export const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors select-none disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-medium transition-colors duration-150 select-none disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        primary: "bg-brand text-brand-fg hover:bg-brand-hover shadow-xs",
-        accent: "bg-accent text-accent-fg hover:bg-accent-hover shadow-xs",
-        secondary: "border border-line-strong bg-surface text-ink hover:bg-surface-muted shadow-xs",
+        primary: "bg-brand text-brand-fg hover:bg-brand-hover",
+        accent: "bg-accent text-accent-fg hover:bg-accent-hover",
+        secondary: "border border-line-strong bg-surface text-ink hover:border-ink-subtle/50 hover:bg-surface-muted",
         ghost: "text-ink-muted hover:bg-surface-muted hover:text-ink",
-        danger: "bg-danger text-white hover:opacity-90 shadow-xs",
+        danger: "bg-danger text-white hover:bg-danger/90",
         "danger-ghost": "text-danger hover:bg-danger-soft",
-        link: "text-accent underline-offset-4 hover:underline px-0 h-auto",
+        link: "h-auto px-0 text-accent underline-offset-4 hover:underline",
       },
       size: {
-        xs: "h-7 px-2 text-xs rounded",
-        sm: "h-8 px-3 text-[13px]",
-        md: "h-9 px-3.5",
-        lg: "h-11 px-5 text-[15px]",
-        icon: "size-9",
-        "icon-sm": "size-8",
-        "icon-xs": "size-7 [&_svg]:size-3.5",
+        xs: "h-6 rounded px-2 text-meta [&_svg]:size-3.5",
+        sm: "h-7 px-2.5 text-body [&_svg]:size-3.5",
+        md: "h-8 px-3 text-body",
+        lg: "h-10 px-4 text-ui",
+        icon: "size-8",
+        "icon-sm": "size-7 [&_svg]:size-3.5",
+        "icon-xs": "size-6 rounded [&_svg]:size-3.5",
       },
     },
     defaultVariants: { variant: "secondary", size: "md" },

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { requireStaff } from "@/server/auth/session";
 import { getT } from "@/i18n/server";
 import { docListQuery, listDocuments } from "@/server/services/documents";
-import { PageHeader } from "@/components/ui/layout";
+import { Page, PageHeader } from "@/components/ui/layout";
 import { ListSearch } from "@/components/list-search";
 import { DocumentTable } from "@/components/document-table";
 import { Pager } from "../cases/toolbar";
@@ -18,16 +18,18 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
   const q = docListQuery.parse(sp);
   const data = await listDocuments(ctx, q);
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
-      <PageHeader title={t("documents.title")} subtitle={t("documents.subtitle")} />
-      <ListSearch className="mt-6" placeholder={t("documents.searchPlaceholder")} filters={[
+    <Page width="full" className="max-w-[1600px]">
+      <PageHeader title={<span className="flex items-baseline gap-2">{t("documents.title")}<span className="text-body font-normal tabular text-ink-subtle">{data.total}</span></span>} subtitle={t("documents.subtitle")} />
+      <div className="mt-4">
+        <DocumentTable
+          rows={data.rows} canUpload={ctx.can("documents.upload")} autoOpenUpload={sp.upload === "1"} emptyTitle={q.q || q.category || q.status ? t("documents.noMatch") : undefined}
+          toolbar={<ListSearch key="toolbar" placeholder={t("documents.searchPlaceholder")} filters={[
         { key: "category", label: t("documents.fields.category"), options: CATEGORIES.map((c) => ({ value: c, label: t(`enums.documentCategory.${c}`) })) },
         { key: "status", label: t("common.status"), options: ["DRAFT", "UNDER_REVIEW", "CHANGES_REQUESTED", "APPROVED", "SUBMITTED"].map((s) => ({ value: s, label: t(`enums.documentStatus.${s}`) })) },
-      ]} />
-      <div className="mt-4 overflow-hidden rounded-lg border border-line bg-surface shadow-xs">
-        <DocumentTable rows={data.rows} canUpload={ctx.can("documents.upload")} autoOpenUpload={sp.upload === "1"} emptyTitle={q.q || q.category || q.status ? t("documents.noMatch") : undefined} />
-        {data.rows.length > 0 && <Pager total={data.total} page={q.page} pageSize={30} />}
+      ]} />}
+          footer={<Pager key="pager" total={data.total} page={q.page} pageSize={30} />}
+        />
       </div>
-    </div>
+    </Page>
   );
 }

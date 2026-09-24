@@ -8,7 +8,7 @@ import { Dialog as D } from "radix-ui";
 import { CheckSquare, Circle, CheckCircle2, Lock, MessageSquare, ListChecks, Pencil, Trash2, Play, Pause, Send, Plus } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { Button } from "@/components/ui/button";
-import { Badge, PRIORITY_TONE, TASK_STATUS_TONE } from "@/components/ui/badge";
+import { Badge, TASK_STATUS_TONE, PRIORITY_TONE, PriorityText } from "@/components/ui/badge";
 import { Avatar, EmptyState, Skeleton } from "@/components/ui/layout";
 import { Dialog, SheetContent } from "@/components/ui/overlay";
 import { Input, Textarea } from "@/components/ui/form";
@@ -46,32 +46,32 @@ export function TaskList({ rows, emptyTitle, emptyAction, showMatter = true }: {
   if (!rows.length) return <EmptyState icon={<CheckSquare />} title={emptyTitle ?? t("tasks.empty")} action={emptyAction} />;
   return (
     <>
-      <ul className="divide-y divide-line">
+      <ul className="divide-y divide-line/80">
         {rows.map((r) => (
-          <li key={r.id} className="group flex items-center gap-3 px-4 py-2.5 hover:bg-surface-muted/50">
+          <li key={r.id} className="group flex items-center gap-3 px-4 py-2 transition-colors hover:bg-surface-muted">
             <button type="button" onClick={() => toggle(r)} disabled={r.blocked && r.status !== "DONE"} aria-label={r.status === "DONE" ? t("common.reopen") : t("common.markDone")}
               className="shrink-0 text-ink-subtle hover:text-success disabled:cursor-not-allowed disabled:opacity-50">
-              {r.status === "DONE" ? <CheckCircle2 className="size-[18px] text-success" /> : r.blocked ? <Lock className="size-4" /> : <Circle className="size-[18px]" />}
+              {r.status === "DONE" ? <CheckCircle2 className="size-4 text-success" /> : r.blocked ? <Lock className="size-4" /> : <Circle className="size-4" />}
             </button>
             <button type="button" onClick={() => setOpenId(r.id)} className="min-w-0 flex-1 text-start">
               <div className="flex items-center gap-2">
-                <span className={cn("truncate text-[13.5px] text-ink", r.status === "DONE" && "text-ink-subtle line-through")}>{r.title}</span>
+                <span className={cn("bidi-plain truncate text-body text-ink", r.status === "DONE" && "text-ink-subtle line-through")}>{r.title}</span>
                 {r.status !== "TODO" && r.status !== "DONE" && <Badge tone={TASK_STATUS_TONE[r.status]}>{t(`enums.taskStatus.${r.status}`)}</Badge>}
                 {r.blocked && r.status !== "DONE" && <Badge tone="outline"><Lock /> {t("tasks.blocked")}</Badge>}
               </div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] text-ink-subtle">
-                {showMatter && r.matter && <span className="truncate"><span className="ltr-nums font-mono">{r.matter.internalNumber}</span> · {L(r.matter.title, r.matter.titleAr)}</span>}
+              <div className="flex flex-wrap items-center gap-x-2 text-meta text-ink-subtle">
+                {showMatter && r.matter && <span className="truncate"><span className="record-id">{r.matter.internalNumber}</span> <span className="bidi-plain">{L(r.matter.title, r.matter.titleAr)}</span></span>}
                 {r.checklist.total > 0 && <span className="inline-flex items-center gap-0.5"><ListChecks className="size-3" /> {r.checklist.done}/{r.checklist.total}</span>}
                 {r.comments > 0 && <span className="inline-flex items-center gap-0.5"><MessageSquare className="size-3" /> {r.comments}</span>}
               </div>
             </button>
-            <Badge tone={PRIORITY_TONE[r.priority]} className="hidden sm:inline-flex">{t(`enums.priority.${r.priority}`)}</Badge>
+            <PriorityText priority={r.priority} label={t(`enums.priority.${r.priority}`)} className="hidden w-20 text-meta md:inline-flex" />
             {r.dueAt && (
-              <span className={cn("hidden w-28 shrink-0 text-end text-[12px] tabular sm:block", r.overdue ? "font-medium text-danger" : "text-ink-muted")}>
+              <span className={cn("hidden w-28 shrink-0 text-end text-meta tabular sm:block", r.overdue ? "font-medium text-danger" : "text-ink-muted")}>
                 {formatDate(r.dueAt, locale, tz, { day: "numeric", month: "short", year: undefined })} {formatTime(r.dueAt, locale, tz)}
               </span>
             )}
-            {r.assignee && <Avatar name={L(r.assignee.name, r.assignee.nameAr)} src={r.assignee.photoUrl} size={24} />}
+            {r.assignee ? <Avatar name={L(r.assignee.name, r.assignee.nameAr)} src={r.assignee.photoUrl} size={22} /> : <span className="size-[22px] shrink-0" />}
           </li>
         ))}
       </ul>
@@ -123,14 +123,14 @@ function TaskSheet({ id, onChanged, onClose }: { id: string; onChanged: () => vo
             <Badge tone={PRIORITY_TONE[d.priority]}>{t(`enums.priority.${d.priority}`)}</Badge>
             {d.sourceType && <Badge tone="outline">{d.sourceType.startsWith("AUTOMATION") ? t("enums.eventSource.AUTOMATION") : t("enums.eventSource.HEARING_REPORT")}</Badge>}
           </div>
-          <dl className="grid grid-cols-2 gap-3 text-[13px]">
-            <div><dt className="text-[11.5px] text-ink-subtle">{t("tasks.fields.assignee")}</dt><dd>{d.assignee ? L(d.assignee.name, d.assignee.nameAr) : t("common.unassigned")}</dd></div>
-            <div><dt className="text-[11.5px] text-ink-subtle">{t("tasks.fields.dueAt")}</dt><dd>{d.dueAt ? formatDateTime(d.dueAt, locale, tz) : "—"}</dd></div>
-            <div className="col-span-2"><dt className="text-[11.5px] text-ink-subtle">{t("tasks.fields.matter")}</dt><dd>{d.matter ? <Link href={`/app/cases/${d.matter.id}`} onClick={onClose} className="text-accent hover:underline"><span className="ltr-nums font-mono">{d.matter.internalNumber}</span> · {L(d.matter.title, d.matter.titleAr)}</Link> : t("tasks.noMatter")}</dd></div>
-            <div><dt className="text-[11.5px] text-ink-subtle">{t("tasks.createdBy")}</dt><dd>{d.createdBy ? L(d.createdBy.name, d.createdBy.nameAr) : "—"} · {relativeTime(d.createdAt, locale)}</dd></div>
-            {d.estimateMinutes != null && <div><dt className="text-[11.5px] text-ink-subtle">{t("tasks.fields.estimate")}</dt><dd className="tabular">{d.estimateMinutes}</dd></div>}
+          <dl className="grid grid-cols-2 gap-3 text-body">
+            <div><dt className="text-meta text-ink-subtle">{t("tasks.fields.assignee")}</dt><dd>{d.assignee ? L(d.assignee.name, d.assignee.nameAr) : t("common.unassigned")}</dd></div>
+            <div><dt className="text-meta text-ink-subtle">{t("tasks.fields.dueAt")}</dt><dd>{d.dueAt ? formatDateTime(d.dueAt, locale, tz) : "—"}</dd></div>
+            <div className="col-span-2"><dt className="text-meta text-ink-subtle">{t("tasks.fields.matter")}</dt><dd>{d.matter ? <Link href={`/app/cases/${d.matter.id}`} onClick={onClose} className="text-accent hover:underline"><span className="ltr-nums font-mono">{d.matter.internalNumber}</span> · {L(d.matter.title, d.matter.titleAr)}</Link> : t("tasks.noMatter")}</dd></div>
+            <div><dt className="text-meta text-ink-subtle">{t("tasks.createdBy")}</dt><dd>{d.createdBy ? L(d.createdBy.name, d.createdBy.nameAr) : "—"} · {relativeTime(d.createdAt, locale)}</dd></div>
+            {d.estimateMinutes != null && <div><dt className="text-meta text-ink-subtle">{t("tasks.fields.estimate")}</dt><dd className="tabular">{d.estimateMinutes}</dd></div>}
           </dl>
-          {d.description && <p className="whitespace-pre-line rounded-md bg-surface-muted p-3 text-[13px] text-ink">{d.description}</p>}
+          {d.description && <p className="whitespace-pre-line rounded-md bg-surface-muted p-3 text-body text-ink">{d.description}</p>}
           <div className="flex flex-wrap gap-2">
             {d.status !== "IN_PROGRESS" && d.status !== "DONE" && <Button size="sm" variant="secondary" loading={pending} onClick={() => setStatus("IN_PROGRESS")}><Play /> {t("tasks.start")}</Button>}
             {d.status !== "WAITING" && d.status !== "DONE" && <Button size="sm" variant="secondary" loading={pending} onClick={() => setStatus("WAITING")}><Pause /> {t("tasks.waitingOn")}</Button>}
@@ -138,16 +138,16 @@ function TaskSheet({ id, onChanged, onClose }: { id: string; onChanged: () => vo
           </div>
           {d.dependsOn.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[12px] font-semibold text-ink-muted">{t("tasks.fields.dependencies")}</p>
-              <ul className="space-y-1">{d.dependsOn.map((x) => <li key={x.id} className="flex items-center gap-2 text-[13px]"><Badge tone={TASK_STATUS_TONE[x.status]}>{t(`enums.taskStatus.${x.status}`)}</Badge> {x.title}</li>)}</ul>
+              <p className="mb-1.5 text-meta font-semibold text-ink-muted">{t("tasks.fields.dependencies")}</p>
+              <ul className="space-y-1">{d.dependsOn.map((x) => <li key={x.id} className="flex items-center gap-2 text-body"><Badge tone={TASK_STATUS_TONE[x.status]}>{t(`enums.taskStatus.${x.status}`)}</Badge> {x.title}</li>)}</ul>
             </div>
           )}
           <div>
-            <p className="mb-1.5 text-[12px] font-semibold text-ink-muted">{t("tasks.fields.checklist")}</p>
+            <p className="mb-1.5 text-meta font-semibold text-ink-muted">{t("tasks.fields.checklist")}</p>
             <ul className="space-y-0.5">
               {d.checklist.map((c) => (
                 <li key={c.id}>
-                  <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-[13px] hover:bg-surface-muted">
+                  <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-body hover:bg-surface-muted">
                     <input type="checkbox" checked={c.done} onChange={(e) => run(() => taskChecklistAction({ id: c.id, done: e.target.checked }), { onSuccess: reload })} className="accent-[var(--success)]" />
                     <span className={cn(c.done && "text-ink-subtle line-through")}>{c.title}</span>
                   </label>
@@ -160,12 +160,12 @@ function TaskSheet({ id, onChanged, onClose }: { id: string; onChanged: () => vo
             </form>
           </div>
           <div>
-            <p className="mb-1.5 text-[12px] font-semibold text-ink-muted">{t("tasks.comments")}</p>
+            <p className="mb-1.5 text-meta font-semibold text-ink-muted">{t("tasks.comments")}</p>
             <ul className="space-y-3">
               {d.comments.map((c) => (
                 <li key={c.id} className="flex gap-2">
                   <Avatar name={c.author.name} src={c.author.photoUrl} size={22} />
-                  <div className="min-w-0 text-[13px]"><span className="font-medium">{L(c.author.name, c.author.nameAr)}</span> <span className="text-[11.5px] text-ink-subtle">{relativeTime(c.createdAt, locale)}</span><p className="whitespace-pre-line text-ink">{c.body}</p></div>
+                  <div className="min-w-0 text-body"><span className="font-medium">{L(c.author.name, c.author.nameAr)}</span> <span className="text-meta text-ink-subtle">{relativeTime(c.createdAt, locale)}</span><p className="whitespace-pre-line text-ink">{c.body}</p></div>
                 </li>
               ))}
             </ul>

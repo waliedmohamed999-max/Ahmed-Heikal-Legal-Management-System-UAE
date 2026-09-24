@@ -14,20 +14,20 @@ export function SensitiveReveal({ id, canView }: { id: string; canView: boolean 
   const { run, pending } = useAction();
   return (
     <div>
-      <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-ink"><ShieldAlert className="size-3.5 text-warning" /> {t("clients.sensitive")}</p>
+      <p className="flex items-center gap-1.5 text-meta font-semibold text-ink"><ShieldAlert className="size-3.5 text-warning" /> {t("clients.sensitive")}</p>
       {!canView ? (
-        <p className="mt-1.5 inline-flex items-center gap-1 text-[12.5px] text-ink-subtle"><Lock className="size-3" /> {t("clients.noPermission")}</p>
+        <p className="mt-1.5 inline-flex items-center gap-1 text-meta text-ink-subtle"><Lock className="size-3" /> {t("clients.noPermission")}</p>
       ) : data ? (
-        <dl className="mt-2 grid grid-cols-2 gap-2 text-[13px]">
-          <div><dt className="text-[11.5px] text-ink-subtle">{t("clients.fields.emiratesId")}</dt><dd className="ltr-nums font-mono">{data.emiratesId ?? "—"}</dd></div>
-          <div><dt className="text-[11.5px] text-ink-subtle">{t("clients.fields.passportNo")}</dt><dd className="ltr-nums font-mono">{data.passportNo ?? "—"}</dd></div>
+        <dl className="mt-2 grid grid-cols-2 gap-2 text-body">
+          <div><dt className="text-meta text-ink-subtle">{t("clients.fields.emiratesId")}</dt><dd className="ltr-nums font-mono">{data.emiratesId ?? "—"}</dd></div>
+          <div><dt className="text-meta text-ink-subtle">{t("clients.fields.passportNo")}</dt><dd className="ltr-nums font-mono">{data.passportNo ?? "—"}</dd></div>
         </dl>
       ) : (
         <Button size="xs" variant="secondary" className="mt-2" loading={pending} onClick={() => run(() => revealSensitiveAction({ id }), { onSuccess: setData })}>
           <Eye /> {t("clients.reveal")}
         </Button>
       )}
-      <p className="mt-1.5 text-[11.5px] text-ink-subtle">{t("clients.sensitiveHint")}</p>
+      <p className="mt-1.5 text-meta text-ink-subtle">{t("clients.sensitiveHint")}</p>
     </div>
   );
 }

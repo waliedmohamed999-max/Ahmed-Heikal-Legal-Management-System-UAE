@@ -23,7 +23,7 @@ export function Providers({ locale, dict, tz, children }: { locale: "ar" | "en";
       <I18nProvider locale={locale} dict={dict} tz={tz}>
         <TooltipProvider delayDuration={300}>
           {children}
-          <Toaster position={locale === "ar" ? "bottom-left" : "bottom-right"} dir={locale === "ar" ? "rtl" : "ltr"} richColors closeButton toastOptions={{ className: "text-[13px]" }} />
+          <Toaster position={locale === "ar" ? "bottom-left" : "bottom-right"} dir={locale === "ar" ? "rtl" : "ltr"} richColors closeButton toastOptions={{ className: "text-body" }} />
         </TooltipProvider>
       </I18nProvider>
     </QueryClientProvider>

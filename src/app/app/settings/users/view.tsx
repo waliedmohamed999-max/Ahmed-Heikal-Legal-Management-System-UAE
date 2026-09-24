@@ -21,19 +21,19 @@ export function UsersView({ users, roles, meId }: { users: U[]; roles: { id: str
   const router = useRouter();
   const [edit, setEdit] = useState<U | "new" | null>(null);
   return (
-    <Panel title={t("settings.users.title")} actions={<Button size="sm" variant="primary" onClick={() => setEdit("new")}><UserPlus /> {t("settings.users.new")}</Button>} footer={<p className="text-[11.5px] text-ink-subtle">{t("settings.users.sessionsNote")}</p>}>
+    <Panel title={t("settings.users.title")} actions={<Button size="sm" variant="primary" onClick={() => setEdit("new")}><UserPlus /> {t("settings.users.new")}</Button>} footer={<p className="text-meta text-ink-subtle">{t("settings.users.sessionsNote")}</p>}>
       <ul className="divide-y divide-line">
         {users.map((u) => (
           <li key={u.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
             <Avatar name={u.name} src={u.photoUrl} size={32} />
             <div className="min-w-0 flex-1">
-              <p className="text-[13.5px] font-medium text-ink">{locale === "ar" ? u.nameAr || u.name : u.name} {u.id === meId && <span className="text-[11.5px] text-ink-subtle">·</span>}</p>
-              <p className="ltr-nums truncate text-[12px] text-ink-subtle">{u.email}</p>
+              <p className="text-body font-medium text-ink">{locale === "ar" ? u.nameAr || u.name : u.name} {u.id === meId && <span className="text-meta text-ink-subtle">·</span>}</p>
+              <p className="ltr-nums truncate text-meta text-ink-subtle">{u.email}</p>
             </div>
             <Badge tone="neutral">{u.roleName}</Badge>
             {u.mfaEnabled && <Badge tone="success"><ShieldCheck /> MFA</Badge>}
             <Badge tone={u.status === "ACTIVE" ? "success" : "outline"}>{t(`settings.users.statuses.${u.status}`)}</Badge>
-            <span className="hidden w-28 text-end text-[12px] text-ink-subtle sm:block">{u.lastLoginAt ? relativeTime(u.lastLoginAt, locale) : "—"}</span>
+            <span className="hidden w-28 text-end text-meta text-ink-subtle sm:block">{u.lastLoginAt ? relativeTime(u.lastLoginAt, locale) : "—"}</span>
             <Button size="icon-xs" variant="ghost" aria-label={t("common.edit")} onClick={() => setEdit(u)}><Pencil /></Button>
           </li>
         ))}
@@ -57,7 +57,7 @@ function UserDialog({ user, roles, onDone }: { user: U | null; roles: { id: stri
   const r = form.register;
   return (
     <DialogContent title={user ? t("settings.users.edit") : t("settings.users.new")} size="lg">
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+      <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate>
         <Field label={t("clients.fields.nameEn")} error={err("name")} required>{(a) => <Input {...a} dir="ltr" {...r("name")} />}</Field>
         <Field label={t("clients.fields.nameAr")}>{(a) => <Input {...a} dir="rtl" {...r("nameAr")} />}</Field>
         <Field label={t("common.email")} error={err("email")} required>{(a) => <Input {...a} type="email" dir="ltr" {...r("email")} />}</Field>

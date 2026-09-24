@@ -31,10 +31,10 @@ export function ContactsView({ rows, canManage, focus, total, page }: { rows: Ro
   const sel = rows.find((r) => r.id === selected) ?? null;
 
   return (
-    <div className="mt-4 grid gap-5 lg:grid-cols-12">
-      <div className="overflow-hidden rounded-lg border border-line bg-surface shadow-xs lg:col-span-5">
+    <div className="mt-4 grid grid-cols-1 gap-5 lg:grid-cols-12">
+      <div className="overflow-hidden rounded-lg border border-line bg-surface lg:col-span-5">
         <div className="flex items-center justify-between border-b border-line px-4 py-2">
-          <span className="text-[12.5px] text-ink-muted">{t("common.results", { n: total })}</span>
+          <span className="text-meta text-ink-muted">{t("common.results", { n: total })}</span>
           {canManage && <Button size="sm" variant="secondary" onClick={() => setEditing("new")}><Plus /> {t("contacts.new")}</Button>}
         </div>
         {rows.length === 0 ? <EmptyState icon={<ContactIcon />} title={t("contacts.empty")} /> : (
@@ -45,8 +45,8 @@ export function ContactsView({ rows, canManage, focus, total, page }: { rows: Ro
                   className={cn("flex w-full items-center gap-3 px-4 py-2.5 text-start hover:bg-surface-muted/60", selected === r.id && "bg-accent-soft/60")}>
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-muted text-ink-subtle">{r.type === "COMPANY" ? <Building2 className="size-4" /> : <User className="size-4" />}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium text-ink">{r.name}</span>
-                    <span className="block truncate text-[12px] text-ink-subtle">{[r.jobTitle, r.companyName, r.client].filter(Boolean).join(" · ") || "—"}</span>
+                    <span className="block truncate text-body font-medium text-ink">{r.name}</span>
+                    <span className="block truncate text-meta text-ink-subtle">{[r.jobTitle, r.companyName, r.client].filter(Boolean).join(" · ") || "—"}</span>
                   </span>
                   <Badge tone={r.category === "OPPONENT" ? "danger" : r.category === "CLIENT" ? "brand" : "neutral"}>{t(`enums.contactCategory.${r.category}`)}</Badge>
                 </button>
@@ -61,18 +61,18 @@ export function ContactsView({ rows, canManage, focus, total, page }: { rows: Ro
         {sel ? (
           <div className="space-y-5">
             <Panel title={sel.name} actions={canManage && <Button size="sm" variant="ghost" onClick={() => setEditing(sel)}><Pencil /> {t("common.edit")}</Button>}>
-              <div className="grid gap-3 p-4 text-[13px] sm:grid-cols-2">
+              <div className="grid gap-3 p-4 text-body sm:grid-cols-2">
                 {sel.email && <a className="ltr-nums inline-flex items-center gap-1.5 text-ink-muted hover:text-ink" href={`mailto:${sel.email}`}><Mail className="size-3.5" /> {sel.email}</a>}
                 {sel.phone && <a className="ltr-nums inline-flex items-center gap-1.5 text-ink-muted hover:text-ink" href={`tel:${sel.phone}`}><Phone className="size-3.5" /> {sel.phone}</a>}
                 {sel.address && <p className="text-ink-muted sm:col-span-2">{sel.address}</p>}
                 {sel.notes && <p className="whitespace-pre-line text-ink-muted sm:col-span-2">{sel.notes}</p>}
               </div>
               <div className="border-t border-line px-4 py-3">
-                <p className="mb-2 text-[12px] font-semibold text-ink-muted">{t("contacts.linkedMatters")}</p>
-                {sel.matters.length === 0 ? <p className="text-[12.5px] text-ink-subtle">—</p> : (
+                <p className="mb-2 text-meta font-semibold text-ink-muted">{t("contacts.linkedMatters")}</p>
+                {sel.matters.length === 0 ? <p className="text-meta text-ink-subtle">—</p> : (
                   <div className="flex flex-wrap gap-2">
                     {sel.matters.map((m) => (
-                      <Link key={`${m.id}-${m.role}`} href={`/app/cases/${m.id}`} className="inline-flex items-center gap-1.5 rounded-md border border-line px-2 py-1 text-[12.5px] hover:bg-surface-muted">
+                      <Link key={`${m.id}-${m.role}`} href={`/app/cases/${m.id}`} className="inline-flex items-center gap-1.5 rounded-md border border-line px-2 py-1 text-meta hover:bg-surface-muted">
                         <span className="ltr-nums font-mono">{m.number}</span> <Badge tone="neutral">{t(`enums.partyRole.${m.role}`)}</Badge>
                       </Link>
                     ))}
@@ -166,7 +166,7 @@ function ContactDialog({ row, onDone }: { row: Row | null; onDone: () => void })
   const r = form.register;
   return (
     <DialogContent title={row ? t("contacts.edit") : t("contacts.new")} size="lg">
-      <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+      <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate>
         <Field label={t("contacts.fields.category")}>{(a) => <Select {...a} {...r("category")}>{CONTACT_CATEGORIES.map((c) => <option key={c} value={c}>{t(`enums.contactCategory.${c}`)}</option>)}</Select>}</Field>
         <Field label={t("common.type")}>{(a) => <Select {...a} {...r("type")}><option value="INDIVIDUAL">{t("enums.partyType.INDIVIDUAL")}</option><option value="COMPANY">{t("enums.partyType.COMPANY")}</option></Select>}</Field>
         <Field label={t("clients.fields.nameEn")} error={err("nameEn")} required>{(a) => <Input {...a} dir="ltr" {...r("nameEn")} />}</Field>

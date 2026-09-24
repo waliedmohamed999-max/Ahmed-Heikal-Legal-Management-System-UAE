@@ -2,98 +2,123 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ─────────────────────────────────────────────────────────────
-   AH Legal OS — design tokens
-   Deep navy identity, off-white canvas, slate neutrals, a single
-   restrained cobalt accent. Status and event colours are semantic
-   (never decorative) and reused consistently across the product.
-   ───────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────────
+   AH Legal OS — design tokens (Phase 11A)
+
+   Neutral warm-gray system, white working surfaces, near-black ink and ONE
+   accent (deep navy). Colour is reserved for meaning: status, priority,
+   verification, confidentiality and event type. Everything in the UI must be
+   expressed with these tokens — no ad-hoc hex values in pages.
+
+   Spacing   4 · 8 · 12 · 16 · 20 · 24 · 32 · 48   (Tailwind 1 · 2 · 3 · 4 · 5 · 6 · 8 · 12)
+   Radius    4 (chips) · 6 (controls) · 8 (sections) · 10 (overlays) · 12 (modals)
+   Type      caption 11 · meta 12 · body 13 · ui 14 · heading 15 · title 20 · display 24
+   ───────────────────────────────────────────────────────────────────────────── */
 :root {
-  --canvas: #f6f6f3;
-  --surface: #ffffff;
-  --surface-muted: #f2f2ee;
-  --surface-sunken: #ebebe6;
-  --line: #e4e4de;
-  --line-strong: #d3d3cb;
-  --ink: #121826;
-  --ink-muted: #4a5163;
-  --ink-subtle: #7b8191;
-  --brand: #0e1b33;
-  --brand-hover: #182a4b;
+  /* Surfaces */
+  --canvas: #f7f7f5; /* app chrome: sidebar, page backdrop */
+  --surface: #ffffff; /* working area */
+  --surface-muted: #f5f5f2; /* hover rows, sub-surfaces */
+  --surface-sunken: #efeeea; /* inputs-in-toolbars, skeletons, tracks */
+  --line: #e9e8e3;
+  --line-strong: #dad9d2;
+
+  /* Ink */
+  --ink: #15171c;
+  --ink-muted: #51566a;
+  --ink-subtle: #858a97;
+
+  /* Primary (deep navy) — the only accent */
+  --brand: #172440;
+  --brand-hover: #22335a;
   --brand-fg: #ffffff;
-  --accent: #3553c9;
-  --accent-hover: #2b46ad;
-  --accent-soft: #eef1fb;
+  --accent: #1f3c78;
+  --accent-hover: #19315f;
+  --accent-soft: #eef1f8;
   --accent-fg: #ffffff;
-  --ring: #3553c9;
+  --ring: #3a5ba8;
 
-  --nav-bg: #0c1424;
-  --nav-surface: #131d31;
-  --nav-line: #1d2840;
-  --nav-fg: #d5dae4;
-  --nav-muted: #8c95a8;
-  --nav-active: #1c2945;
+  /* Inverse (rare: auth art panel, focus-mode header) */
+  --nav-bg: #111a2e;
+  --nav-surface: #18233b;
+  --nav-line: #243049;
+  --nav-fg: #d7dce6;
+  --nav-muted: #8d96a9;
+  --nav-active: #1e2a45;
 
+  /* Status (muted, meaning only) */
   --danger: #b42318;
-  --danger-soft: #fdf1f0;
-  --critical: #c01d3f;
-  --critical-soft: #fdeff2;
-  --high: #c4480a;
-  --high-soft: #fff3eb;
-  --warning: #a15c07;
-  --warning-soft: #fdf7e8;
-  --success: #067647;
-  --success-soft: #ecf8f1;
-  --info: #3553c9;
-  --info-soft: #eef1fb;
-  --neutral-soft: #f0f0ec;
+  --danger-soft: #fcf1f0;
+  --critical: #b0233c;
+  --critical-soft: #fcf0f2;
+  --high: #b2530f;
+  --high-soft: #fdf4ec;
+  --warning: #9a5b08;
+  --warning-soft: #fcf6e7;
+  --success: #17754a;
+  --success-soft: #edf7f1;
+  --info: #2f5596;
+  --info-soft: #eef2f9;
+  --neutral-soft: #f1f0ec;
 
-  /* Event types (calendar, agenda, countdowns) */
-  --ev-hearing: #3f37c9;
+  /* Event types (calendar, agenda, timelines) — desaturated */
+  --ev-hearing: #3b4aa8;
   --ev-court-deadline: #b42318;
-  --ev-client-meeting: #0e7490;
-  --ev-internal-meeting: #52607a;
-  --ev-submission: #7a3eb1;
-  --ev-expert: #a15c07;
-  --ev-payment: #067647;
-  --ev-task: #2f5bd3;
-  --ev-follow-up: #5b6b7f;
+  --ev-client-meeting: #1b6f82;
+  --ev-internal-meeting: #5b6477;
+  --ev-submission: #6d4a9c;
+  --ev-expert: #9a5b08;
+  --ev-payment: #17754a;
+  --ev-task: #2f5596;
+  --ev-follow-up: #6b7584;
 
-  --shadow-xs: 0 1px 1px rgb(16 24 40 / 0.04);
-  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.06), 0 1px 1px rgb(16 24 40 / 0.03);
-  --shadow-md: 0 6px 16px -4px rgb(16 24 40 / 0.10), 0 2px 4px -2px rgb(16 24 40 / 0.05);
-  --shadow-lg: 0 20px 40px -12px rgb(16 24 40 / 0.22), 0 4px 10px -4px rgb(16 24 40 / 0.08);
+  /* Elevation — borders first, shadows only for floating layers */
+  --shadow-xs: 0 1px 0 rgb(20 24 34 / 0.03);
+  --shadow-sm: 0 1px 2px rgb(20 24 34 / 0.05);
+  --shadow-md: 0 10px 28px -10px rgb(20 24 34 / 0.18), 0 2px 6px -2px rgb(20 24 34 / 0.06);
+  --shadow-lg: 0 24px 48px -16px rgb(20 24 34 / 0.26), 0 4px 12px -4px rgb(20 24 34 / 0.08);
+
+  /* Layers */
+  --z-sticky: 20;
+  --z-header: 30;
+  --z-overlay: 50;
+  --z-toast: 60;
+
+  /* Layout */
+  --sidebar-w: 232px;
+  --sidebar-w-collapsed: 64px;
+  --topbar-h: 48px;
 }
 
 .dark {
-  --canvas: #0a0e16;
-  --surface: #10151f;
-  --surface-muted: #151b27;
-  --surface-sunken: #0d121b;
-  --line: #222a38;
-  --line-strong: #2f3949;
-  --ink: #e8ebf1;
-  --ink-muted: #a7aebc;
+  --canvas: #0c0f15;
+  --surface: #12161e;
+  --surface-muted: #171c25;
+  --surface-sunken: #1b212b;
+  --line: #232a36;
+  --line-strong: #2e3644;
+  --ink: #e9ecf2;
+  --ink-muted: #a8afbd;
   --ink-subtle: #737c8d;
-  --brand: #e8ebf1;
+  --brand: #e9ecf2;
   --brand-hover: #ffffff;
-  --brand-fg: #0c1424;
-  --accent: #7189ef;
-  --accent-hover: #8a9ff3;
-  --accent-soft: #1a2240;
-  --accent-fg: #0c1424;
-  --ring: #7189ef;
-  --nav-bg: #070b12;
-  --nav-surface: #0e1420;
-  --nav-line: #182030;
-  --nav-active: #172238;
-  --danger-soft: #2a1414;
-  --critical-soft: #2b1219;
-  --high-soft: #2a1a10;
-  --warning-soft: #271f0e;
-  --success-soft: #0f2419;
-  --info-soft: #1a2240;
-  --neutral-soft: #1a2030;
+  --brand-fg: #0f1522;
+  --accent: #8aa2e6;
+  --accent-hover: #a2b5ec;
+  --accent-soft: #1b2440;
+  --accent-fg: #0f1522;
+  --ring: #8aa2e6;
+  --nav-bg: #080b11;
+  --nav-surface: #10151f;
+  --nav-line: #1c2330;
+  --nav-active: #182033;
+  --danger-soft: #2a1515;
+  --critical-soft: #2a1319;
+  --high-soft: #2a1b10;
+  --warning-soft: #27200f;
+  --success-soft: #10231a;
+  --info-soft: #18213a;
+  --neutral-soft: #1b212c;
 }
 
 @theme inline {
@@ -151,17 +176,36 @@
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 10px;
+  --radius-2xl: 12px;
 
   --shadow-xs: var(--shadow-xs);
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
 
+  /* Type scale (use these instead of arbitrary sizes) */
+  --text-caption: 0.6875rem;
+  --text-caption--line-height: 1rem;
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1.125rem;
+  --text-body: 0.8125rem;
+  --text-body--line-height: 1.25rem;
+  --text-ui: 0.875rem;
+  --text-ui--line-height: 1.375rem;
+  --text-heading: 0.9375rem;
+  --text-heading--line-height: 1.375rem;
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.75rem;
+  --text-display: 1.5rem;
+  --text-display--line-height: 2rem;
   --text-2xs: 0.6875rem;
   --text-2xs--line-height: 1rem;
 
-  --animate-fade-in: fade-in 160ms ease-out;
-  --animate-slide-up: slide-up 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-fade-in: fade-in 150ms ease-out;
+  --animate-slide-up: slide-up 180ms var(--ease-out-soft);
+  --animate-drawer-in: drawer-in 200ms var(--ease-out-soft);
+  --animate-drawer-in-rtl: drawer-in-rtl 200ms var(--ease-out-soft);
   --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
 }
 
@@ -172,6 +216,14 @@
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+@keyframes drawer-in {
+  from { transform: translateX(16px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes drawer-in-rtl {
+  from { transform: translateX(-16px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 @keyframes pulse-soft {
   0%, 100% { opacity: 1; }
@@ -189,26 +241,32 @@
   body {
     background: var(--canvas);
     color: var(--ink);
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
     font-feature-settings: "cv11", "ss01";
     -webkit-font-smoothing: antialiased;
   }
   html[dir="rtl"] body {
-    /* Arabic reads better with the Arabic face first and slightly more leading */
+    /* Arabic face first; slightly more leading than Latin, but not so much that dense UI bloats */
     font-family: var(--font-arabic), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-    line-height: 1.65;
+    line-height: 1.5;
+    font-feature-settings: normal;
   }
   ::selection {
-    background: color-mix(in srgb, var(--accent) 22%, transparent);
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
   }
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
-  /* Numbers/case IDs always LTR even inside Arabic text */
+  /* Numbers / case IDs always LTR even inside Arabic text */
   .ltr-nums {
     direction: ltr;
     unicode-bidi: isolate;
     font-variant-numeric: tabular-nums;
+  }
+  .ltr-nums.font-mono {
+    white-space: nowrap;
   }
   .tabular {
     font-variant-numeric: tabular-nums;
@@ -226,8 +284,45 @@
     scrollbar-width: thin;
     scrollbar-color: var(--line-strong) transparent;
   }
-  .nav-scroll {
-    scrollbar-width: thin;
-    scrollbar-color: var(--nav-line) transparent;
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  /* User-authored text in either language: each paragraph takes its direction from its own
+     content (punctuation lands on the right side) while alignment follows the page. */
+  .bidi-plain {
+    unicode-bidi: plaintext;
+  }
+  /* …but keep alignment with the page, not the paragraph (utilities like text-end still win) */
+  html[dir="rtl"] .bidi-plain:not([class*="text-end"]):not([class*="text-center"]) {
+    text-align: right;
+  }
+  html[dir="ltr"] .bidi-plain:not([class*="text-end"]):not([class*="text-center"]) {
+    text-align: left;
+  }
+  /* Case / record identifiers: monospace, LTR, never flipped */
+  .record-id {
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  /* Uppercase micro-label for Latin; Arabic has no case, so drop tracking there */
+  .eyebrow {
+    font-size: 0.6875rem;
+    line-height: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-subtle);
+  }
+  html[dir="rtl"] .eyebrow {
+    letter-spacing: 0;
+    font-size: 0.75rem;
   }
 }

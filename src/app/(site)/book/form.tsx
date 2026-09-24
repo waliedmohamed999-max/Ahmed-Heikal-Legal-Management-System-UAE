@@ -27,6 +27,7 @@ function bookableDays(s: Slots) {
 export function BookingForm({ services, slots, preset }: { services: { id: string; label: string }[]; slots: Slots; preset: string }) {
   const { t, locale } = useI18n();
   const [done, setDone] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
   // Computed once per visit (lazy state) so the list does not shift between renders.
   const [days] = useState(() => bookableDays(slots));
   const times = useMemo(() => {
@@ -54,38 +55,53 @@ export function BookingForm({ services, slots, preset }: { services: { id: strin
   }
   return (
     <form onSubmit={submit} className="mt-8 grid grid-cols-1 gap-5" noValidate>
+      <ol className="grid grid-cols-2 gap-3" aria-label={t("site.bookTitle")}>
+        {([1, 2] as const).map((n) => (
+          <li key={n} aria-current={step === n ? "step" : undefined}>
+            <div className={cn("h-1 rounded-full transition-colors", step >= n ? "bg-brand" : "bg-surface-sunken")} />
+            <p className={cn("mt-1.5 text-meta", step === n ? "font-medium text-ink" : "text-ink-subtle")}>{n}. {t(`web.step${n}`)}</p>
+          </li>
+        ))}
+      </ol>
+      {step === 1 && (<>
       <Field label={t("site.service")}>{(a) => <Select {...a} {...r("practiceAreaId")}><option value="">{t("site.serviceGeneral")}</option>{services.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</Select>}</Field>
       <div>
-        <p className="mb-2 text-[13px] font-medium">{t("site.date")}</p>
+        <p className="mb-2 text-body font-medium">{t("site.date")}</p>
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin" role="radiogroup" aria-label={t("site.date")}>
           {days.map((d) => (
             <button key={d} type="button" role="radio" aria-checked={w.date === d} onClick={() => form.setValue("date", d)}
-              className={cn("shrink-0 rounded-md border px-3 py-2 text-[13px]", w.date === d ? "border-[#0e1b33] bg-[#0e1b33] text-white" : "border-line-strong hover:bg-surface-muted")}>{fmtDay(d)}</button>
+              className={cn("shrink-0 rounded-md border px-3 py-2 text-body", w.date === d ? "border-[#0e1b33] bg-[#0e1b33] text-white" : "border-line-strong hover:bg-surface-muted")}>{fmtDay(d)}</button>
           ))}
         </div>
         {err("date") && <p className="mt-1 text-xs text-danger">{err("date")}</p>}
       </div>
       <div>
-        <p className="mb-2 text-[13px] font-medium">{t("site.time")}</p>
+        <p className="mb-2 text-body font-medium">{t("site.time")}</p>
         <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("site.time")}>
           {times.map((tm) => (
             <button key={tm} type="button" role="radio" aria-checked={w.time === tm} onClick={() => form.setValue("time", tm)}
-              className={cn("ltr-nums rounded-md border px-3 py-1.5 text-[13px] tabular", w.time === tm ? "border-[#0e1b33] bg-[#0e1b33] text-white" : "border-line-strong hover:bg-surface-muted")}>{tm}</button>
+              className={cn("ltr-nums rounded-md border px-3 py-1.5 text-body tabular", w.time === tm ? "border-[#0e1b33] bg-[#0e1b33] text-white" : "border-line-strong hover:bg-surface-muted")}>{tm}</button>
           ))}
         </div>
       </div>
       <div>
-        <p className="mb-2 text-[13px] font-medium">{t("site.mode")}</p>
+        <p className="mb-2 text-body font-medium">{t("site.mode")}</p>
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("site.mode")}>
           {(["OFFICE", "ONLINE"] as const).map((m) => (
             <button key={m} type="button" role="radio" aria-checked={w.mode === m} onClick={() => form.setValue("mode", m)}
-              className={cn("flex items-center justify-center gap-2 rounded-md border px-3 py-3 text-[14px]", w.mode === m ? "border-[#0e1b33] bg-[#0e1b33]/5 font-medium" : "border-line-strong")}>
+              className={cn("flex items-center justify-center gap-2 rounded-md border px-3 py-3 text-ui", w.mode === m ? "border-[#0e1b33] bg-[#0e1b33]/5 font-medium" : "border-line-strong")}>
               {m === "OFFICE" ? <Building2 className="size-4" /> : <Video className="size-4" />} {t(`site.modes.${m}`)}
             </button>
           ))}
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div>
+        <Button type="button" size="lg" variant="primary" className="w-full sm:w-auto" onClick={() => setStep(2)} disabled={!w.date || !w.time}>{t("web.continue")}</Button>
+      </div>
+      </>)}
+      {step === 2 && (<>
+      {(err("date") || err("time")) && <p className="text-meta text-danger">{t("site.date")}: {err("date") ?? err("time")}</p>}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label={t("site.name")} error={err("name")} required className="sm:col-span-2">{(a) => <Input {...a} autoComplete="name" {...r("name")} />}</Field>
         <Field label={t("site.phone")} error={err("phone")} required>{(a) => <Input {...a} type="tel" autoComplete="tel" dir="ltr" {...r("phone")} />}</Field>
         <Field label={t("site.email")} error={err("email")} required>{(a) => <Input {...a} type="email" autoComplete="email" dir="ltr" {...r("email")} />}</Field>
@@ -97,7 +113,11 @@ export function BookingForm({ services, slots, preset }: { services: { id: strin
         <Checkbox label={t("site.consent")} {...r("consent")} />
         {err("consent") && <p className="mt-1 text-xs text-danger">{err("consent")}</p>}
       </div>
-      <Button type="submit" size="lg" variant="primary" loading={pending} className="w-full sm:w-auto">{t("site.submit")}</Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="submit" size="lg" variant="primary" loading={pending} className="w-full sm:w-auto">{t("site.submit")}</Button>
+        <Button type="button" size="lg" variant="ghost" onClick={() => setStep(1)}>{t("web.back")}</Button>
+      </div>
+      </>)}
     </form>
   );
 }

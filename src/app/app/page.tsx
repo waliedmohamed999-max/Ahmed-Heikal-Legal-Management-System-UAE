@@ -1,20 +1,20 @@
 import Link from "next/link";
-import { ArrowRight, ArrowLeft, Gavel, CalendarClock, CheckSquare, Activity, ShieldCheck, Briefcase, UsersRound, Wallet, AlertTriangle, FolderOpen, ClipboardList, Clock3 } from "lucide-react";
+import { Gavel, CalendarClock, CheckSquare, ShieldCheck, ClipboardList, ArrowUpRight, FolderOpen, Clock3, Activity, Wallet, Circle } from "lucide-react";
 import { requireStaff } from "@/server/auth/session";
 import { getT } from "@/i18n/server";
 import { commandCenter, financialSnapshot, nextHearing, orgThresholds, teamWorkload } from "@/server/services/dashboard";
-import { Panel, EmptyState, Avatar } from "@/components/ui/layout";
-import { Badge, ALERT_TONE, PRIORITY_TONE, HEARING_STATUS_TONE } from "@/components/ui/badge";
+import { Page, Panel, EmptyState, Avatar, InlineStats, SectionLink, Timeline } from "@/components/ui/layout";
+import { Badge, StatusText, ALERT_TONE, HEARING_STATUS_TONE } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CountdownBlocks, CountdownInline } from "@/components/countdown";
-import { EventRow } from "@/components/events";
+import { CountdownInline } from "@/components/countdown";
+import { EVENT_STYLE } from "@/components/event-style";
 import { formatHijri, formatLongDate, formatMoney, formatMinutes, formatTime, formatDate, relativeTime, zonedParts } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { WidgetCustomizer } from "./widget-customizer";
 
-export const metadata = { title: "Command Center" };
+export const metadata = { title: "Home" };
 
-const WIDGETS = ["nextHearing", "critical", "agenda", "tasks", "activity", "approvals", "portfolio", "workload", "finance"] as const;
+const WIDGETS = ["nextHearing", "agenda", "critical", "tasks", "approvals", "activity", "workload", "finance"] as const;
 
 export default async function CommandCenterPage() {
   const ctx = await requireStaff();
@@ -34,227 +34,262 @@ export default async function CommandCenterPage() {
   const hour = zonedParts(now, tz).hour;
   const firstName = (locale === "ar" ? ctx.user.nameAr || ctx.user.name : ctx.user.name).split(" ")[0];
   const greeting = t(hour < 12 ? "dashboard.greetingMorning" : hour < 17 ? "dashboard.greetingAfternoon" : "dashboard.greetingEvening", { name: firstName });
-  const Arrow = locale === "ar" ? ArrowLeft : ArrowRight;
   const L = (en: string, ar: string | null | undefined) => (locale === "ar" ? ar || en : en);
-
   const b = cc.brief;
-  const briefItems = [
-    { n: b.hearings, key: "dashboard.briefHearings", icon: Gavel, tone: "text-ev-hearing", href: "/app/agenda" },
-    { n: b.appointments, key: "dashboard.briefAppointments", icon: UsersRound, tone: "text-ev-client-meeting", href: "/app/agenda" },
-    { n: b.tasksForReview, key: "dashboard.briefTasks", icon: CheckSquare, tone: "text-info", href: "/app/my-work" },
-    { n: b.submissionsDue, key: "dashboard.briefSubmissions", icon: FolderOpen, tone: "text-ev-submission", href: "/app/agenda" },
-    { n: b.deadlinesIn24h, key: "dashboard.briefDeadlines", icon: CalendarClock, tone: "text-high", href: "/app/agenda" },
-    { n: b.approvals, key: "dashboard.briefApprovals", icon: ShieldCheck, tone: "text-accent", href: "/app/approvals" },
-    { n: b.overdue, key: "dashboard.briefOverdue", icon: AlertTriangle, tone: "text-danger", href: "/app/agenda" },
-  ].filter((i) => i.n > 0);
+  const cur = ctx.org.currency;
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
-      {/* ── Morning legal brief ─────────────────────────────── */}
-      <section aria-labelledby="brief" className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <Page width="full" className="max-w-[1600px]">
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
-          <p className="text-[13px] text-ink-subtle">
+          <p className="text-meta text-ink-subtle">
             {formatLongDate(now, locale, tz)}
-            <span className="mx-1.5 text-line-strong">·</span>
-            <span>{formatHijri(now, locale, tz)}</span>
+            <span className="mx-1.5">·</span>
+            {formatHijri(now, locale, tz)}
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink sm:text-[28px]">{greeting}</h1>
-          <h2 id="brief" className="sr-only">{t("dashboard.briefTitle")}</h2>
-          {briefItems.length ? (
-            <div className="mt-4">
-              <p className="mb-2.5 text-sm text-ink-muted">{t("dashboard.briefIntro")}</p>
-              <ul className="flex flex-wrap gap-2">
-                {briefItems.map((i) => (
-                  <li key={i.key}>
-                    <Link href={i.href} className="inline-flex h-8 items-center gap-2 rounded-md border border-line bg-surface px-2.5 text-[13px] text-ink shadow-xs transition-colors hover:border-line-strong hover:bg-surface-muted">
-                      <i.icon className={cn("size-4", i.tone)} aria-hidden />
-                      {t(i.key, { n: i.n })}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="mt-3 text-sm text-ink-muted">{t("dashboard.briefClear")}</p>
-          )}
+          <h1 className="mt-0.5 text-display font-semibold tracking-tight text-ink">{greeting}</h1>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="hidden shrink-0 items-center gap-2 md:flex">
           <WidgetCustomizer widgets={[...WIDGETS]} hidden={[...hidden]} />
-          <Button asChild variant="primary">
-            <Link href="/app/agenda">
-              {t("dashboard.viewAgenda")} <Arrow />
-            </Link>
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/app/agenda">{t("dashboard.viewAgenda")}</Link>
           </Button>
         </div>
-      </section>
+      </header>
 
-      <div className="mt-7 grid grid-cols-1 gap-5 lg:grid-cols-12">
-        {/* ── Next hearing (prominent) ───────────────────────── */}
+      <InlineStats
+        className="mt-4 border-y border-line py-2.5"
+        items={[
+          { key: "h", value: b.hearings, label: t("home.hearings", { n: b.hearings }), href: "/app/agenda" },
+          { key: "t", value: cc.tasks.length, label: t("home.tasks", { n: cc.tasks.length }), href: "/app/my-work" },
+          { key: "d", value: b.deadlinesIn24h, label: t("home.deadlines", { n: b.deadlinesIn24h }), href: "/app/agenda", tone: b.deadlinesIn24h ? "warning" : undefined },
+          ...(ctx.can("approvals.view") ? [{ key: "a", value: cc.approvals.length, label: t("home.approvals", { n: cc.approvals.length }), href: "/app/approvals" }] : []),
+          ...(b.overdue ? [{ key: "o", value: b.overdue, label: t("home.overdue"), href: "/app/agenda", tone: "danger" as const }] : []),
+        ]}
+      />
+
+      <div className="mt-6 grid grid-cols-1 gap-x-8 gap-y-8 xl:grid-cols-12">
+        {/* ── Next hearing — the focal object ─────────────────── */}
         {show("nextHearing") && (
-          <section className="relative overflow-hidden rounded-lg bg-nav text-nav-fg shadow-md lg:col-span-5" aria-labelledby="nh-title">
-            <div className="absolute inset-y-0 start-0 w-1 bg-[var(--ev-hearing)]" aria-hidden />
+          <section aria-labelledby="nh" className="xl:col-span-7">
             {hearing ? (
-              <div className="flex h-full flex-col p-5 ps-6">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 id="nh-title" className="flex items-center gap-2 text-[12px] font-medium uppercase tracking-wide text-nav-muted">
-                    <Gavel className="size-4" /> {t("hearingWidget.label")}
-                  </h2>
-                  <Badge tone={HEARING_STATUS_TONE[hearing.status]}>{t(`enums.hearingStatus.${hearing.status}`)}</Badge>
+              <div className="relative overflow-hidden rounded-lg border border-line bg-canvas">
+                <span aria-hidden className="absolute inset-y-0 start-0 w-[3px] bg-ev-hearing" />
+                <div className="flex flex-col gap-5 p-5 ps-6 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h2 id="nh" className="eyebrow flex items-center gap-1.5">
+                        <Gavel className="size-3.5 text-ev-hearing" aria-hidden /> {t("hearingWidget.label")}
+                      </h2>
+                      <Badge tone={HEARING_STATUS_TONE[hearing.status]}>{t(`enums.hearingStatus.${hearing.status}`)}</Badge>
+                    </div>
+                    <Link href={`/app/cases/${hearing.matter.id}`} className="mt-2 block text-[17px] font-semibold leading-snug text-ink hover:underline bidi-plain">
+                      {L(hearing.matter.title, hearing.matter.titleAr)}
+                    </Link>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 text-meta text-ink-subtle">
+                      <span className="record-id">{hearing.matter.internalNumber}</span>
+                      {hearing.matter.officialCaseNumber && <span className="record-id">· {hearing.matter.officialCaseNumber}</span>}
+                      {hearing.sessionType && <span className="bidi-plain">· {hearing.sessionType}</span>}
+                    </div>
+                  </div>
+                  <div className="shrink-0 sm:text-end">
+                    <div className="text-meta text-ink-subtle">{t("home.remaining")}</div>
+                    <CountdownInline target={hearing.startsAt} thresholds={thresholds} className="mt-0.5 text-[20px] font-semibold" />
+                  </div>
                 </div>
-                <Link href={`/app/cases/${hearing.matter.id}`} className="mt-3 block text-lg font-semibold leading-snug text-white hover:underline">
-                  {L(hearing.matter.title, hearing.matter.titleAr)}
-                </Link>
-                <div className="ltr-nums mt-1 font-mono text-[12px] text-nav-muted">
-                  {hearing.matter.internalNumber}
-                  {hearing.matter.officialCaseNumber && ` · ${hearing.matter.officialCaseNumber}`}
-                </div>
-                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-[13px]">
-                  <div>
-                    <dt className="text-[11px] text-nav-muted">{t("hearings.court")}</dt>
-                    <dd className="truncate text-white">{hearing.court ? L(hearing.court.name, hearing.court.nameAr) : "—"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] text-nav-muted">{t("common.date")}</dt>
-                    <dd className="text-white">
-                      {formatDate(hearing.startsAt, locale, tz, { day: "numeric", month: "long", year: "numeric" })} — {formatTime(hearing.startsAt, locale, tz)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] text-nav-muted">{t("hearings.room")}</dt>
-                    <dd className="text-white">{hearing.isRemote ? t("hearingWidget.remote") : hearing.courtRoom || "—"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[11px] text-nav-muted">{t("hearings.lawyer")}</dt>
-                    <dd className="truncate text-white">{hearing.lawyer ? L(hearing.lawyer.name, hearing.lawyer.nameAr) : "—"}</dd>
-                  </div>
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-line px-5 py-3.5 ps-6 sm:grid-cols-4">
+                  {[
+                    [t("home.when"), <span key="w" className="tabular">{formatDate(hearing.startsAt, locale, tz, { weekday: "short", day: "numeric", month: "short", year: undefined })} · {formatTime(hearing.startsAt, locale, tz)}</span>],
+                    [t("home.court"), hearing.court ? L(hearing.court.name, hearing.court.nameAr) : "—"],
+                    [t("home.room"), hearing.isRemote ? t("hearingWidget.remote") : hearing.courtRoom || "—"],
+                    [t("home.lawyer"), hearing.lawyer ? L(hearing.lawyer.name, hearing.lawyer.nameAr) : "—"],
+                  ].map(([k, v], i) => (
+                    <div key={i} className="min-w-0">
+                      <dt className="text-caption text-ink-subtle">{k}</dt>
+                      <dd className="mt-0.5 line-clamp-2 text-body text-ink">{v}</dd>
+                    </div>
+                  ))}
                 </dl>
-                <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
-                  <CountdownBlocks target={hearing.startsAt} thresholds={thresholds} dark />
-                </div>
-                <div className="mt-5 flex flex-wrap gap-2 border-t border-nav-line pt-4">
-                  <Button asChild size="sm" className="border-transparent bg-white text-[#0c1424] hover:bg-white/90">
+                <div className="flex flex-wrap gap-2 border-t border-line px-5 py-3 ps-6">
+                  <Button asChild variant="primary" size="sm">
                     <Link href={`/app/hearings/${hearing.id}/prepare`}>
                       <ClipboardList /> {t("hearingWidget.prepare")}
                     </Link>
                   </Button>
-                  <Button asChild size="sm" variant="ghost" className="text-nav-fg hover:bg-nav-surface hover:text-white">
-                    <Link href={`/app/cases/${hearing.matter.id}`}>{t("hearingWidget.openCase")}</Link>
+                  <Button asChild variant="secondary" size="sm">
+                    <Link href={`/app/cases/${hearing.matter.id}`}>
+                      <ArrowUpRight className="rtl:-scale-x-100" /> {t("hearingWidget.openCase")}
+                    </Link>
                   </Button>
-                  <Button asChild size="sm" variant="ghost" className="text-nav-fg hover:bg-nav-surface hover:text-white">
-                    <Link href={`/app/cases/${hearing.matter.id}/documents`}>{t("hearingWidget.documents")}</Link>
+                  <Button asChild variant="ghost" size="sm">
+                    <Link href={`/app/cases/${hearing.matter.id}/documents`}>
+                      <FolderOpen /> {t("hearingWidget.documents")}
+                    </Link>
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="flex h-full min-h-48 flex-col items-center justify-center p-6 text-center">
-                <Gavel className="size-6 text-nav-muted" />
-                <p className="mt-2 text-sm text-nav-fg">{t("hearingWidget.none")}</p>
+              <div className="rounded-lg border border-dashed border-line-strong">
+                <EmptyState compact icon={<Gavel />} title={t("home.noHearing")} />
               </div>
             )}
           </section>
         )}
 
-        {/* ── Critical deadlines ─────────────────────────────── */}
+        {/* ── Today — vertical timeline ───────────────────────── */}
+        {show("agenda") && (
+          <Panel plain title={t("home.timeline")} count={cc.today.length || null} className="xl:col-span-5" actions={<SectionLink href="/app/agenda">{t("common.viewAll")}</SectionLink>}>
+            {cc.today.length ? (
+              <Timeline
+                className="pt-1"
+                items={cc.today.map((e) => {
+                  const s = EVENT_STYLE[e.eventType] ?? EVENT_STYLE.FOLLOW_UP;
+                  return {
+                    key: `${e.kind}-${e.id}`,
+                    time: formatTime(e.startsAt, locale, tz),
+                    color: s.color,
+                    href: e.href,
+                    title: e.title,
+                    meta: (
+                      <>
+                        <span style={{ color: s.color }}>{t(`enums.eventType.${e.eventType}`)}</span>
+                        {e.matter && <span className="record-id text-ink-subtle">· {e.matter.internalNumber}</span>}
+                        {(e.person || e.personAr) && <span>· {L(e.person ?? "", e.personAr)}</span>}
+                      </>
+                    ),
+                    trailing: e.needsVerification ? <Badge tone="warning">{t("dashboard.needsVerification")}</Badge> : undefined,
+                  };
+                })}
+              />
+            ) : (
+              <EmptyState compact icon={<Clock3 />} title={t("home.timelineEmpty")} />
+            )}
+          </Panel>
+        )}
+
+        {/* ── Critical deadlines — compact list ───────────────── */}
         {show("critical") && (
-          <Panel title={t("dashboard.critical")} icon={<CalendarClock />} className={cn(show("nextHearing") ? "lg:col-span-7" : "lg:col-span-12")} id="critical"
-            actions={<Link href="/app/agenda" className="text-xs font-medium text-ink-muted hover:text-ink">{t("common.viewAll")}</Link>}>
+          <Panel plain title={t("dashboard.critical")} count={cc.critical.length || null} className="xl:col-span-7" actions={<SectionLink href="/app/agenda">{t("common.viewAll")}</SectionLink>}>
             {cc.critical.length ? (
-              <ul className="divide-y divide-line">
+              <div role="table" className="text-body">
+                <div role="row" className="hidden grid-cols-[minmax(0,1fr)_128px_128px_136px] gap-3 border-b border-line px-3 py-1.5 text-meta text-ink-subtle md:grid">
+                  <span role="columnheader">{t("common.title")}</span>
+                  <span role="columnheader">{t("home.owner")}</span>
+                  <span role="columnheader">{t("home.due")}</span>
+                  <span role="columnheader" className="text-end">{t("home.remaining")}</span>
+                </div>
                 {cc.critical.map((d) => (
-                  <li key={`${d.kind}-${d.id}`}>
-                    <Link href={d.href} className="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-muted/60">
-                      <Badge tone={ALERT_TONE[d.level]} className="w-[88px] justify-center">{t(`enums.alertLevel.${d.level}`)}</Badge>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="truncate text-[13px] font-medium text-ink">{d.kind === "HEARING" ? `${t("enums.eventType.HEARING")} — ${d.title}` : d.title}</span>
-                          {d.needsVerification && <Badge tone="warning">{t("dashboard.needsVerification")}</Badge>}
-                        </div>
-                        <div className="mt-0.5 truncate text-[12px] text-ink-muted">
-                          {d.matter && <span className="ltr-nums font-mono text-[11.5px] text-ink-subtle">{d.matter.internalNumber}</span>}
-                          {d.matter && " · "}
-                          {formatDate(d.at, locale, tz)} {formatTime(d.at, locale, tz)}
-                          {(d.person || d.personAr) && ` · ${L(d.person ?? "", d.personAr)}`}
-                        </div>
-                      </div>
+                  <Link
+                    role="row"
+                    key={`${d.kind}-${d.id}`}
+                    href={d.href}
+                    className={cn(
+                      "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border-b border-line/70 px-3 py-2 transition-colors last:border-0 hover:bg-surface-muted md:grid-cols-[minmax(0,1fr)_128px_128px_136px]",
+                      (d.level === "OVERDUE" || d.level === "IMMEDIATE") && "bg-danger-soft/40",
+                    )}
+                  >
+                    <span role="cell" className="min-w-0">
+                      <span className="flex items-center gap-2">
+                        <span className="truncate font-medium text-ink bidi-plain">{d.kind === "HEARING" ? `${t("enums.eventType.HEARING")} — ${d.title}` : d.title}</span>
+                        {d.needsVerification && <Badge tone="warning" className="shrink-0">{t("dashboard.needsVerification")}</Badge>}
+                      </span>
+                      <span className="mt-0.5 flex items-center gap-1.5 text-meta text-ink-subtle">
+                        {d.matter && <span className="record-id">{d.matter.internalNumber}</span>}
+                        <StatusText tone={ALERT_TONE[d.level]} className="text-meta">{t(`enums.alertLevel.${d.level}`)}</StatusText>
+                      </span>
+                    </span>
+                    <span role="cell" className="hidden truncate text-ink-muted md:block">{d.person || d.personAr ? L(d.person ?? "", d.personAr) : "—"}</span>
+                    <span role="cell" className="hidden whitespace-nowrap tabular text-ink-muted md:block">{formatDate(d.at, locale, tz, { day: "numeric", month: "short", year: undefined })} · {formatTime(d.at, locale, tz)}</span>
+                    <span role="cell" className="whitespace-nowrap text-end">
                       <CountdownInline target={d.at} thresholds={thresholds} />
-                    </Link>
-                  </li>
+                    </span>
+                  </Link>
                 ))}
-              </ul>
+              </div>
             ) : (
               <EmptyState compact icon={<CalendarClock />} title={t("dashboard.criticalEmpty")} />
             )}
           </Panel>
         )}
 
-        {/* ── Today's agenda ─────────────────────────────────── */}
-        {show("agenda") && (
-          <Panel title={t("dashboard.agenda")} icon={<Clock3 />} className="lg:col-span-7" id="agenda"
-            actions={<Link href="/app/agenda" className="text-xs font-medium text-ink-muted hover:text-ink">{t("common.viewAll")}</Link>}>
-            {cc.today.length ? (
-              <ul className="divide-y divide-line">
-                {cc.today.map((e) => (
-                  <li key={`${e.kind}-${e.id}`}>
-                    <EventRow e={{ ...e, title: e.kind === "HEARING" ? `${e.title}` : e.title }} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyState compact icon={<Clock3 />} title={t("dashboard.agendaEmpty")} />
-            )}
-          </Panel>
-        )}
+        {/* ── Tasks + approvals ───────────────────────────────── */}
+        <div className="flex flex-col gap-8 xl:col-span-5">
+          {show("tasks") && (
+            <Panel plain title={t("dashboard.tasks")} count={cc.tasks.length || null} actions={<SectionLink href="/app/my-work">{t("nav.myWork")}</SectionLink>}>
+              {cc.tasks.length ? (
+                <ul>
+                  {cc.tasks.slice(0, 6).map((task) => (
+                    <li key={task.id}>
+                      <Link href={`/app/tasks?task=${task.id}`} className="flex items-center gap-3 rounded-md px-3 py-2 transition-colors hover:bg-surface-muted">
+                        <Circle className={cn("size-4 shrink-0", task.priority === "CRITICAL" ? "text-critical" : task.priority === "HIGH" ? "text-high" : "text-line-strong")} aria-hidden />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-body text-ink bidi-plain">{task.title}</span>
+                          {task.matter && <span className="record-id block truncate text-ink-subtle">{task.matter.internalNumber}</span>}
+                        </span>
+                        {task.dueAt && (
+                          <span className={cn("shrink-0 text-meta tabular", task.overdue ? "font-medium text-danger" : "text-ink-muted")}>
+                            {task.overdue ? t("common.overdue") : formatTime(task.dueAt, locale, tz)}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState compact icon={<CheckSquare />} title={t("dashboard.tasksEmpty")} />
+              )}
+            </Panel>
+          )}
 
-        {/* ── Tasks requiring attention ──────────────────────── */}
-        {show("tasks") && (
-          <Panel title={t("dashboard.tasks")} icon={<CheckSquare />} className="lg:col-span-5" id="tasks"
-            actions={<Link href="/app/my-work" className="text-xs font-medium text-ink-muted hover:text-ink">{t("nav.myWork")}</Link>}>
-            {cc.tasks.length ? (
-              <ul className="divide-y divide-line">
-                {cc.tasks.map((task) => (
-                  <li key={task.id}>
-                    <Link href={`/app/tasks?task=${task.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-muted/60">
-                      <span className={cn("size-2 shrink-0 rounded-full", task.priority === "CRITICAL" ? "bg-critical" : task.priority === "HIGH" ? "bg-high" : "bg-line-strong")} aria-hidden />
+          {show("approvals") && ctx.can("approvals.view") && (
+            <Panel plain title={t("dashboard.approvals")} count={cc.approvals.length || null} className="hidden md:block" actions={<SectionLink href="/app/approvals">{t("common.viewAll")}</SectionLink>}>
+              {cc.approvals.length ? (
+                <ul>
+                  {cc.approvals.slice(0, 5).map((a) => (
+                    <li key={a.id} className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-surface-muted">
+                      <ShieldCheck className="size-4 shrink-0 text-ink-subtle" aria-hidden />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[13px] text-ink">{task.title}</div>
-                        <div className="mt-0.5 truncate text-[12px] text-ink-muted">
-                          {task.matter && <span className="ltr-nums font-mono text-[11.5px] text-ink-subtle">{task.matter.internalNumber}</span>}
-                          {task.assignee && task.assignee.id !== ctx.user.id && ` · ${L(task.assignee.name, task.assignee.nameAr)}`}
+                        <div className="truncate text-body text-ink bidi-plain">{a.title}</div>
+                        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 truncate text-meta text-ink-subtle">
+                          <span>{t(`approvals.kind.${a.kind}`)}</span>
+                          {a.matter && <span className="record-id">· {a.matter.internalNumber}</span>}
+                          {a.requestedBy && <span>· {L(a.requestedBy.name, a.requestedBy.nameAr)}</span>}
+                          <span>· {relativeTime(a.createdAt, locale)}</span>
                         </div>
                       </div>
-                      {task.dueAt && (
-                        <span className={cn("shrink-0 text-[12px] tabular", task.overdue ? "font-medium text-danger" : "text-ink-muted")}>
-                          {task.overdue ? t("common.overdue") : formatTime(task.dueAt, locale, tz)}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyState compact icon={<CheckSquare />} title={t("dashboard.tasksEmpty")} />
-            )}
-          </Panel>
-        )}
+                      <Button asChild size="xs" variant="secondary">
+                        <Link href={`/app/approvals?focus=${a.id}`}>{t("home.review")}</Link>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <EmptyState compact icon={<ShieldCheck />} title={t("dashboard.approvalsEmpty")} />
+              )}
+            </Panel>
+          )}
+        </div>
 
-        {/* ── Recent activity ────────────────────────────────── */}
+        {/* ── Recent activity | Team workload ─────────────────── */}
         {show("activity") && (
-          <Panel title={t("dashboard.activity")} icon={<Activity />} className="lg:col-span-7" id="activity">
+          <Panel plain title={t("home.recent")} className="hidden md:block xl:col-span-7">
             {cc.activity.length ? (
-              <ul className="divide-y divide-line">
-                {cc.activity.map((a) => (
-                  <li key={a.id} className="flex items-start gap-3 px-4 py-2.5">
-                    <Avatar name={a.actor?.name ?? "System"} size={24} className="mt-0.5" />
-                    <div className="min-w-0 flex-1 text-[13px]">
-                      <span className="font-medium text-ink">{a.actor ? L(a.actor.name, a.actor.nameAr) : "—"}</span>{" "}
-                      <span className="text-ink-muted">{t(`activity.${a.type}`, a.data)}</span>
+              <ul>
+                {cc.activity.slice(0, 8).map((a) => (
+                  <li key={a.id} className="flex items-start gap-3 px-3 py-2">
+                    <Avatar name={a.actor?.name ?? "System"} size={22} className="mt-0.5" />
+                    <div className="min-w-0 flex-1 text-body">
                       {a.matter && (
-                        <Link href={`/app/cases/${a.matter.id}`} className="mt-0.5 block truncate text-[12px] text-ink-subtle hover:text-ink hover:underline">
-                          <span className="ltr-nums font-mono">{a.matter.internalNumber}</span> · {L(a.matter.title, a.matter.titleAr)}
+                        <Link href={`/app/cases/${a.matter.id}`} className="block truncate font-medium text-ink hover:underline bidi-plain">
+                          {L(a.matter.title, a.matter.titleAr)}
                         </Link>
                       )}
+                      <div className="truncate text-meta text-ink-muted">
+                        <span className="text-ink">{a.actor ? L(a.actor.name, a.actor.nameAr) : "—"}</span> {t(`activity.${a.type}`, a.data)}
+                      </div>
                     </div>
-                    <time className="shrink-0 text-[11.5px] text-ink-subtle" dateTime={a.createdAt}>{relativeTime(a.createdAt, locale)}</time>
+                    <time className="shrink-0 pt-0.5 text-meta text-ink-subtle" dateTime={a.createdAt}>{relativeTime(a.createdAt, locale)}</time>
                   </li>
                 ))}
               </ul>
@@ -264,131 +299,78 @@ export default async function CommandCenterPage() {
           </Panel>
         )}
 
-        {/* ── Approvals ──────────────────────────────────────── */}
-        {show("approvals") && ctx.can("approvals.view") && (
-          <Panel title={t("dashboard.approvals")} icon={<ShieldCheck />} className="lg:col-span-5" id="approvals"
-            actions={<Link href="/app/approvals" className="text-xs font-medium text-ink-muted hover:text-ink">{t("common.viewAll")}</Link>}>
-            {cc.approvals.length ? (
-              <ul className="divide-y divide-line">
-                {cc.approvals.map((a) => (
-                  <li key={a.id}>
-                    <Link href={`/app/approvals?focus=${a.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-surface-muted/60">
-                      <Badge tone="info" className="shrink-0">{t(`approvals.kind.${a.kind}`)}</Badge>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[13px] text-ink">{a.title}</div>
-                        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 truncate text-[12px] text-ink-muted">
-                          {a.matter && <span className="ltr-nums font-mono text-[11.5px]">{a.matter.internalNumber}</span>}
-                          {a.requestedBy && <span>· {L(a.requestedBy.name, a.requestedBy.nameAr)}</span>}
-                          <span>· {relativeTime(a.createdAt, locale)}</span>
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyState compact icon={<ShieldCheck />} title={t("dashboard.approvalsEmpty")} />
-            )}
-          </Panel>
-        )}
-
-        {/* ── Portfolio ─────────────────────────────────────── */}
-        {show("portfolio") && (
-          <Panel title={t("dashboard.portfolio")} icon={<Briefcase />} className="lg:col-span-4" id="portfolio"
-            actions={<Link href="/app/cases" className="text-xs font-medium text-ink-muted hover:text-ink">{t("nav.cases")}</Link>}>
-            <div className="grid grid-cols-3 divide-x divide-line border-b border-line rtl:divide-x-reverse">
-              {(["ACTIVE", "PENDING", "CLOSED"] as const).map((s) => (
-                <Link key={s} href={`/app/cases?status=${s}`} className="px-4 py-3 hover:bg-surface-muted/60">
-                  <div className="text-[11.5px] text-ink-subtle">{t(`enums.matterStatus.${s}`)}</div>
-                  <div className="mt-0.5 text-xl font-semibold tabular text-ink">{cc.portfolio.byStatus[s] ?? 0}</div>
-                </Link>
-              ))}
-            </div>
-            <div className="px-4 pb-1 pt-3 text-[11.5px] font-medium text-ink-subtle">{t("dashboard.atRisk")}</div>
-            {cc.portfolio.atRisk.length ? (
-              <ul className="pb-2">
-                {cc.portfolio.atRisk.map((m) => (
-                  <li key={m.id}>
-                    <Link href={`/app/cases/${m.id}`} className="flex items-center gap-2 px-4 py-1.5 hover:bg-surface-muted/60">
-                      <Badge tone={PRIORITY_TONE[m.priority]} className="shrink-0">{t(`enums.priority.${m.priority}`)}</Badge>
-                      <span className="min-w-0 flex-1 truncate text-[13px] text-ink">{L(m.title, m.titleAr)}</span>
-                    </Link>
-                    {m.riskFlags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 px-4 pb-1.5 ps-[76px]">
-                        {m.riskFlags.map((f) => (
-                          <span key={f} className="text-[11px] text-ink-subtle">• {t(`enums.riskFlag.${f}`)}</span>
-                        ))}
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="px-4 pb-3 text-[13px] text-ink-muted">{t("dashboard.atRiskEmpty")}</p>
-            )}
-            {cc.portfolio.inactive > 0 && (
-              <Link href="/app/cases?view=inactive" className="flex items-center justify-between border-t border-line px-4 py-2.5 text-[12.5px] text-ink-muted hover:bg-surface-muted/60">
-                {t("dashboard.inactive")}
-                <Badge tone="warning">{cc.portfolio.inactive}</Badge>
-              </Link>
-            )}
-          </Panel>
-        )}
-
-        {/* ── Team workload ─────────────────────────────────── */}
         {show("workload") && workload && (
-          <Panel title={t("dashboard.workload")} icon={<UsersRound />} className={cn(finance ? "lg:col-span-5" : "lg:col-span-8")} id="workload"
-            footer={<p className="text-[11.5px] text-ink-subtle">{t("dashboard.workloadNote")}</p>}>
-            <ul className="divide-y divide-line">
-              {workload.map((u) => {
-                const max = Math.max(...workload.map((x) => x.activeMatters + x.openTasks), 1);
-                const load = u.activeMatters + u.openTasks;
-                return (
-                  <li key={u.id} className="flex items-center gap-3 px-4 py-2.5">
-                    <Avatar name={u.name} src={u.photoUrl} size={26} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-[13px] font-medium text-ink">{L(u.name, u.nameAr)}</span>
-                        <span className="shrink-0 text-[11.5px] tabular text-ink-muted">
-                          {u.activeMatters} {t("dashboard.activeMatters")} · {u.openTasks} {t("dashboard.openTasks")}
-                          {u.urgentTasks > 0 && <span className="text-high"> · {u.urgentTasks} {t("dashboard.urgentTasks")}</span>}
-                          {u.hearings7d > 0 && <span> · {u.hearings7d} {t("dashboard.hearings7d")}</span>}
-                        </span>
-                      </div>
-                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken" role="presentation">
-                        <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${(load / max) * 100}%` }} />
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+          <Panel plain title={t("home.workload")} className="hidden md:block xl:col-span-5" actions={<SectionLink href="/app/team">{t("nav.team")}</SectionLink>}
+            footer={<p className="px-3 text-caption text-ink-subtle">{t("dashboard.workloadNote")}</p>}>
+            <table className="w-full text-body">
+              <thead>
+                <tr className="text-meta text-ink-subtle">
+                  <th className="px-3 py-1.5 text-start font-medium">{t("common.name")}</th>
+                  <th className="px-2 py-1.5 text-end font-medium">{t("nav.cases")}</th>
+                  <th className="px-2 py-1.5 text-end font-medium">{t("nav.tasks")}</th>
+                  <th className="px-2 py-1.5 text-end font-medium">{t("dashboard.urgentTasks")}</th>
+                  <th className="w-24 px-3 py-1.5"><span className="sr-only">{t("home.workload")}</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const max = Math.max(...workload.map((x) => x.activeMatters + x.openTasks), 1);
+                  return workload.map((u) => {
+                    const load = u.activeMatters + u.openTasks;
+                    return (
+                      <tr key={u.id} className="border-t border-line/70">
+                        <td className="px-3 py-2">
+                          <Link href={`/app/team/${u.id}`} className="flex items-center gap-2 hover:underline">
+                            <Avatar name={u.name} src={u.photoUrl} size={22} />
+                            <span className="truncate">{L(u.name, u.nameAr)}</span>
+                          </Link>
+                        </td>
+                        <td className="px-2 py-2 text-end tabular text-ink-muted">{u.activeMatters}</td>
+                        <td className="px-2 py-2 text-end tabular text-ink-muted">{u.openTasks}</td>
+                        <td className={cn("px-2 py-2 text-end tabular", u.urgentTasks ? "font-medium text-high" : "text-ink-subtle")}>{u.urgentTasks}</td>
+                        <td className="px-3 py-2">
+                          <div className="h-1 overflow-hidden rounded-full bg-surface-sunken" role="presentation">
+                            <div className="h-full rounded-full bg-ink-subtle" style={{ width: `${(load / max) * 100}%` }} />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
+              </tbody>
+            </table>
           </Panel>
         )}
 
-        {/* ── Financial snapshot ────────────────────────────── */}
+        {/* ── Financial snapshot — one strip ──────────────────── */}
         {show("finance") && finance && (
-          <Panel title={t("dashboard.finance")} icon={<Wallet />} className="lg:col-span-3" id="finance"
-            actions={<Link href="/app/finance" className="text-xs font-medium text-ink-muted hover:text-ink">{t("nav.finance")}</Link>}>
-            <dl className="divide-y divide-line">
+          <section aria-labelledby="fin" className="hidden md:block xl:col-span-12">
+            <div className="flex items-center justify-between border-b border-line pb-2">
+              <h2 id="fin" className="flex items-center gap-2 text-body font-semibold text-ink">
+                <Wallet className="size-3.5 text-ink-subtle" aria-hidden /> {t("home.money")}
+              </h2>
+              <SectionLink href="/app/finance">{t("nav.finance")}</SectionLink>
+            </div>
+            <dl className="grid grid-cols-2 gap-x-8 gap-y-3 pt-3 lg:grid-cols-4">
               {[
-                [t("dashboard.outstanding"), formatMoney(finance.outstanding, locale, ctx.org.currency), `${finance.outstandingCount}`, ""],
-                [t("dashboard.overdueInvoices"), formatMoney(finance.overdue, locale, ctx.org.currency), `${finance.overdueCount}`, finance.overdue > 0 ? "text-danger" : ""],
-                [t("dashboard.receivedMonth"), formatMoney(finance.receivedThisMonth, locale, ctx.org.currency), "", "text-success"],
-                [t("dashboard.unbilled"), formatMoney(finance.unbilledValue, locale, ctx.org.currency), formatMinutes(finance.unbilledMinutes, locale), ""],
-              ].map(([label, value, sub, tone]) => (
-                <div key={label} className="px-4 py-2.5">
-                  <dt className="text-[11.5px] text-ink-subtle">{label}</dt>
-                  <dd className={cn("mt-0.5 flex items-baseline justify-between gap-2 text-[15px] font-semibold tabular text-ink", tone)}>
-                    <span className="ltr-nums">{value}</span>
-                    {sub && <span className="text-[11.5px] font-normal text-ink-subtle">{sub}</span>}
+                { label: t("dashboard.outstanding"), value: formatMoney(finance.outstanding, locale, cur), sub: t("common.items", { n: finance.outstandingCount }) },
+                { label: t("dashboard.overdueInvoices"), value: formatMoney(finance.overdue, locale, cur), sub: t("common.items", { n: finance.overdueCount }), tone: finance.overdue > 0 ? "text-danger" : "" },
+                { label: t("dashboard.receivedMonth"), value: formatMoney(finance.receivedThisMonth, locale, cur) },
+                { label: t("dashboard.unbilled"), value: formatMoney(finance.unbilledValue, locale, cur), sub: formatMinutes(finance.unbilledMinutes, locale) },
+              ].map((f) => (
+                <div key={f.label} className="min-w-0">
+                  <dt className="text-meta text-ink-subtle">{f.label}</dt>
+                  <dd className={cn("mt-0.5 text-[17px] font-semibold tabular text-ink", f.tone)}>
+                    <span className="ltr-nums">{f.value}</span>
+                    {f.sub && <span className="ms-2 text-meta font-normal text-ink-subtle">{f.sub}</span>}
                   </dd>
                 </div>
               ))}
             </dl>
-          </Panel>
+          </section>
         )}
+
       </div>
-    </div>
+    </Page>
   );
 }
