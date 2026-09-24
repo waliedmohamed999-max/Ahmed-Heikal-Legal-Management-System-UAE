@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { db } from "../db";
 import type { StaffContext } from "../auth/session";
 import { matterScopeWhere } from "./access";
+import { documentScope } from "./documents";
+import { fulltextDocumentIds } from "./fulltext";
 
 const LIMIT = 6;
 
@@ -14,32 +16,21 @@ function snippet(text: string | null, q: string) {
   return (start > 0 ? "…" : "") + text.slice(start, i + 80).replace(/\s+/g, " ").trim() + "…";
 }
 
-/** Documents visible to the user: inside an accessible matter, not denied, or client-level docs for client viewers. */
-export function documentScopeWhere(ctx: StaffContext): Prisma.DocumentWhereInput {
-  if (!ctx.can("documents.view")) return { id: { in: [] } };
-  return {
-    organizationId: ctx.org.id,
-    deletedAt: null,
-    permissions: { none: { access: "DENY", OR: [{ userId: ctx.user.id }, { roleId: ctx.role.id }] } },
-    OR: [{ matter: matterScopeWhere(ctx) }, ...(ctx.can("clients.view") ? [{ matterId: null, confidentiality: "STANDARD" as const }] : [])],
-  };
-}
+// Documents use the single strict scope from the documents module (incl. the rule that highly
+// confidential documents need explicit case membership) — never a looser copy.
 
 /** Global search (⌘K). Every group applies the same access rules as its module. */
 export async function globalSearch(ctx: StaffContext, raw: string, locale: "ar" | "en") {
   const q = raw.trim().slice(0, 100);
-  const ci = { contains: q, mode: "insensitive" as const };
+  const ci = { contains: q };
   const scope = matterScopeWhere(ctx);
   const L = (en: string, ar: string | null) => (locale === "ar" ? ar || en : en);
-
-  // Full-text candidates from extracted/OCR document text (GIN index), access-filtered afterwards.
-  const ftsIds = ctx.can("documents.view")
-    ? await db.$queryRaw<{ id: string }[]>`
-        SELECT id FROM "Document"
-        WHERE "organizationId" = ${ctx.org.id}::uuid AND "deletedAt" IS NULL
-          AND to_tsvector('simple', coalesce("searchText", '')) @@ plainto_tsquery('simple', ${q})
-        LIMIT 40`
-    : [];
+  // Full-text candidates (ids only); the permission filter is applied in the same query below.
+  const ftIds = ctx.can("documents.view") ? await fulltextDocumentIds(ctx.org.id, q) : [];
+  const docMatch: Prisma.DocumentWhereInput =
+    ftIds === null
+      ? { OR: [{ title: ci }, { tags: { array_contains: q } }] } // short query: explicit title/tag fallback
+      : { OR: [{ id: { in: ftIds } }, { tags: { array_contains: q } }, { description: ci }] };
 
   const [cases, clients, contacts, documents, tasks, invoices] = await Promise.all([
     db.matter.findMany({
@@ -63,7 +54,7 @@ export async function globalSearch(ctx: StaffContext, raw: string, locale: "ar" 
         })
       : [],
     db.document.findMany({
-      where: { AND: [documentScopeWhere(ctx), { OR: [{ title: ci }, { tags: { has: q } }, { description: ci }, { id: { in: ftsIds.map((r) => r.id) } }] }] },
+      where: { AND: [documentScope(ctx), docMatch] },
       select: { id: true, title: true, matterId: true, searchText: true, matter: { select: { internalNumber: true } } },
       orderBy: { updatedAt: "desc" },
       take: LIMIT,
