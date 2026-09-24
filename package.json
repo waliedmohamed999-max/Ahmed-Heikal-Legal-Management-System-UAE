@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev -p 3100",
     "build": "prisma generate && next build",
-    "start": "next start -p 3100",
+    "start": "next start",
     "worker": "tsx --env-file-if-exists=.env --conditions=react-server src/worker/index.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

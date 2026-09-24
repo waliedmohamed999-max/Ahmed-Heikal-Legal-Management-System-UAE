@@ -40,7 +40,7 @@ but a dump taken from it will not restore correctly onto Linux MySQL. Staging an
 In development the background jobs run in-process. In production they run in the worker:
 
 ```bash
-npm run build && npm start      # web
+PORT=3100 npm run build && npm start   # web (listens on $PORT; hosts such as Hostinger set it)
 npm run worker                  # reminders, e-mail/SMS/WhatsApp delivery queue, malware scans, OCR, integrity sweep
 npm run backup -- all           # nightly: encrypted mysqldump + off-site copy + restore test
 ```
