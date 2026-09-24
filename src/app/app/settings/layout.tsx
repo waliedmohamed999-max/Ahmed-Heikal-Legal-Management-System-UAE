@@ -19,6 +19,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
     { href: "/app/settings/ai", key: "ai", show: ctx.can("settings.manage") },
     { href: "/app/settings/privacy", key: "privacy", show: ctx.can("privacy.manage") },
     { href: "/app/settings/backups", key: "backups", show: ctx.can("backups.view") },
+    { href: "/app/settings/health", key: "health", show: ctx.can("settings.manage") },
     { href: "/app/integrations", key: "integrations", show: ctx.can("integrations.manage") },
     { href: "/app/audit", key: "audit", show: ctx.can("audit.view") },
     { href: "/app/website", key: "website", show: ctx.can("cms.manage") },

@@ -20,7 +20,7 @@ const en = {
     nav: {
       profile: "Profile & security", office: "Office", users: "Users", roles: "Roles & permissions", jurisdictions: "Jurisdictions & courts",
       caseTypes: "Case types & workflows", checklists: "Checklist templates", reminders: "Reminders & alerts", automations: "Automations",
-      ai: "AI", privacy: "Privacy & retention", backups: "Backups", integrations: "Integrations", audit: "Audit log", website: "Website",
+      ai: "AI", privacy: "Privacy & retention", backups: "Backups", health: "System health", integrations: "Integrations", audit: "Audit log", website: "Website",
     },
     saved: "Settings saved",
     profile: {
@@ -168,7 +168,7 @@ const en = {
       title: "Backups",
       intro: "Automated backups run on the infrastructure (database dumps + object storage versioning). This page records their status.",
       strategy: "Strategy",
-      strategyText: "Nightly PostgreSQL dump (pg_dump, compressed, checksummed) retained 35 days; hourly WAL archiving for point-in-time recovery in production; document storage with object versioning. Restore drills should be run quarterly.",
+      strategyText: "Nightly MySQL backup (mysqldump single-transaction snapshot, compressed, AES-256-GCM encrypted, SHA-256 verified) copied off-server and retained 35 days; MySQL binary logs for point-in-time recovery in production; document storage with object versioning. Every nightly run restores the backup into an isolated database and validates it (see docs/BACKUP-RESTORE.md).",
       runNow: "Run database backup now",
       history: "History",
       none: "No backups recorded yet.",
@@ -219,7 +219,7 @@ const ar: typeof en = {
     nav: {
       profile: "الملف الشخصي والأمان", office: "المكتب", users: "المستخدمون", roles: "الأدوار والصلاحيات", jurisdictions: "الاختصاصات والمحاكم",
       caseTypes: "أنواع القضايا ومراحلها", checklists: "قوالب قوائم التحقق", reminders: "التذكيرات والتنبيهات", automations: "الأتمتة",
-      ai: "الذكاء الاصطناعي", privacy: "الخصوصية والاحتفاظ", backups: "النسخ الاحتياطي", integrations: "التكاملات", audit: "سجل التدقيق", website: "الموقع الإلكتروني",
+      ai: "الذكاء الاصطناعي", privacy: "الخصوصية والاحتفاظ", backups: "النسخ الاحتياطي", health: "صحة النظام", integrations: "التكاملات", audit: "سجل التدقيق", website: "الموقع الإلكتروني",
     },
     saved: "تم حفظ الإعدادات",
     profile: {
@@ -367,7 +367,7 @@ const ar: typeof en = {
       title: "النسخ الاحتياطي",
       intro: "تُنفَّذ النسخ الاحتياطية الآلية على البنية التحتية (نسخ قاعدة البيانات + إصدارات التخزين). تسجّل هذه الصفحة حالتها.",
       strategy: "الاستراتيجية",
-      strategyText: "نسخة ليلية من PostgreSQL (pg_dump مضغوطة مع بصمة تحقق) تُحفظ 35 يومًا؛ أرشفة WAL كل ساعة للاستعادة إلى نقطة زمنية في الإنتاج؛ وتخزين المستندات بإصدارات. يُنصح بتجربة الاستعادة كل ربع سنة.",
+      strategyText: "نسخة ليلية من MySQL (لقطة mysqldump متسقة، مضغوطة ومشفرة AES-256-GCM مع تحقق SHA-256) تُنسخ خارج الخادم وتُحفظ 35 يومًا؛ سجلات MySQL الثنائية للاستعادة إلى نقطة زمنية في الإنتاج؛ وتخزين المستندات بإصدارات. في كل تشغيل ليلي تُستعاد النسخة إلى قاعدة بيانات معزولة ويُتحقق منها (راجع docs/BACKUP-RESTORE.md).",
       runNow: "تشغيل نسخة احتياطية الآن",
       history: "السجل",
       none: "لا توجد نسخ مسجلة بعد.",
